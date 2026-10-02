@@ -58,6 +58,7 @@ docker compose exec -T app node src/control.mjs reset R0001 V scan-example
 
 - `run.json`: ZAPバージョン、固定イメージ、設定、時間、状態、到達したリクエスト総数、最大同時処理数、予算超過、停止時の未完了通信・ハンドラー数、制限事項。
 - `alerts.json`: ZAP APIのアラート一覧。陽性／誤検知の採点をしていない生データ。
+- `zap-report.html`: ZAP自身のHTMLレポート。panel実行ではV/F/Nの各セルでZAPセッションを初期化したうえで保存します。レポート内の警告数を検出率へ直接換算しません。
 - `messages-first-500.json`: 最大500件のHTTPメッセージ。診断証拠の確認用。
 - `urls.json`: ZAPが認識したURL。
 - `scanner-settings.json`: 導入済みadd-onとルールの版・設定。`active-low`は選択した名前付きpolicyの実`activeScanners`と`activeScanPolicy`設定を保存。
