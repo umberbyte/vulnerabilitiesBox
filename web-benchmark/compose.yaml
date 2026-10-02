@@ -1,0 +1,108 @@
+name: web-benchmark-pilot
+services:
+  db:
+    image: postgres:16-bookworm@sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67
+    environment:
+      POSTGRES_USER: benchmark
+      POSTGRES_PASSWORD: benchmark-local-fixture
+      POSTGRES_DB: benchmark
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U benchmark"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:7.4-bookworm@sha256:c6eabf748fc7a61dbb5a705c78bcf3d6377b1127a97d0ce965c11c44ba46896f
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  executor:
+    build: {context: ., target: runtime}
+    command: ["node", "src/executor.mjs"]
+    networks: [execution]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=32m,uid=1000,gid=1000"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 256m
+  app:
+    build: {context: ., target: runtime}
+    ports:
+      - "127.0.0.1:${BENCHMARK_HTTP_PORT:-8080}:8080"
+      - "127.0.0.1:${BENCHMARK_HTTPS_PORT:-8443}:8443"
+      - "127.0.0.1:${BENCHMARK_ATTACKER_PORT:-8444}:8444"
+    environment:
+      DATABASE_URL: postgres://benchmark:benchmark-local-fixture@db:5432/benchmark
+      REDIS_URL: redis://redis:6379
+      EXECUTOR_URL: http://executor:8090
+    networks:
+      data: {}
+      execution: {}
+      scan: {aliases: [benchmark.test, app.benchmark.test, partner.benchmark.test, evil.benchmark.test, attacker.test]}
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      executor: {condition: service_started}
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=32m,uid=1000,gid=1000", "/opt/benchmark/fixtures:rw,noexec,nosuid,size=4m,uid=1000,gid=1000"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "node", "src/control.mjs", "health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  evaluate:
+    profiles: [evaluate]
+    build: {context: ., target: runtime}
+    entrypoint: ["node", "src/evaluation/cli.mjs"]
+    command: []
+    network_mode: none
+    volumes: ["./artifacts:/opt/benchmark/artifacts"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 256m
+  panel:
+    profiles: [panel]
+    build: {context: ., target: runtime}
+    user: "0:0"
+    entrypoint: ["node", "src/runner/panel-cli.mjs"]
+    command: ["help"]
+    network_mode: none
+    volumes: ["./artifacts:/opt/benchmark/artifacts"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 256m
+  verify:
+    profiles: [test]
+    build: {context: ., target: verify}
+    environment:
+      TARGET_URL: https://app:8443
+      ATTACKER_URL: https://app:8444
+      CONTROL_URL: http://app:8099
+      BENCHMARK_CONTROL_KEY: ${BENCHMARK_CONTROL_KEY:-}
+    networks: [scan]
+    volumes: ["./artifacts:/opt/benchmark/artifacts"]
+    depends_on:
+      app: {condition: service_healthy}
+    shm_size: 256m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 1g
+networks:
+  data: {internal: true}
+  execution: {internal: true}
+  scan: {}

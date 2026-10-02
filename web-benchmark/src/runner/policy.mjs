@@ -1,0 +1,163 @@
+import {isDeepStrictEqual} from 'node:util';
+
+export const TARGET_ORIGIN='https://app:8443';
+export const SCAN_PROFILES=Object.freeze(['baseline','active','active-low']);
+export const LOW_SCAN_POLICY='benchmark-active-low-v1';
+export const LOW_POLICY_VERSION='benchmark-active-low-0.1';
+export const isActiveProfile=profile=>profile==='active'||profile==='active-low';
+
+function policyError(code,message){const error=new Error(message);error.code=code;return error;}
+function requirePolicyOK(value,operation) {
+  if(value?.Result!=='OK')throw policyError('low_policy_api_unconfirmed','Temporary policy operation was not acknowledged: '+operation+'.');
+}
+function policyNames(value) {
+  const names=value?.scanPolicyNames;
+  if(!Array.isArray(names)||names.length===0||names.some(name=>typeof name!=='string'||!name)||new Set(names).size!==names.length)throw policyError('invalid_policy_inventory','The scanner policy inventory is missing or invalid.');
+  return [...names].sort();
+}
+function scannerIds(value) {
+  const scanners=value?.scanners;
+  if(!Array.isArray(scanners)||scanners.length===0||scanners.some(scanner=>typeof scanner?.id!=='string'||!/^\d+$/.test(scanner.id))||new Set(scanners.map(scanner=>scanner.id)).size!==scanners.length)throw policyError('invalid_scanner_inventory','The installed active scanner inventory is missing or invalid.');
+  return scanners.map(scanner=>scanner.id);
+}
+export function validateLowPolicySnapshot(value,expectedIds) {
+  const ids=scannerIds(value);
+  if(!isDeepStrictEqual([...ids].sort(),[...expectedIds].sort()))throw policyError('low_policy_rule_inventory_changed','The named policy does not contain exactly the installed active rules.');
+  if(value.scanners.some(scanner=>!['true',true].includes(scanner.enabled)||scanner.attackStrength!=='LOW'||scanner.alertThreshold!=='MEDIUM'))throw policyError('low_policy_settings_mismatch','Every installed active rule must be enabled with explicit LOW strength and MEDIUM threshold.');
+  return value;
+}
+export function lowPolicyDescription(policy) {
+  return {name:LOW_SCAN_POLICY,version:LOW_POLICY_VERSION,attackStrength:'LOW',alertThreshold:'MEDIUM',enabledRules:'all installed active rules; no case-specific selection',configurationVerified:policy?.verified===true};
+}
+// addScanPolicy creates a new template rather than copying the default policy.
+// Set every installed rule explicitly: DEFAULT in scanners means inheritance.
+// Ownership is reported immediately after add succeeds, so partial setup can be
+// cleaned without ever deleting a policy that existed before this invocation.
+export async function createLowScanPolicy(api,{onOwned=()=>{}}={}) {
+  const defaultScanners=await api('ascan','view','scanners');
+  const installedIds=scannerIds(defaultScanners);
+  const previousPolicyNames=policyNames(await api('ascan','view','scanPolicyNames'));
+  if(previousPolicyNames.includes(LOW_SCAN_POLICY))throw policyError('low_policy_already_exists','The temporary low-strength policy already exists; it will not be reused or changed.');
+  const added=await api('ascan','action','addScanPolicy',{scanPolicyName:LOW_SCAN_POLICY,alertThreshold:'MEDIUM',attackStrength:'LOW'});
+  if(added?.Result!=='OK')throw policyError('low_policy_creation_unconfirmed','Temporary policy creation was not acknowledged.');
+  const policy={name:LOW_SCAN_POLICY,owned:true,verified:false,installedIds,defaultScanners:structuredClone(defaultScanners),previousPolicyNames};
+  onOwned(policy);
+  const named={scanPolicyName:LOW_SCAN_POLICY};
+  requirePolicyOK(await api('ascan','action','enableAllScanners',named),'enableAllScanners');
+  const initial=await api('ascan','view','scanners',named);
+  if(!isDeepStrictEqual([...scannerIds(initial)].sort(),[...installedIds].sort()))throw policyError('low_policy_rule_inventory_changed','The named policy does not contain exactly the installed active rules.');
+  for(const id of installedIds) {
+    requirePolicyOK(await api('ascan','action','setScannerAttackStrength',{...named,id,attackStrength:'LOW'}),'setScannerAttackStrength');
+    requirePolicyOK(await api('ascan','action','setScannerAlertThreshold',{...named,id,alertThreshold:'MEDIUM'}),'setScannerAlertThreshold');
+  }
+  policy.configuredScanners=validateLowPolicySnapshot(await api('ascan','view','scanners',named),installedIds);
+  policy.verified=true;
+  return policy;
+}
+export function activeScanParameters(profile,parameters,policy) {
+  if(!isActiveProfile(profile))throw policyError('invalid_active_profile','An active scan requires active or active-low.');
+  if(profile==='active')return {...parameters};
+  if(!policy?.owned||!policy.verified||policy.name!==LOW_SCAN_POLICY)throw policyError('low_policy_not_verified','The low-strength policy must be freshly owned and verified before scanning.');
+  return {...parameters,scanPolicyName:LOW_SCAN_POLICY};
+}
+// FINISHED is only the API state. Also require the application's independent
+// inactive/public request/async handler drain check before deleting our policy.
+export async function cleanupLowScanPolicy(api,policy,{snapshotSaved=false,isTrafficSettled,timeoutMs=10000,pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),now=Date.now}={}) {
+  if(!policy?.owned||policy.name!==LOW_SCAN_POLICY||typeof isTrafficSettled!=='function')throw policyError('low_policy_cleanup_not_owned','Only this invocation\'s owned policy can be removed after a traffic check.');
+  if(snapshotSaved!==true)throw policyError('low_policy_snapshot_not_saved','The actual selected-policy snapshot must be saved before removing the temporary policy.');
+  const began=now();let idle=false;
+  do {
+    const scans=await api('ascan','view','scans');
+    if(!Array.isArray(scans?.scans))throw policyError('invalid_active_scan_state','The active scan state is unavailable.');
+    idle=scans.scans.every(scan=>scan?.state==='FINISHED')&&await isTrafficSettled();
+    if(idle)break;
+    if(now()-began>=timeoutMs)throw policyError('low_policy_cleanup_not_idle','Active scans or public requests/handlers did not settle; the temporary policy was not removed.');
+    await pause(250);
+  }while(true);
+  const removed=await api('ascan','action','removeScanPolicy',{scanPolicyName:policy.name});
+  if(removed?.Result!=='OK')throw policyError('low_policy_removal_unconfirmed','Temporary policy removal was not acknowledged.');
+  const names=policyNames(await api('ascan','view','scanPolicyNames'));
+  if(!isDeepStrictEqual(names,policy.previousPolicyNames))throw policyError('low_policy_inventory_not_restored','The original policy inventory was not restored after cleanup.');
+  let missing=false;
+  try{await api('ascan','view','scanners',{scanPolicyName:policy.name});}
+  catch(error){if(String(error.zapCode||'').toUpperCase()==='DOES_NOT_EXIST')missing=true;else throw error;}
+  if(!missing)throw policyError('low_policy_removal_not_verified','The removed policy remains readable.');
+  const currentDefault=await api('ascan','view','scanners');
+  if(!isDeepStrictEqual(currentDefault,policy.defaultScanners))throw policyError('default_policy_changed','The default active scanner settings changed during the temporary-policy lifecycle.');
+  policy.owned=false;
+  return {name:policy.name,removed:true,absenceVerified:true,originalPolicyInventoryVerified:true,defaultScannersUnchanged:true,activeScansFinished:true,publicTrafficSettled:true};
+}
+export class TargetSurfaceError extends Error {
+  constructor(code,message,{unsupported=false}={}){super(message);this.code=code;this.unsupported=unsupported;}
+}
+// Target surfaces are declared by the same public normal-operation contract in
+// every arm. Never select them by private root, variant, or oracle information.
+export function validateTargetSurface(manifest) {
+  const required=manifest.requiredTargetOrigins===undefined?[TARGET_ORIGIN]:manifest.requiredTargetOrigins;
+  if(!Array.isArray(required)||required.length===0||required.some(value=>{
+    if(typeof value!=='string')return true;
+    try{const url=new URL(value);return !['http:','https:'].includes(url.protocol)||url.origin!==value;}catch{return true;}
+  })||new Set(required).size!==required.length)throw new TargetSurfaceError('invalid_target_surface','The public contract must declare distinct canonical HTTP(S) origins.');
+  if(required.some(value=>value!==TARGET_ORIGIN))throw new TargetSurfaceError('unsupported_target_surface','The public contract requires a target origin that this HTTPS-only adapter cannot exercise.',{unsupported:true});
+  return {requiredOrigins:[...required],supportedOrigins:[TARGET_ORIGIN],verified:true};
+}
+export function options(env) {
+  const profile=env.SCAN_PROFILE||'baseline';
+  if(!SCAN_PROFILES.includes(profile))throw new Error('Profile must be baseline, active or active-low.');
+  const auth=env.SCAN_AUTH||'anonymous';
+  if(!['anonymous','session','bearer'].includes(auth))throw new Error('SCAN_AUTH must be anonymous, session or bearer.');
+  const user=env.SCAN_USER||'alice';
+  if(!['alice','bob','carol','approver','admin'].includes(user))throw new Error('SCAN_USER must name a declared fixture subject.');
+  function integer(name,fallback,min,max) {
+    const raw=env[name]||String(fallback);
+    if(!/^\d+$/.test(raw)||Number(raw)<min||Number(raw)>max)throw new Error(`${name} must be ${min}..${max}.`);
+    return Number(raw);
+  }
+  return {profile,auth,user,seconds:integer('SCAN_SECONDS',120,10,1200),requests:integer('SCAN_REQUEST_BUDGET',300,10,3000)};
+}
+export function publicScope(manifest) {
+  if(!/^\/w\/[a-f0-9]{12}$/.test(manifest.base))throw new Error('Unsupported public workspace path.');
+  const origin=TARGET_ORIGIN;
+  const prefix=origin+manifest.base;
+  const isAllowed=value=>{
+    try {const url=new URL(value,origin);return url.origin===origin&&!url.username&&!url.password&&(url.pathname===manifest.base||url.pathname.startsWith(manifest.base+'/'));}catch{return false;}
+  };
+  if(!isAllowed(manifest.entry)||!isAllowed(manifest.openapi))throw new Error('Manifest entry/schema is outside the public workspace.');
+  const regex='^'+prefix.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:/.*|\\?.*|$)';
+  return {origin,prefix,regex,isAllowed,entry:new URL(manifest.entry,origin).href,openapi:new URL(manifest.openapi,origin).href};
+}
+export function seedUrls(manifest,scope,{auth='anonymous'}={}) {
+  const seeds=[scope.entry,scope.openapi];
+  for(const r of manifest.requests||[]) {
+    if(r.method!=='GET'||!scope.isAllowed(r.path)||auth!=='anonymous'&&authStatePath(r.path,manifest))continue;
+    const value=r.path.replace(/\{([^}]+)\}/g,(_,name)=>encodeURIComponent(r.pathValues?.[name]??''));
+    if(/\{/.test(value))continue;
+    const url=new URL(value,scope.origin);
+    for(const [k,v] of Object.entries(r.values||{})) {
+      if(['from-connect','from-idp','from-session','supplied-by-own-inbox'].includes(String(v)))continue;
+      url.searchParams.set(k,String(v));
+    }
+    if(scope.isAllowed(url.href))seeds.push(url.href);
+  }
+  return [...new Set(seeds)].filter(url=>auth==='anonymous'||!authStatePath(new URL(url).pathname,manifest));
+}
+export function authStatePath(path,manifest={}) {
+  return [manifest.login,manifest.logout].filter(Boolean).includes(path)||/\/(?:login|logout|signin|signout|connect|callback|idp\/authorize)$/.test(path);
+}
+// No configured login in the anonymous smoke profile. Imported POSTs cannot use
+// the supplied successful fixture credentials to silently authenticate ZAP.
+export function anonymousSchema(input,scope,{auth='anonymous',manifest={}}={}) {
+  const result=structuredClone(input);result.servers=[{url:scope.origin}];result.paths={};
+  for(const [path,methods]of Object.entries(input.paths||{})) {
+    if(!scope.isAllowed(path))continue;
+    if(auth!=='anonymous'&&authStatePath(path,manifest))continue;
+    const filtered={};
+    for(const [method,operation]of Object.entries(methods)) {
+      if(!['get','post','put','patch','delete','head','options'].includes(method))continue;
+      if(method!=='get'&&/\/(?:login|logout|signin|signout|idp\/authorize)$/.test(path))continue;
+      filtered[method]=structuredClone(operation);
+    }
+    if(Object.keys(filtered).length)result.paths[path]=filtered;
+  }
+  return result;
+}

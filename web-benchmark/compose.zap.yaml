@@ -1,0 +1,48 @@
+# Optional ZAP runner. Use with compose.yaml; no scanner API is published to the host.
+services:
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+    profiles: [scan]
+    environment: {ZAP_PORT: "8090"}
+    command: ["zap.sh", "-Xmx1024m", "-daemon", "-host", "0.0.0.0", "-port", "8090", "-config", "api.key=${ZAP_API_KEY:?Run scan-zap.cmd or scan-zap.sh}", "-config", "api.addrs.addr.name=.*", "-config", "api.addrs.addr.regex=true", "-config", "connection.timeoutInSecs=5", "-config", "spider.thread=2", "-config", "scanner.threadPerHost=2", "-config", "autoupdate.checkOnStart=false", "-config", "autoupdate.installAddonUpdates=false", "-config", "autoupdate.downloadNewRelease=false"]
+    networks: [scan]
+    volumes: ["zap-input:/scan-input:ro"]
+    tmpfs: ["/tmp:rw,nosuid,size=256m", "/home/zap/.ZAP:rw,nosuid,size=512m,uid=1000,gid=1000"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 2g
+    healthcheck: {disable: true}
+    depends_on:
+      app: {condition: service_healthy}
+  scan-controller:
+    profiles: [scan]
+    build: {context: ., target: runtime}
+    user: "0:0"
+    command: ["node", "src/runner/scan-zap.mjs"]
+    environment:
+      CONTROL_URL: http://app:8099
+      BENCHMARK_CONTROL_KEY: ${BENCHMARK_CONTROL_KEY:?Run scan-zap.cmd or scan-zap.sh}
+      ZAP_URL: http://zap:8090
+      ZAP_API_KEY: ${ZAP_API_KEY:?Run scan-zap.cmd or scan-zap.sh}
+      SCAN_PROFILE: ${SCAN_PROFILE:-baseline}
+      SCAN_SECONDS: ${SCAN_SECONDS:-120}
+      SCAN_REQUEST_BUDGET: ${SCAN_REQUEST_BUDGET:-300}
+      SCAN_AUTH: ${SCAN_AUTH:-anonymous}
+      SCAN_USER: ${SCAN_USER:-alice}
+      PANEL_PATH: ${PANEL_PATH:-}
+      PANEL_LEDGER: ${PANEL_LEDGER:-}
+      ZAP_IMAGE: ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+    networks: [scan]
+    volumes: ["zap-input:/scan-input", "./artifacts:/opt/benchmark/artifacts"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 256m
+    depends_on:
+      app: {condition: service_healthy}
+      zap: {condition: service_started}
+volumes:
+  zap-input: {}

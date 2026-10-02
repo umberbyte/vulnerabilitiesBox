@@ -1,0 +1,10 @@
+**/node_modules/
+**/.env
+**/.env.*
+**/__pycache__/
+**/*.log
+**/*.tap
+**/*.zip
+web-benchmark/artifacts/*
+!web-benchmark/artifacts/README.md
+!web-benchmark/artifacts/batch5-docker-smoke.json

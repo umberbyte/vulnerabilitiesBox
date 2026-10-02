@@ -1,0 +1,240 @@
+import {createHash,randomBytes} from 'node:crypto';
+import {readFile,writeFile,mkdir,rename,unlink,readdir,realpath,lstat} from 'node:fs/promises';
+import {spawn} from 'node:child_process';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {cases} from '../catalog.mjs';
+import {validatePanel} from './panel.mjs';
+import {validateVariantPanel,VARIANT_PANEL_SCHEMA} from './variant-panel.mjs';
+import {pendingState} from './drain.mjs';
+import {publicScope,TARGET_ORIGIN} from './policy.mjs';
+import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
+
+export const PANEL_LEDGER_SCHEMA='benchmark-operator-panel-ledger-0.1';
+const statuses=['completed','budget_stopped','unsupported','failed','incomplete_drain'];
+const continuable=new Set(['completed','budget_stopped','unsupported']);
+const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+const sha=value=>createHash('sha256').update(value).digest('hex');
+const semanticSha=value=>sha(JSON.stringify(value));
+const digest=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+class ExecutionError extends Error {
+  constructor(code){super(code);this.code=code;}
+}
+const fail=code=>{throw new ExecutionError(code);};
+function meterSummary(value) {
+  if(!object(value))fail('measurement_invalid');
+  return {id:typeof value.id==='string'?value.id:null,workspace:typeof value.workspace==='string'?value.workspace:null,active:value.active,count:value.count??null,peakActive:value.peakActive??null,pending:pendingState(value)};
+}
+function idle(value) {
+  const summary=meterSummary(value);
+  if(summary.active!==false||!summary.pending.settled)fail('measurement_busy_or_unsettled');
+  return summary;
+}
+function reference(result) {
+  if(!object(result)||!object(result.run)||!/^zap-[A-Za-z0-9-]+$/.test(result.run.runId)||result.path!=='artifacts/'+result.run.runId+'/run.json'||!digest(result.sha256)||!Number.isSafeInteger(result.exitCode))fail('artifact_reference_invalid');
+  return {path:result.path,sha256:result.sha256,runId:result.run.runId,status:result.run.status,exitCode:result.exitCode};
+}
+export function validateCellResult(cell,result,{manifestSha256}={}) {
+  const ref=reference(result),run=result.run,c=cell.condition;
+  if(run.schema!=='benchmark-scanner-run-0.2'||run.tool!=='ZAP'||run.phase!=='finished'||!statuses.includes(run.status)||!Number.isFinite(Date.parse(run.finishedAt)))fail('artifact_run_invalid');
+  if(run.workspace!==cell.expectedWorkspace||run.targetOrigin!==TARGET_ORIGIN)fail('artifact_workspace_mismatch');
+  if(run.profile!==c.authMode+'-'+c.profile)fail('artifact_profile_mismatch');
+  for(const name of ['wallSeconds','requestedHttpRequests','requestedConcurrency'])if(run.budgets?.[name]!==c[name])fail('artifact_budget_mismatch');
+  const auth=run.authReachability;
+  if(!object(auth)||auth.configuredAuthentication!==(c.authMode==='anonymous'?'none':c.authMode)||auth.subject!==c.subject)fail('artifact_authentication_mismatch');
+  const successful=run.status==='completed'||run.status==='budget_stopped';
+  if(successful&&result.exitCode!==0||!successful&&run.status!=='incomplete_drain'&&result.exitCode!==1||run.status==='incomplete_drain'&&![0,1].includes(result.exitCode))fail('artifact_exit_status_mismatch');
+  if(successful) {
+    if(run.trafficSettled!==true||run.drainTimedOut!==false||!pendingState(run.pendingAtMeasurementStop||{}).settled||!pendingState(run.drainPendingState||{}).settled)fail('artifact_traffic_unsettled');
+    if(!object(run.measurement))fail('artifact_measurement_missing');
+    if(c.authMode!=='anonymous'&&(auth.identityVerified!==true||auth.postScanVerified!==true||auth.selfChecks?.presentCookiePreserved!==true))fail('artifact_authentication_unverified');
+    if(c.authMode==='bearer'&&(auth.protectedOperationVerified!==true||auth.selfChecks?.presentAuthorizationPreserved!==true))fail('artifact_bearer_unverified');
+  }
+  if(successful||run.inputFingerprints?.publicManifestSha256!==undefined) {
+    if(!digest(manifestSha256)||run.inputFingerprints?.publicManifestSha256!==manifestSha256)fail('artifact_manifest_mismatch');
+  }
+  if(run.measurement&&continuable.has(run.status)) {
+    const measured=idle(run.measurement);
+    if(!measured.id||measured.workspace!==cell.expectedWorkspace||!Number.isSafeInteger(measured.count)||measured.count<0||!Number.isSafeInteger(measured.peakActive)||measured.peakActive<0)fail('artifact_measurement_invalid');
+  }
+  return {...ref,summary:{workspace:run.workspace,profile:run.profile,configuredAuthentication:auth.configuredAuthentication,subject:auth.subject,identityVerified:auth.identityVerified===true,protectedOperationVerified:auth.protectedOperationVerified===true,postScanVerified:auth.postScanVerified===true,requests:run.measurement?.count??null,peakConcurrency:run.measurement?.peakActive??null,trafficSettled:run.trafficSettled===true,pending:run.measurement?pendingState(run.measurement):null,stopReason:run.stopReason??null,scannerSettingsSha256:digest(run.scannerSettingsSha256)?run.scannerSettingsSha256:null,scannerConfigurationSha256:digest(run.scannerConfigurationSha256)?run.scannerConfigurationSha256:null,normalizationVersion:run.normalizationVersion??null,errorCount:Array.isArray(run.errors)?run.errors.length:null}};
+}
+
+// All state-changing operations are injected so lifecycle ordering and fail-closed
+// behavior can be tested without networking, a scanner, or fixture resets.
+export async function executePanel(input,callbacks,{catalog=cases,now=()=>new Date().toISOString(),planReference=null,planSha256=null}={}) {
+  const plan=input?.schema===VARIANT_PANEL_SCHEMA?validateVariantPanel(input):validatePanel(input,{catalog});
+  for(const name of ['measurement','reset','newSession','scan','persist'])if(typeof callbacks?.[name]!=='function')throw new Error('Missing panel execution callback: '+name);
+  const ledger={schema:PANEL_LEDGER_SCHEMA,visibility:'private operator ledger; never supply this JSON to a scanner',plan:{path:planReference,sha256:planSha256,planId:plan.planId},status:'created',startedAt:now(),finishedAt:null,currentCell:null,errors:[],limitations:['Runtime orchestration only; no alert scoring or TP/FP/FN labels are produced.','The Compose target and scanner must be used exclusively by this worker; no atomic cross-client API lease is provided.','Budgets are soft stop thresholds and may overshoot; budget_stopped is distinct from completed.','No restart/resume; retain interrupted ledgers and artifacts and use a new plan/ledger after checking the target.','newSession resets session data, not global add-on versions or scan policies.'],cells:plan.cells.map(cell=>({...structuredClone(cell),phase:'not_run',startedAt:null,finishedAt:null,errors:[]}))};
+  // Exclusive creation happens before the first private API call.
+  await callbacks.persist(structuredClone(ledger),{initial:true});
+  const save=()=>callbacks.persist(structuredClone(ledger),{initial:false});
+  let cell;
+  try {
+    ledger.status='running';await save();
+    ledger.initialMeasurement=idle(await callbacks.measurement());await save();
+    for(cell of ledger.cells) {
+      ledger.currentCell=cell.cellId;cell.status='running';cell.phase='preflight';cell.startedAt=now();await save();
+      cell.beforeMeasurement=idle(await callbacks.measurement());
+      cell.phase='reset';await save();
+      const manifest=await callbacks.reset(structuredClone(cell));
+      if(!object(manifest)||manifest.base!==cell.expectedWorkspace)fail('reset_workspace_mismatch');
+      try{publicScope(manifest);}catch{fail('reset_manifest_invalid');}
+      const manifestSha256=semanticSha(manifest);
+      cell.publicManifestSha256=manifestSha256;
+      cell.phase='new_session';await save();await callbacks.newSession();
+      cell.phase='scan';await save();
+      // The child only receives public scan settings, never operator labels.
+      const result=await callbacks.scan(structuredClone(cell.condition));
+      cell.phase='validate';cell.run=reference(result);await save();
+      cell.run=validateCellResult(cell,result,{manifestSha256});
+      const after=await callbacks.measurement();cell.afterMeasurement=meterSummary(after);
+      if(continuable.has(result.run.status)) {
+        idle(after);
+        if(result.run.measurement) {
+          for(const name of ['id','workspace','count','peakActive'])if(after[name]!==result.run.measurement[name])fail('measurement_artifact_mismatch');
+        }
+      }
+      cell.status=result.run.status;cell.phase='finished';cell.finishedAt=now();
+      if(!continuable.has(cell.status))fail('scanner_'+cell.status);
+      await save();
+    }
+    ledger.status='completed';ledger.currentCell=null;ledger.finishedAt=now();await save();
+  } catch(error) {
+    // Arbitrary child output, HTTP bodies, and exception messages are not copied
+    // into metadata, interpreted as instructions, or used as artifact paths.
+    const code=error instanceof ExecutionError?error.code:'execution_callback_failed';
+    ledger.status='halted';ledger.errors.push({code,...(cell?{cellId:cell.cellId}:{})});ledger.finishedAt=now();
+    if(cell){if(!['failed','incomplete_drain'].includes(cell.status))cell.status='failed';cell.errors.push({code});cell.finishedAt=now();}
+    await save();
+  }
+  return ledger;
+}
+
+async function insideArtifacts(filename,artifacts,{existing=false}={}) {
+  if(typeof filename!=='string'||!filename.trim()||/[\u0000-\u001f\u007f]/.test(filename))fail('operator_path_invalid');
+  const resolved=path.resolve(filename),relative=path.relative(artifacts,resolved);
+  if(!relative||relative==='..'||relative.startsWith('..'+path.sep)||path.isAbsolute(relative))fail('operator_path_outside_artifacts');
+  if(existing) {
+    const real=await realpath(resolved),realRelative=path.relative(artifacts,real);
+    if(!realRelative||realRelative==='..'||realRelative.startsWith('..'+path.sep)||path.isAbsolute(realRelative))fail('operator_path_outside_artifacts');
+    if(!(await lstat(real)).isFile())fail('operator_path_not_file');
+    return real;
+  }
+  await mkdir(path.dirname(resolved),{recursive:true});
+  const parent=await realpath(path.dirname(resolved)),parentRelative=path.relative(artifacts,parent);
+  if(parentRelative==='..'||parentRelative.startsWith('..'+path.sep)||path.isAbsolute(parentRelative))fail('operator_path_outside_artifacts');
+  return path.join(parent,path.basename(resolved));
+}
+async function limitedJson(filename) {
+  const info=await lstat(filename);
+  if(!info.isFile()||info.isSymbolicLink()||info.size>32*1024*1024)fail('operator_json_invalid');
+  const raw=await readFile(filename);
+  let value;try{value=JSON.parse(raw.toString('utf8'));}catch{fail('operator_json_invalid');}
+  return {raw,value};
+}
+async function persistFile(filename,ledger,{initial}) {
+  const content=JSON.stringify(ledger,null,2)+'\n';
+  if(initial){await writeFile(filename,content,{flag:'wx',mode:0o600});return;}
+  const temporary=filename+'.tmp-'+randomBytes(6).toString('hex');
+  try{await writeFile(temporary,content,{flag:'wx',mode:0o600});await rename(temporary,filename);}
+  finally {try{await unlink(temporary);}catch(error){if(error.code!=='ENOENT')throw error;}}
+}
+
+export async function main(env=process.env) {
+  const controlKey=env.BENCHMARK_CONTROL_KEY,apiKey=env.ZAP_API_KEY;
+  if(!controlKey||!apiKey||controlKey===apiKey)fail('separate_api_keys_required');
+  const control=env.CONTROL_URL||'http://app:8099',zap=env.ZAP_URL||'http://zap:8090';
+  if(control!=='http://app:8099'||zap!=='http://zap:8090')fail('unsupported_controller_endpoints');
+  const artifacts=await realpath('/opt/benchmark/artifacts');
+  const planFile=await insideArtifacts(env.PANEL_PATH,artifacts,{existing:true});
+  const ledgerFile=await insideArtifacts(env.PANEL_LEDGER,artifacts);
+  if(planFile===ledgerFile)fail('plan_and_ledger_must_differ');
+  const {raw,value:plan}=await limitedJson(planFile);
+  if(plan?.schema===VARIANT_PANEL_SCHEMA)validateVariantPanel(plan);else validatePanel(plan);
+  const ctl=async(endpoint,body)=>{
+    const response=await fetch(control+endpoint,{method:body===undefined?'GET':'POST',headers:{'x-benchmark-key':controlKey,...(body===undefined?{}:{'content-type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(30000)});
+    if(!response.ok)fail('private_api_failed');
+    try{return await response.json();}catch{fail('private_api_invalid');}
+  };
+  const api=async(component,kind,name,params={},timeout=10000)=>{
+    const url=new URL(`/JSON/${component}/${kind}/${name}/`,zap);
+    for(const [key,value]of Object.entries(params))url.searchParams.set(key,String(value));
+    const response=await fetch(url,{headers:{'X-ZAP-API-Key':apiKey},signal:AbortSignal.timeout(timeout)});
+    if(!response.ok)fail('scanner_api_failed');
+    let value;try{value=await response.json();}catch{fail('scanner_api_invalid');}
+    if(value.code)fail('scanner_api_failed');return value;
+  };
+  let ready=false,child=null,interrupted=false;
+  const cancel=()=>{interrupted=true;if(child)child.kill('SIGKILL');};
+  process.on('SIGINT',cancel);process.on('SIGTERM',cancel);
+  async function scannerIdle() {
+    if(interrupted)fail('worker_interrupted');
+    if(!ready) {
+      const until=Date.now()+90000;
+      while(true) {
+        try{await api('core','view','version',{},2000);ready=true;break;}
+        catch{if(Date.now()>=until||interrupted)fail('scanner_startup_failed');await sleep(1000);}
+      }
+    }
+    for(const component of ['spider','ascan']) {
+      const scans=(await api(component,'view','scans')).scans;
+      if(!Array.isArray(scans)||scans.some(scan=>scan.state!=='FINISHED'))fail('scanner_busy');
+    }
+    const until=Date.now()+10000;let stable=0;
+    while(true) {
+      const count=Number((await api('pscan','view','recordsToScan')).recordsToScan);
+      const tasks=(await api('pscan','view','currentTasks')).currentTasks;
+      if(!Number.isSafeInteger(count)||count<0||!Array.isArray(tasks))fail('scanner_passive_state_invalid');
+      stable=count===0&&tasks.length===0?stable+1:0;
+      if(stable>=3)break;
+      if(Date.now()>=until||interrupted)fail('scanner_passive_busy');await sleep(250);
+    }
+    const scripts=(await api('script','view','listScripts')).listScripts;
+    if(!Array.isArray(scripts)||scripts.some(script=>script.name==='benchmark-auth-missing-headers'))fail('scanner_auth_script_residual');
+  }
+  const inventory=async()=>new Set((await readdir(artifacts,{withFileTypes:true})).filter(entry=>entry.isDirectory()&&/^zap-[A-Za-z0-9-]+$/.test(entry.name)).map(entry=>entry.name));
+  async function scan(condition) {
+    if(interrupted)fail('worker_interrupted');
+    const before=await inventory();
+    const childEnv={CONTROL_URL:control,BENCHMARK_CONTROL_KEY:controlKey,ZAP_URL:zap,ZAP_API_KEY:apiKey,ZAP_IMAGE:env.ZAP_IMAGE||'',SCAN_PROFILE:condition.profile,SCAN_AUTH:condition.authMode,SCAN_USER:condition.subject||'alice',SCAN_SECONDS:String(condition.wallSeconds),SCAN_REQUEST_BUDGET:String(condition.requestedHttpRequests)};
+    const exitCode=await new Promise((resolve,reject)=>{
+      child=spawn(process.execPath,['src/runner/scan-zap.mjs'],{cwd:'/opt/benchmark',env:childEnv,stdio:['ignore','ignore','ignore'],windowsHide:true});
+      let timedOut=false;
+      const timer=setTimeout(()=>{timedOut=true;child?.kill('SIGKILL');},(condition.wallSeconds+180)*1000);
+      child.once('error',()=>{clearTimeout(timer);child=null;reject(new ExecutionError('scanner_child_failed'));});
+      child.once('close',(code,signal)=>{clearTimeout(timer);child=null;if(interrupted)reject(new ExecutionError('worker_interrupted'));else if(timedOut)reject(new ExecutionError('scanner_child_timeout'));else if(signal||!Number.isSafeInteger(code))reject(new ExecutionError('scanner_child_crashed'));else resolve(code);});
+    });
+    const added=[...await inventory()].filter(name=>!before.has(name));
+    if(added.length!==1)fail('scanner_artifact_ambiguous');
+    const filename=await insideArtifacts(path.join(artifacts,added[0],'run.json'),artifacts,{existing:true});
+    const {raw,value:run}=await limitedJson(filename);
+    if(run.runId!==added[0])fail('scanner_artifact_identity_mismatch');
+    if(['completed','budget_stopped'].includes(run.status)) {
+      const settingsFile=await insideArtifacts(path.join(artifacts,added[0],'scanner-settings.json'),artifacts,{existing:true});
+      const settings=(await limitedJson(settingsFile)).value;
+      if(run.scannerSettingsSha256!==semanticSha(settings)||run.normalizationVersion!==CONFIGURATION_NORMALIZATION||run.scannerConfigurationSha256!==configurationFingerprint(settings,run.workspace))fail('scanner_configuration_artifact_mismatch');
+    }
+    return {run,path:'artifacts/'+added[0]+'/run.json',sha256:sha(raw),exitCode};
+  }
+  try {
+    const ledger=await executePanel(plan,{measurement:()=>ctl('/measurement'),reset:async cell=>{await scannerIdle();idle(await ctl('/measurement'));return ctl('/reset',{root:cell.root,mode:cell.arm,seed:cell.seed,...(plan.schema===VARIANT_PANEL_SCHEMA?{variant:cell.variant}:{})});},newSession:async()=>{
+      if(interrupted)fail('worker_interrupted');
+      await api('core','action','setMode',{mode:'protect'});
+      // Name/overwrite are omitted: ZAP creates a new unnamed session without
+      // receiving any private case/arm/seed identity.
+      await api('core','action','newSession',{},30000);
+      await api('core','action','clearExcludedFromProxy');
+      await api('ascan','action','clearExcludedFromScan');
+      await api('spider','action','clearExcludedFromScan');
+      if(Number((await api('core','view','numberOfMessages')).numberOfMessages)!==0)fail('scanner_session_not_empty');
+    },scan,persist:(ledger,options)=>persistFile(ledgerFile,ledger,options)},{planReference:'artifacts/'+path.relative(artifacts,planFile).split(path.sep).join('/'),planSha256:sha(raw)});
+    process.stdout.write(JSON.stringify({status:ledger.status,ledger:'artifacts/'+path.relative(artifacts,ledgerFile).split(path.sep).join('/'),total:ledger.cells.length,states:ledger.cells.reduce((counts,cell)=>({...counts,[cell.status]:(counts[cell.status]||0)+1}),{}),errorCodes:ledger.errors.map(error=>error.code)},null,2)+'\n');
+    return ledger.status==='completed'?0:1;
+  } finally {process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel);}
+}
+if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url) {
+  try {process.exitCode=await main();}
+  catch(error){process.stderr.write((error.code==='EEXIST'?'Existing ledger will not be overwritten; restart/resume is unsupported.':error.code==='EACCES'?'Panel plan/ledger access failed (EACCES); match operator container ownership and keep private file permissions.':error instanceof ExecutionError?error.code:'Panel worker failed before execution or ledger update.')+'\n');process.exitCode=1;}
+}
