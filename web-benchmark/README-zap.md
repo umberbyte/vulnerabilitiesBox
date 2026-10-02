@@ -1,4 +1,4 @@
-# ZAP実行経路の初版
+# ZAPの実行手順と対応範囲
 
 現在選択中のケースに対して、ZAPのパッシブ診断またはアクティブ診断を実行し、生のアラートと実行条件を保存します。匿名・セッション認証・Bearer認証のプロファイルを選べます。Docker Desktop / Docker Composeのみで動きます。PowerShellの実行ポリシー変更や、ホストへのJava / Node.js導入は必要ありません。
 
@@ -36,11 +36,11 @@ sh ./scan-zap.sh active 120 300 bearer admin
 
 公開manifestの `requiredTargetOrigins` がHTTPS入口以外のoriginを要求すると、このadapterは計測開始前に `unsupported_target_surface` で終了します。R0461はHTTP開始点、R0457/R0458はHTTPS 8443から別originのHTTPS 8444へ送る収集経路を要求するため、現行runnerでは未対応です。宣言がない従来契約は現在のHTTPS入口を必要originとします。公開入力・workspace・manifest hashを保存し、未到達の対象面を検出／見逃しとして採点しません。
 
-ソースcatalogは243 rootの代表243変種、V/F/Nの計画は729条件です。追加33件と現行全体の最終成立確認は保留しており、検証済み630条件は210版の履歴です。このrunnerに243件すべての必要な操作があるという意味ではありません。今回の100件要求は33件だけ進み、残る67件はサービス側制限で停止しています。[今回の追加と制限](README-batch-03.md)を参照してください。描画境界7件は成立確認で実Chromiumを使いますが、現行runnerにはDOM診断や実クリックの自動化がありません。localStorageとService Workerの操作、認証をまたぐcache再利用、正常応答のIDを使うjob取消も、単なるHTTP探索の完了と区別してください。資源制限5件は元設計の`bounded_stress`系列で、有限の業務上限を検査し、物理的な負荷耐性を測定しません。[追加18件の履歴](README-implementation.md)と[追加50件](README-batch-01.md)にケースごとの操作・証拠・範囲を記載しています。
+現在のソースは312根本原因・444変種です。全体成立確認済みの210根本原因・V/F/N計630条件は過去版の履歴で、現行ソース全体やZAPの検出率を示しません。このrunnerがすべてのケースに必要な操作を行えるという意味でもありません。描画境界の成立確認では実Chromiumを使いますが、現行runnerにはDOM診断や実クリックの自動化がありません。localStorageとService Worker、認証をまたぐcache再利用、正常応答のIDを使うjob取消も、単なるHTTP探索の完了と区別してください。資源制限は有限の業務上限を検査し、物理的な負荷耐性を測定しません。現在の実装範囲は[カバレッジ資料](README-coverage.md)を参照してください。
 
 追加50件のMFAでは専用signinのpassword段階とOTP完了段階を区別し、通常loginのsessionだけで保護APIへ進めません。`/session`のusername確認はOTP完了の証拠になりません。招待token、委任対象、承認した内容、支払通知なども、通常POST・応答値の引継ぎ・必要な主体切替えを固定したprotocolが必要です。現行runnerの正常保護GET確認だけでは後続の操作へ到達したとは扱いません。R0497～R0500はJavaScriptの数値・配列境界の代表実装で、nativeメモリ破壊やASan検知は評価していません。
 
-過去60版の[51セルの実行索引](artifacts/zap-batch-smoke-index.json)と以下の9条件の設定比較は、当時の入力と設定に対する動作確認です。新50件のZAP検出実績とBurpとの比較は未測定です。
+以下の9条件の設定比較は、限定した入力と設定に対する動作確認です。全ケースのZAP検出実績とBurpとの比較は未測定です。過去の診断生データは公開リポジトリに含めていません。
 
 ケースは既存の `src/control.mjs reset ROOT V|F|N [seed]` で選択します。実行スクリプトは起動済みアプリのイメージを再ビルドせず、選択を変更しません。ソース更新後は先に `docker compose up --build -d --wait` を実行してからケースを選択してください。アプリのコンテナーを再作成すると初期ケースに戻ります。
 
@@ -126,7 +126,7 @@ APIによる探索・停止・ルール・スレッド数の設定は[公式API�
 
 ## 通常設定と低強度設定の実行確認
 
-[過去60版の9条件の計画・ledger・生データ索引](artifacts/zap-tuning-smoke-index.json)と[観測・次の優先事項](artifacts/zap-tuning-observations.json)を保存しました。R0022のV/F/Nで、同じseed・正常入力・匿名認証・60秒・通信1,000件を停止目安とし、baseline/active/active-lowを各1回実行しました。全9条件が完了し、専用policy3回の削除と既定設定の復元も確認しています。
+R0022のV/F/Nで、同じseed・正常入力・匿名認証・60秒・通信1,000件を停止目安とし、baseline/active/active-lowを各1回実行した限定的な動作確認です。全9条件が完了し、専用policy3回の削除と既定設定の復元も確認しています。計画・ledger・生データは公開リポジトリに含めていません。
 
 | 条件 | profile | 公開通信数 | 計測秒数 | 40012の未レビュー候補 |
 |---|---|---:|---:|---:|

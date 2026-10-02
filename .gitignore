@@ -7,4 +7,4 @@
 **/*.zip
 web-benchmark/artifacts/*
 !web-benchmark/artifacts/README.md
-!web-benchmark/artifacts/batch5-docker-smoke.json
+!web-benchmark/artifacts/docker-smoke-selected.json

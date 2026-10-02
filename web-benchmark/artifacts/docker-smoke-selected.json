@@ -1,5 +1,5 @@
 {
-  "schema": "benchmark-batch5-docker-smoke-0.1",
+  "schema": "benchmark-docker-smoke-selected-0.1",
   "scope": "selected V/F boundaries only; no N, no scanner, no full regression",
   "startedAt": "2026-10-02T14:22:36.069Z",
   "origin": "http://127.0.0.1:18080",

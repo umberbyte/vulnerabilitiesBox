@@ -31,15 +31,15 @@ docker compose --profile panel run --build --rm panel generate artifacts/panel-l
 
 `--roots all`は実装済みcatalogの全rootを明示的に選択します。設計資料だけにある未実装rootは対象へ含めません。catalogへ実装が追加された後に新しい計画を生成すると、その一覧へ追従します。既存の計画は生成時のcatalogと条件を保持します。
 
-配布中の現行catalog計画は[panel-catalog-current.json](artifacts/panel-catalog-current.json)です。現在は243 rootの代表243変種×V/F/Nの729セルで、すべて`not_run`です。手元のcatalogで計画を生成する場合は、新しいファイル名を指定します。
+公開リポジトリに管理者用計画は含めません。現在のソースは312根本原因の代表312変種で、各V/F/Nの計画は936セルです。手元のcatalogから新しいファイル名を指定して計画を生成してください。計画生成は成立確認や診断を実行しません。
 
 ```powershell
 docker compose --profile panel run --rm panel generate artifacts/panel-current-local.json --roots all --seeds catalog-current --arms V,F,N --profiles baseline --auth anonymous --wall-seconds 30 --requests 100
 ```
 
-[42 root・126セルの計画](artifacts/panel-catalog-42.json)、[60 root・180セルの計画](artifacts/panel-catalog-60.json)、[6セルの順次実行検証](artifacts/panel-smoke-index.json)は更新前の履歴です。過去60版の[51セルのZAP実行](artifacts/zap-batch-smoke-index.json)と[9条件の設定比較](artifacts/zap-tuning-smoke-index.json)も当時の計画・ledger・runを保持します。現行計画330セルの測定や新50件の検出実績へ転用しません。個々の計画・ledger・runとそのhashを確認し、全catalogの完走や検出能力を推定しないでください。
+[実装範囲と検証状態](README-coverage.md)に、現在のソース件数と成立確認済み範囲を記載しています。過去の計画、ledger、runは公開リポジトリに含めていません。手元で生成した計画がすべて`not_run`でも、全catalogの完走や製品の検出能力を示しません。
 
-[追加50件](README-batch-01.md)にはOTP、招待、委任、承認、支払などの複数段階の操作があります。計画にsession条件を入れただけで、それらの準備や保護対象の操作に到達したとは扱いません。現行runnerは通常POSTの順次実行、応答値の引継ぎ、複数主体の切替えを汎用には実装していません。Burpによる実測と比較はライセンス調達後に行います。
+OTP、招待、委任、承認、支払などの複数段階の操作では、計画にsession条件を入れただけで保護対象へ到達したとは扱いません。現行runnerは通常POSTの順次実行、応答値の引継ぎ、複数主体の切替えを汎用には実装していません。Burpによる実測と比較はライセンス調達後に行います。
 
 ## 引数と保存
 
@@ -107,7 +107,7 @@ passiveの終了待ちは最大10秒で打ち切ります。queueをclearした�
 
 公開入力が追加のHTTP originなどを `requiredTargetOrigins` で要求するセルは、HTTPSだけを対象とする現在のrunnerでは計測前の `unsupported_target_surface` として記録します。R0461のHTTP開始点、R0457/R0458の8444収集経路が該当します。case IDで選別せず、正常入力の公開契約を使って未対応を判断します。
 
-元設計の比較系列は`implementation-status.json`の各代表変種の`comparison_track`に保存します。資源制限5件は`bounded_stress`です。通常のHTTP診断、実ブラウザーでの描画・localStorage・Service Worker、状態を持つAPI操作、有限の資源制限は、必要な操作と証拠が異なります。対応するprotocolを評価時に分けてください。job取消のように正常応答のIDを後続要求へ引き継ぐ操作を、固定OpenAPI入力だけで再現したとは扱いません。各追加ケースの範囲は[README-implementation.md](README-implementation.md)を参照してください。
+元設計の比較系列は`implementation-status.json`の各代表変種の`comparison_track`に保存します。資源制限5件は`bounded_stress`です。通常のHTTP診断、実ブラウザーでの描画・localStorage・Service Worker、状態を持つAPI操作、有限の資源制限は、必要な操作と証拠が異なります。対応するprotocolを評価時に分けてください。job取消のように正常応答のIDを後続要求へ引き継ぐ操作を、固定OpenAPI入力だけで再現したとは扱いません。対象の範囲は[カバレッジ資料](README-coverage.md)を参照してください。
 
 初版はrestart/resumeに対応しません。途中のledgerやraw成果物を保管し、計測と未完了handlerの状態を確認した上で別の新しいledgerを指定してください。既存ledgerの上書きや自動再実行は行いません。計画全セルをdispatchできた場合のledger `completed`には、個々の`budget_stopped`や`unsupported`も含まれるため、セル別statusを確認してください。
 
