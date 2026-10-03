@@ -8,7 +8,8 @@ const rules=[
   {name:'benchmark-error-cache-differential',id:'50000',source:new URL('./zap-rules/error-cache-differential.js',import.meta.url),description:'Check whether a header-triggered error persists without that header'},
   {name:'benchmark-ldap-filter-differential',id:'50000',source:new URL('./zap-rules/ldap-filter-differential.js',import.meta.url),description:'Compare ordinary, wildcard, and no-match LDAP filter branch results'},
   {name:'benchmark-mongo-operator-differential',id:'50000',source:new URL('./zap-rules/mongo-operator-differential.js',import.meta.url),description:'Compare string equality with Mongo operator objects in public JSON filters'},
-  {name:'benchmark-event-attribute-name',id:'50000',source:new URL('./zap-rules/event-attribute-name.js',import.meta.url),description:'Probe a user-selected HTML attribute name for an executable event handler'}
+  {name:'benchmark-event-attribute-name',id:'50000',source:new URL('./zap-rules/event-attribute-name.js',import.meta.url),description:'Probe a user-selected HTML attribute name for an executable event handler'},
+  {name:'benchmark-json-script-html-boundary',id:'50000',source:new URL('./zap-rules/json-script-html-boundary.js',import.meta.url),description:'Detect an HTML script closing tag inside an otherwise valid JSON string'}
 ];
 
 export async function install({zap=process.env.ZAP_URL||'http://zap:8090',key=process.env.ZAP_API_KEY,inputDirectory='/scan-input',onlyCustom=false}={}) {

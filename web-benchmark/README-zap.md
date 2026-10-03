@@ -52,6 +52,8 @@ R0099のLDAPフィルタ向けに、公開`uid`入力の通常値・ワイルド
 
 R0025の利用者指定HTML属性名向けに、公開の正常`title`から無害な代入式を持つ`onclick`へ変え、実際のHTML属性として生成されたかを再送して確認する独自スクリプトを追加しました。標準activeのV/F/Nは関連XSSアラート0/0/0、独自ルールのみの局所走査は1/0/0です。[ZAP生成HTMLと初回失敗履歴](artifacts/zap-xss-next-20261003.md)に条件を記録しました。クリックによる実行は別のDocker受入テストで確認していますが、スクリプト自体はブラウザー操作をしません。
 
+R0029のJSON用script要素内でのHTML終了境界向けに、正常`inlineJson`から閉じタグと無害なscript要素を作り、後続の要素が実際に生成されることを2回確かめる独自スクリプトを追加しました。標準activeのV/F/Nは関連XSSアラート0/0/0、独自ルールのみは1/0/0です。[ZAP生成HTMLと他のブラウザー系4件の結果](artifacts/zap-browser-next-20261003.md)に保存しました。ブラウザー上の実行は別のDocker受入テストで確認しています。
+
 `run-panel.cmd`（macOS/Linuxは`sh run-panel.sh`）の第3引数に`custom`を指定すると、通常のactive scanに独自Graal.jsスクリプトを追加します。`custom-only`は共通スクリプトスキャナーID 50000だけを有効にする切り分け用設定で、計画の全セルが`active`である場合に限ります。第3引数を省けば従来の設定です。計画・ledgerは通常と同じ2ファイルを使います。
 
 ```powershell
