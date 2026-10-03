@@ -153,6 +153,9 @@ export async function main(env=process.env) {
   if(planFile===ledgerFile)fail('plan_and_ledger_must_differ');
   const {raw,value:plan}=await limitedJson(planFile);
   if(plan?.schema===VARIANT_PANEL_SCHEMA)validateVariantPanel(plan);else validatePanel(plan);
+  const customMode=env.SCAN_CUSTOM_MODE||'none';
+  if(!['none','custom','custom-only'].includes(customMode))fail('custom_mode_invalid');
+  if(customMode==='custom-only'&&plan.cells.some(cell=>cell.condition.profile!=='active'))fail('custom_only_requires_active_profile');
   const ctl=async(endpoint,body)=>{
     const response=await fetch(control+endpoint,{method:body===undefined?'GET':'POST',headers:{'x-benchmark-key':controlKey,...(body===undefined?{}:{'content-type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(30000)});
     if(!response.ok)fail('private_api_failed');
@@ -198,7 +201,7 @@ export async function main(env=process.env) {
   async function scan(condition) {
     if(interrupted)fail('worker_interrupted');
     const before=await inventory();
-    const childEnv={CONTROL_URL:control,BENCHMARK_CONTROL_KEY:controlKey,ZAP_URL:zap,ZAP_API_KEY:apiKey,ZAP_IMAGE:env.ZAP_IMAGE||'',SCAN_PROFILE:condition.profile,SCAN_AUTH:condition.authMode,SCAN_USER:condition.subject||'alice',SCAN_SECONDS:String(condition.wallSeconds),SCAN_REQUEST_BUDGET:String(condition.requestedHttpRequests)};
+    const childEnv={CONTROL_URL:control,BENCHMARK_CONTROL_KEY:controlKey,ZAP_URL:zap,ZAP_API_KEY:apiKey,ZAP_IMAGE:env.ZAP_IMAGE||'',SCAN_PROFILE:condition.profile,SCAN_AUTH:condition.authMode,SCAN_USER:condition.subject||'alice',SCAN_SECONDS:String(condition.wallSeconds),SCAN_REQUEST_BUDGET:String(condition.requestedHttpRequests),SCAN_CUSTOM_MODE:env.SCAN_CUSTOM_MODE||'none'};
     const exitCode=await new Promise((resolve,reject)=>{
       child=spawn(process.execPath,['src/runner/scan-zap.mjs'],{cwd:'/opt/benchmark',env:childEnv,stdio:['ignore','ignore','ignore'],windowsHide:true});
       let timedOut=false;

@@ -1,10 +1,13 @@
 #!/bin/sh
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-if [ "$#" -ne 2 ]; then
-  echo 'Usage: sh run-panel.sh artifacts/PLAN.json artifacts/NEW-LEDGER.json' >&2
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+  echo 'Usage: sh run-panel.sh artifacts/PLAN.json artifacts/NEW-LEDGER.json [custom|custom-only]' >&2
   exit 1
 fi
+case "${3:-}" in ''|custom|custom-only) ;; *) echo 'Unknown scanner mode.' >&2; exit 1 ;; esac
+SCAN_CUSTOM_MODE="${3:-none}"
+export SCAN_CUSTOM_MODE
 export PANEL_PATH="$1" PANEL_LEDGER="$2"
 if [ ! -f "$PANEL_PATH" ] || [ -e "$PANEL_LEDGER" ]; then
   echo 'An existing plan and a new ledger are required. Both paths must be inside artifacts.' >&2
@@ -21,4 +24,9 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
 docker compose -f compose.yaml -f compose.zap.yaml --profile scan up -d --no-deps --force-recreate zap
+if [ "${3:-}" = custom ]; then
+  docker compose -f compose.yaml -f compose.zap.yaml --profile scan run --build --rm --no-deps scan-controller node src/runner/install-custom-rules.mjs
+elif [ "${3:-}" = custom-only ]; then
+  docker compose -f compose.yaml -f compose.zap.yaml --profile scan run --build --rm --no-deps scan-controller node src/runner/install-custom-rules.mjs --only-custom
+fi
 docker compose -f compose.yaml -f compose.zap.yaml --profile scan run --build --rm --no-deps scan-controller node src/runner/panel-runner.mjs

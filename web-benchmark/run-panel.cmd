@@ -4,7 +4,11 @@ pushd "%~dp0"
 if errorlevel 1 exit /b 1
 if "%~1"=="" goto usage
 if "%~2"=="" goto usage
-if not "%~3"=="" goto usage
+if not "%~4"=="" goto usage
+set "CUSTOM_MODE=%~3"
+if not "%CUSTOM_MODE%"=="" if not "%CUSTOM_MODE%"=="custom" if not "%CUSTOM_MODE%"=="custom-only" goto usage
+set "SCAN_CUSTOM_MODE=%CUSTOM_MODE%"
+if "%SCAN_CUSTOM_MODE%"=="" set "SCAN_CUSTOM_MODE=none"
 set "PANEL_PATH=%~1"
 set "PANEL_LEDGER=%~2"
 if not exist "%PANEL_PATH%" goto invalid_files
@@ -26,6 +30,14 @@ if errorlevel 1 goto busy
 
 docker compose -f compose.yaml -f compose.zap.yaml --profile scan up -d --no-deps --force-recreate zap
 if errorlevel 1 goto cleanup_failed
+if "%CUSTOM_MODE%"=="custom" (
+  docker compose -f compose.yaml -f compose.zap.yaml --profile scan run --build --rm --no-deps scan-controller node src/runner/install-custom-rules.mjs
+  if errorlevel 1 goto cleanup_failed
+)
+if "%CUSTOM_MODE%"=="custom-only" (
+  docker compose -f compose.yaml -f compose.zap.yaml --profile scan run --build --rm --no-deps scan-controller node src/runner/install-custom-rules.mjs --only-custom
+  if errorlevel 1 goto cleanup_failed
+)
 docker compose -f compose.yaml -f compose.zap.yaml --profile scan run --build --rm --no-deps scan-controller node src/runner/panel-runner.mjs
 set "panel_exit=%ERRORLEVEL%"
 docker compose -f compose.yaml -f compose.zap.yaml --profile scan rm -sf zap >nul
@@ -48,6 +60,6 @@ echo An existing plan and a new ledger are required. Both paths must be inside a
 popd
 exit /b 1
 :usage
-echo Usage: run-panel.cmd artifacts/PLAN.json artifacts/NEW-LEDGER.json >&2
+echo Usage: run-panel.cmd artifacts/PLAN.json artifacts/NEW-LEDGER.json [custom^|custom-only] >&2
 popd
 exit /b 1

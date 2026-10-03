@@ -1,4 +1,4 @@
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
 import {options,publicScope,seedUrls,anonymousSchema,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
@@ -137,7 +137,25 @@ async function collectSettings() {
     activeScanners=lowPolicy?.owned?await api('ascan','view','scanners',{scanPolicyName:lowPolicy.name}):null;
     if(lowPolicy?.verified)validateLowPolicySnapshot(activeScanners,lowPolicy.installedIds);
   } else activeScanners=await optional('ascan','view','scanners');
-  const settingsSnapshot={installedAddons:await optional('autoupdate','view','installedAddons'),activeScanners,passiveScanners:await optional('pscan','view','scanners'),spiderThreads:await optional('spider','view','optionThreadCount'),activeThreads:await optional('ascan','view','optionThreadPerHost'),authPolicy:{configuredAuthentication:settings.auth==='anonymous'?'none':settings.auth,subject:settings.auth==='anonymous'?null:settings.user,headerPolicy:settings.auth==='anonymous'?'none':metadata.authReachability.headerPolicy,engine:settings.auth==='anonymous'?null:'Graal.js',templateVersion:'benchmark-auth-missing-headers-0.1',excludedOperations:metadata.authScopeExclusions||[]}};
+  const scripts=(await optional('script','view','listScripts'))?.listScripts;
+  if(!Array.isArray(scripts))throw new Error('ZAP script inventory unavailable.');
+  const customMode=process.env.SCAN_CUSTOM_MODE||'none';
+  if(!['none','custom','custom-only'].includes(customMode))throw new Error('Invalid custom rule mode.');
+  let customRules=[];
+  if(customMode!=='none') {
+    const manifest=JSON.parse(await readFile('/scan-input/custom-rules-manifest.json','utf8'));
+    if(manifest.schema!=='benchmark-custom-zap-rules-0.1'||!Array.isArray(manifest.rules)||manifest.rules.length===0)throw new Error('Invalid custom rule manifest.');
+    for(const rule of manifest.rules) {
+      if(!/^benchmark-[a-z-]+$/.test(rule.name)||!/^\d+$/.test(rule.id)||!/^[a-f0-9]{64}$/.test(rule.sha256))throw new Error('Invalid custom rule identity.');
+      if(!scripts.some(script=>script.name===rule.name&&String(script.enabled)==='true'&&String(script.error)!=='true'))throw new Error('Custom rule script is disabled or has an error.');
+      if(!activeScanners?.scanners?.some(scanner=>scanner.id===rule.id&&String(scanner.enabled)==='true'))throw new Error('Custom rule scanner is not enabled.');
+      const actual=createHash('sha256').update(await readFile('/scan-input/'+rule.name+'.js')).digest('hex');
+      if(actual!==rule.sha256)throw new Error('Custom rule source changed after installation.');
+    }
+    customRules=manifest.rules;
+    if(customMode==='custom-only'&&activeScanners.scanners.some(scanner=>scanner.id!=='50000'&&String(scanner.enabled)==='true'))throw new Error('Non-custom active scanner is enabled in custom-only mode.');
+  } else if(scripts.some(script=>script.name==='benchmark-sql-grammar-differential'&&String(script.enabled)==='true'))throw new Error('Custom script is enabled in default mode.');
+  const settingsSnapshot={installedAddons:await optional('autoupdate','view','installedAddons'),activeScanners,customMode,customRules,passiveScanners:await optional('pscan','view','scanners'),spiderThreads:await optional('spider','view','optionThreadCount'),activeThreads:await optional('ascan','view','optionThreadPerHost'),authPolicy:{configuredAuthentication:settings.auth==='anonymous'?'none':settings.auth,subject:settings.auth==='anonymous'?null:settings.user,headerPolicy:settings.auth==='anonymous'?'none':metadata.authReachability.headerPolicy,engine:settings.auth==='anonymous'?null:'Graal.js',templateVersion:'benchmark-auth-missing-headers-0.1',excludedOperations:metadata.authScopeExclusions||[]}};
   if(settings.profile==='active-low') {
     settingsSnapshot.activeScanPolicy=lowPolicyDescription(lowPolicy);
     metadata.activeScanPolicy={...metadata.activeScanPolicy,...lowPolicyDescription(lowPolicy),selectedSnapshotSha256:activeScanners?fingerprint(activeScanners):null};

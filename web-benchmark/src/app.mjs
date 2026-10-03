@@ -202,7 +202,9 @@ route.get('/news',async(req,res)=>{
   const key='news:public';const cached=await redis.get(key);if(cached){const item=JSON.parse(cached);return res.status(item.status).type('text').send(item.body);}
   const diagnostic=String(req.headers['x-news-preview']||'');
   const item=diagnostic?{status:503,body:'Temporarily unavailable: '+diagnostic.slice(0,100)}:{status:200,body:'Latest news: service is available'};
-  if(vulnerable()||item.status===200)await redis.set(key,JSON.stringify(item),{EX:60});res.status(item.status).type('text').send(item.body);
+  // Keep the diagnostic error testable after a scanner reads the normal page.
+  // The defect is caching an error under the shared public key, not caching 200s.
+  if(vulnerable()&&item.status===503)await redis.set(key,JSON.stringify(item),{EX:60});res.status(item.status).type('text').send(item.body);
 });
 route.get('/shop',(req,res)=>res.type('html').send(page('購入',`<p>商品: book / 価格: 1000 / 初期残高: 3000</p><form method="post"><input name="product" value="book"><input name="price" value="1000"><button>購入</button></form>`)));
 route.post('/shop',async(req,res)=>{

@@ -44,6 +44,19 @@ sh ./scan-zap.sh active 120 300 bearer admin
 
 ケースは既存の `src/control.mjs reset ROOT V|F|N [seed]` で選択します。実行スクリプトは起動済みアプリのイメージを再ビルドせず、選択を変更しません。ソース更新後は先に `docker compose up --build -d --wait` を実行してからケースを選択してください。アプリのコンテナーを再作成すると初期ケースに戻ります。
 
+## 独自SQLルールの実験
+
+`run-panel.cmd`（macOS/Linuxは`sh run-panel.sh`）の第3引数に`custom`を指定すると、通常のactive scanに独自Graal.jsスクリプトを追加します。`custom-only`は共通スクリプトスキャナーID 50000だけを有効にする切り分け用設定で、計画の全セルが`active`である場合に限ります。第3引数を省けば従来の設定です。計画・ledgerは通常と同じ2ファイルを使います。
+
+```powershell
+docker compose --profile panel run --build --rm panel generate artifacts/panel-sql.json --roots R0005,R0006 --seeds sql-pilot --profiles active --auth anonymous --wall-seconds 60 --requests 250
+.\run-panel.cmd artifacts/panel-sql.json artifacts/panel-sql-ledger.json custom-only
+```
+
+ルールは公開のパラメーター名と正常値からSQL構文位置を推測し、ORDER BYでは真偽の式で同一商品集合の順序差、比較演算子では偽条件が正常結果に一致し真条件だけ結果を増やす差を、それぞれ再送して確認します。root ID、V/F/N、制御API、非公開fixture値はスクリプトへ渡しません。検出ロジックはPostgreSQLの式とJSONの`items`配列に依存します。今回の成功はこの2ケースでの局所的な結果で、他製品・他アプリでの精度を保証しません。
+
+この固定ZAPイメージでは独自メタデータを持つfirst-classルールの初期化が失敗したため、標準のScript Active Scan Rules（ID 50000）として登録しています。`scanner-settings.json`には有効ルール一覧、スクリプト名、ソースSHA-256、設定モードを保存します。通常の全ルールと併用した通信上限500件の予備走査は全6セルが`budget_stopped`だったので採点しません。停止目安を900件にした併用走査はR0005/R0006のV/F/N全6セルが完走し、独自SQLアラートは両rootとも1/0/0でした。`custom-only`と通常スキャンを比較するときは、有効ルール集合と予算の違いを明示してください。実測とZAPのHTMLレポートは[検出漏れ記録](README-zap-findings.md)から参照できます。
+
 ```powershell
 docker compose up --build -d --wait
 docker compose exec -T app node src/control.mjs reset R0001 V scan-example

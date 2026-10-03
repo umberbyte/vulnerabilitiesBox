@@ -142,8 +142,11 @@ try {
           if(!v)check(result.includes('blocked'),'Browser prevents attacker reading fixed response');break;
         }
         case 'R0380': {
+          const documented=m.requests.find(request=>request.method==='GET'&&request.path===m.base+'/news');
+          check(documented?.headers?.['X-News-Preview']==='', 'Public manifest declares the optional preview header without activating it');
+          const specification=await (await get('/openapi.json')).json();
+          check(specification.paths[m.base+'/news'].get.parameters.some(parameter=>parameter.in==='header'&&parameter.name==='X-News-Preview'&&parameter.example===''), 'Public OpenAPI exposes the optional preview header to both scanners');
           const normal=await get('/news');check(normal.status()===200,'Normal public news response');
-          await ctl('/reset',{root:item.root,mode,seed:'acceptance-v1'});
           const bad=await get('/news',{headers:{'x-news-preview':'preview-probe'}});check(bad.status()===503,'Diagnostic error actually generated');const clean=await get('/news');check((clean.status()===503&&(await clean.text()).includes('preview-probe'))===v,'Redis shared cache poisoning agrees with arm');if(!v)check(clean.status()===200,'Healthy response survives diagnostic error');break;
         }
         case 'R0391': {

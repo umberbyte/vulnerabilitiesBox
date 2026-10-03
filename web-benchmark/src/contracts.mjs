@@ -18,6 +18,9 @@ const defs={
   news:[['GET','/news',{}]],
   shop:[['GET','/shop',{}],['POST','/shop',{product:'book',price:1000}]]
 };
+// Document optional non-secret inputs so both scanners can discover them from
+// the same public schema. Empty examples never trigger the diagnostic branch.
+const requestHeaders={news:{'X-News-Preview':''}};
 export function requests(feature,base) {
   const definition=[...caseDefinitions,...variantDefinitions].find(item=>item.feature===feature);
   const extra=definition?.requests||[];
@@ -25,7 +28,7 @@ export function requests(feature,base) {
   const logoutPath=definition?.logoutPath||(feature==='signout'?'/signout':'/logout');
   const candidates=[['GET',loginPath,{}],['POST',loginPath,{username:'alice',password:'Fixture-alice-2026!',...definition?.loginFields}],['GET','/session',{}],['POST',logoutPath,{}],...(defs[feature]||[]),...extra];
   const seen=new Set();
-  return candidates.filter(([method,p])=>{const key=method+' '+p;if(seen.has(key))return false;seen.add(key);return true;}).map(([method,p,values,pathValues])=>({method,path:base+p,values,...(pathValues?{pathValues}:{})}));
+  return candidates.filter(([method,p])=>{const key=method+' '+p;if(seen.has(key))return false;seen.add(key);return true;}).map(([method,p,values,pathValues])=>({method,path:base+p,values,...(pathValues?{pathValues}:{}),...(requestHeaders[feature]&&p==='/news'?{headers:requestHeaders[feature]}:{})}));
 }
 function normalValueSchema(value) {
   if(Array.isArray(value)) {
@@ -45,6 +48,7 @@ export function openapi(feature,base) {
     const parameters=[];const pathNames=[...request.path.matchAll(/\{([^}]+)\}/g)].map(m=>m[1]);
     for(const name of pathNames)parameters.push({name,in:'path',required:true,schema:{type:typeof request.pathValues?.[name]==='number'?'integer':'string'},example:request.pathValues?.[name]});
     if(request.method==='GET')for(const [name,value]of Object.entries(request.values))parameters.push({name,in:'query',schema:normalValueSchema(value),example:value});
+    for(const [name,value]of Object.entries(request.headers||{}))parameters.push({name,in:'header',required:false,schema:normalValueSchema(value),example:value});
     const operation={responses:{'200':{description:'Successful operation'},'400':{description:'Invalid input'},'401':{description:'Authentication required'},'403':{description:'Forbidden'}},...(parameters.length?{parameters}:{})};
     if(['POST','PATCH','PUT','DELETE'].includes(request.method)) {
       const content={'application/json':{schema:{type:'object',properties:Object.fromEntries(Object.entries(request.values).map(([k,v])=>[k,{...normalValueSchema(v),example:v}])),additionalProperties:false}}};
