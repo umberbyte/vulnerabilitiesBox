@@ -39,7 +39,7 @@
     },
     "current_source_selected_docker_smoke": {
       "report": "artifacts/docker-smoke-selected.json",
-      "report_sha256": "47d76554ba20fbe9f7b9e9adb20429746669447488a1de8eac6c99d530cab087",
+      "report_sha256": "0c52626f2c16b008df6aefbdb8a0435dae21a6367e67655e05d34eb8a976482c",
       "variants": 10,
       "arms": [
         "V",
@@ -19627,7 +19627,7 @@
   },
   "file_sha256": {
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
-    "artifacts/docker-smoke-selected.json": "47d76554ba20fbe9f7b9e9adb20429746669447488a1de8eac6c99d530cab087",
+    "artifacts/docker-smoke-selected.json": "0c52626f2c16b008df6aefbdb8a0435dae21a6367e67655e05d34eb8a976482c",
     "artifacts/README.md": "edecd1b540ac3534be9db886ee9c85b98e3aeb513fe0a37a54c0df8cee7c1043",
     "compose.yaml": "b0e287c868161e7818d5040505235128cf44d54bf397e911ef4d432e8fe99def",
     "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
@@ -19722,7 +19722,7 @@
     "tests/configuration-cases.mjs": "f6ccab5502d4b1e06b72ff4c7a5290692c7b1700f4875a7ce3ac9223c9b826dd",
     "tests/content-boundaries.mjs": "3d9075fb9606d85af7a0a8dca39efba8d57cf107824757d607e7bc75fd234b60",
     "tests/data-handling.mjs": "fab9725afb7dd50658f79c2602f7fdfb12b7f39729f85542b2ef6fdb1a159911",
-    "tests/docker-smoke-selected.mjs": "02a5833ca6694069266f160b5ebe21ff78bf871db1f22352addfa79aabdc837b",
+    "tests/docker-smoke-selected.mjs": "b51a1a5c4da3b5b52feb2504328d8e419873231c4340112e318b63f7353c3519",
     "tests/evaluation-burp.mjs": "6c5e5a538f21c138976cc935d40efc08ea43e6b53c142272d34b9a8158054712",
     "tests/evaluation.mjs": "a8ec2e0171a518ee1ebb221c3dac0660dbd19d4a3a8a63ef355b6d052751125d",
     "tests/measurement.mjs": "126fd5470b0c74ca5050481c738988e5e14447ac1b7b1d4b3708be6e93a5f3d1",

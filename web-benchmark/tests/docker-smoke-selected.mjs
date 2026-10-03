@@ -9,10 +9,19 @@ const runFile=promisify(execFile);
 const docker=process.env.DOCKER_EXE||'docker';
 const container=process.env.BENCHMARK_VALIDATION_CONTAINER||'web-benchmark-validation-app-1';
 const origin=process.env.BENCHMARK_VALIDATION_ORIGIN||'http://127.0.0.1:18080';
+const controlUrl=process.env.CONTROL_URL;
+const controlKey=process.env.BENCHMARK_CONTROL_KEY;
 const seed='batch5-docker-smoke';
 const report={schema:'benchmark-docker-smoke-selected-0.1',scope:'selected V/F boundaries only; no N, no scanner, no full regression',startedAt:new Date().toISOString(),origin,results:[]};
 const assert=(condition,label)=>{if(!condition)throw Error(label);};
 async function control(...args){
+ if(controlUrl){
+  if(!controlKey)throw Error('BENCHMARK_CONTROL_KEY is required with CONTROL_URL');
+  const [action,root,mode,seed,variant]=args;
+  const response=await fetch(controlUrl+(action==='reset'?'/reset':'/oracle'),{method:action==='reset'?'POST':'GET',headers:{'x-benchmark-key':controlKey,'content-type':'application/json'},...(action==='reset'?{body:JSON.stringify({root,mode,seed,variant})}:{})});
+  if(!response.ok)throw Error('Control request failed: '+response.status);
+  return response.json();
+ }
  const {stdout}=await runFile(docker,['exec',container,'node','src/control.mjs',...args],{timeout:15000,maxBuffer:1024*1024});
  return JSON.parse(stdout);
 }
