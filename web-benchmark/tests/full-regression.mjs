@@ -1,6 +1,8 @@
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {readFile,readdir,mkdir,writeFile} from 'node:fs/promises';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {unitTestFiles} from '../src/reporting/tool-tests.mjs';
+import {sourceSnapshot,compareSources} from '../src/reporting/source.mjs';
 
 // One repeatable Docker entry point. Scope is explicit: the newer variants have
 // dedicated V/F/N tests, while the older acceptance harness covers 210 roots.
@@ -8,9 +10,10 @@ const status=JSON.parse(await readFile('implementation-status.json','utf8'));
 const roots=status.implemented.filter(item=>item.status==='previous_release_acceptance_verified').map(item=>item.root);
 if(roots.length!==210||new Set(roots).size!==210)throw Error('The representative acceptance root set changed');
 if(!process.env.BENCHMARK_CONTROL_KEY)throw Error('BENCHMARK_CONTROL_KEY is required');
-const unitFiles=(await readdir('tests')).filter(name=>name==='measurement.mjs'||/^runner-.*\.mjs$/.test(name)||/^evaluation.*\.mjs$/.test(name)||['batch4-variants.mjs','batch5-cases.mjs'].includes(name)).sort().map(name=>'tests/'+name);
+const unitFiles=await unitTestFiles('.');
 const report={schema:'benchmark-full-regression-0.1',startedAt:new Date().toISOString(),scope:{sourceRoots:337,sourceVariants:500,representativeAcceptanceRoots:roots.length,representativeAcceptanceArms:['V','F','N'],extendedTests:'batch6-* V/F/N',selectedSmokeArms:['V','F'],full500VariantAcceptance:false,scannerMeasurement:false},stages:[]};
 await mkdir('artifacts/full-regression-logs',{recursive:true});
+report.source=await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'});
 
 async function stage(name,args,env={}){
   console.log(`START ${name}`);
@@ -55,6 +58,7 @@ try{
   if(smoke.summary.cells!==20||smoke.summary.passed!==20||smoke.summary.failed!==0)throw Error('Selected smoke summary is incomplete');
   report.stages.at(-1).summary=smoke.summary;
 }catch(error){failure=error;console.error(error.message);}
+try{report.sourceAfter=compareSources(report.source,await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}));if(report.sourceAfter.status!=='matched')failure??=new Error('Source changed during verification');}catch(error){failure??=error;}
 report.finishedAt=new Date().toISOString();
 report.summary={stages:report.stages.length,passed:report.stages.filter(item=>item.status==='passed').length,failed:report.stages.filter(item=>item.status==='failed').length,complete:!failure};
 if(failure)report.error=failure.message;

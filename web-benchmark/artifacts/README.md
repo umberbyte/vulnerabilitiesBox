@@ -5,3 +5,5 @@
 Windowsは`reports.cmd`、macOS/Linuxは`sh reports.sh`で、保存済みの回帰結果・診断台帳・ZAP生成HTML・レビュー記録を集めた`index.html`と`report-index.json`を生成できます。ネットワーク通信、診断、ケース切替は行いません。生成された一覧も利用者ごとのローカル資料で、公開Gitには含めません。
 
 `artifact-audit.md`と`artifact-audit.json`には、保存された計画・台帳・実行JSONのハッシュと条件の照合結果を記録します。V/F/N完走系列の数は実験系列の数で、検出した脆弱性の件数ではありません。台帳から参照されない実行は単独試験の可能性があり、無効とは自動判定しません。
+
+`verify.cmd tools`／`sh verify.sh tools`は`tools-check.md`、`tools-check.json`、`tools-check.log`へ単体検証結果を保存します。新しい検証結果にはソーススナップショットを記録し、`reports.cmd`／`reports.sh`による一覧では現在のソースとの一致を表示します。古い結果にスナップショットがない場合は「記録なし」として扱います。

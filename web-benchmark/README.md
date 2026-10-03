@@ -48,9 +48,13 @@ docker compose exec -T app node src/control.mjs manifest
 
 macOS/Linuxでは`sh verify.sh`を実行します。
 
+評価・集計・レポート用ツールの単体テストだけを確認する場合は、Windowsで`.\verify.cmd tools`、macOS/Linuxで`sh verify.sh tools`を使います。アプリやZAPを起動せず、制御キーも使いません。ネットワークなしのDockerで実行し、結果は`artifacts/tools-check.md`、`tools-check.json`、`tools-check.log`へ保存します。通常の`verify.cmd`／`verify.sh`は従来どおりアプリの統合検証を実行します。
+
 保存された回帰結果、実験台帳、ZAP生成HTMLをまとめて探すには、Windowsで`.\reports.cmd`、macOS/Linuxで`sh reports.sh`を実行して`artifacts/index.html`を開きます。Dockerだけで利用でき、アプリやZAPを起動・変更せず、ネットワークなしで既存結果を読み取ります。完走・上限停止・失敗・未実行を別々に表示し、検出率や対策の成功は自動判定しません。実行中と記録された古い台帳は、現在動いているプロセスを示しません。
 
 同じコマンドで`artifacts/artifact-audit.md`と`artifact-audit.json`も生成します。計画と実行JSONのハッシュ、台帳との条件・状態の一致、同一設定のV/F/N完走記録を監査します。未完了の系列や参照の不一致を残し、生のアラートから見逃し・検出を推定しません。ハッシュは保存資料同士の整合性を確認するもので、外部署名や現在のソースとの一致を保証しません。
+
+新しい検証結果にはsrc、tests、Dockerfile、package manifests、Compose、設計JSONのソースSHA-256を保存します。結果一覧は、この記録を読み取り専用の現在のソースと比較し、「一致」「変更あり」「記録なし」を表示します。記録のない過去結果へ現在のハッシュを後付けしません。ドキュメントと生成資料はこの比較範囲に含めず、ソースが一致する場合も検証対象外の処理が合格したとは扱いません。
 
 製品比較では、同じ根本原因・seed・V/F/N・認証条件を使い、ケース切替ごとに初期化します。診断対象は各ケースの`requiredTargetOrigins`に従います。通常は8443のworkspaceで、HTTP開始点や8444の収集先が必要なケースは対象を追加します。対応できない入口は`unsupported_target_surface`として未測定にし、見逃しに数えません。制御キー、oracle、正解データを診断エージェントへ渡さないでください。
 

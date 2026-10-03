@@ -32,6 +32,8 @@
 
 利用者向けの入口は`verify.cmd`または`verify.sh`です。個別テストを再実行する場合は、先に`docker compose --profile test build verify`を済ませ、その後に現在のappから`BENCHMARK_CONTROL_KEY`を取得して`docker compose --profile test run --rm -T verify node tests/<名前>.mjs`を実行してください。キー取得後に`--build`を指定するとappが再作成され、キーが失効することがあります。
 
+Daybreakや診断処理に依存しない評価ツールの検証は`verify.cmd tools`／`sh verify.sh tools`で実行できます。これは単体テストであり、上表のV/F/N成立確認を増やすものではありません。結果一覧のソース比較は記録したファイル範囲の一致を示し、当該検証で測っていないケースや別環境への有効性は保証しません。
+
 依存エンジンの異なる欠陥をPostgreSQLだけで模倣したり、ヘッダ名だけを変えたりして実装済みとは数えません。正常系、Vの実結果、F/Nの防止、初期化を実環境で確認してから成立済みとします。
 
 ## 比較時の境界

@@ -16,6 +16,13 @@ COPY implementation-status.json ./implementation-status.json
 USER node
 CMD ["node", "src/reporting/index.mjs"]
 
+FROM dependencies AS tools-check
+COPY src ./src
+COPY tests ./tests
+COPY implementation-status.json Dockerfile compose.yaml compose.zap.yaml ./
+USER node
+CMD ["node", "src/reporting/check-tools.mjs"]
+
 FROM runtime AS executor
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends curl git rsync imagemagick ffmpeg libxml2-utils xsltproc python3-lxml gcc libc6-dev libasan8 && rm -rf /var/lib/apt/lists/*
@@ -29,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends chromium ca-cer
 COPY src ./src
 COPY tests ./tests
 COPY implementation-status.json ./implementation-status.json
+COPY Dockerfile compose.yaml compose.zap.yaml ./
 RUN mkdir -p /home/node/.pki/nssdb && certutil -N -d sql:/home/node/.pki/nssdb --empty-password && certutil -A -d sql:/home/node/.pki/nssdb -n benchmark-local-fixture -t "C,," -i src/tls/local.crt && chown -R node:node /home/node/.pki
 ENV NODE_EXTRA_CA_CERTS=/opt/benchmark/src/tls/local.crt
 USER node

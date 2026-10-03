@@ -11,4 +11,6 @@ Docker DesktopのLinux containersを起動し、`web-benchmark`で `docker compo
 
 検証はWindowsで`.\verify.cmd`、macOS/Linuxで`sh verify.sh`です。保存済みの結果とZAPのHTMLレポートを一覧化するには`.\reports.cmd`または`sh reports.sh`を実行し、`artifacts/index.html`を開きます。
 
+アプリを起動せずに評価ツールの単体テストだけを実行するモードは`.\verify.cmd tools`／`sh verify.sh tools`です。結果一覧には保存資料の整合性監査と、記録のある検証結果のソース比較も表示します。
+
 このリポジトリには実験専用の自己署名TLS秘密鍵 `web-benchmark/src/tls/local.key` が含まれます。公開済みのfixtureとして扱い、この鍵や証明書を実運用システムに転用しないでください。診断ログ、管理者用計画、oracle、過去の受入結果は公開対象から外しています。

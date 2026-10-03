@@ -94,7 +94,8 @@ services:
     build: {context: ., target: reporting}
     user: "0:0"
     network_mode: none
-    volumes: ["./artifacts:/opt/benchmark/artifacts"]
+    environment: {SOURCE_DIR: /source, SOURCE_DESIGN: /benchmark-design-v2.json}
+    volumes: ["./artifacts:/opt/benchmark/artifacts", "./:/source:ro", "../benchmark-design-v2.json:/benchmark-design-v2.json:ro"]
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
@@ -125,6 +126,18 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 64
     mem_limit: 256m
+  tools-check:
+    profiles: [test]
+    build: {context: ., target: tools-check}
+    user: "0:0"
+    network_mode: none
+    volumes: ["./artifacts:/opt/benchmark/artifacts", "../benchmark-design-v2.json:/opt/benchmark-design-v2.json:ro"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    pids_limit: 128
+    mem_limit: 512m
   verify:
     profiles: [test]
     build: {context: ., target: verify}

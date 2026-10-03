@@ -185,13 +185,26 @@
     },
     "current_source_unit": {
       "passed": 187,
-      "files": 14
+      "files": 14,
+      "source_snapshot_recorded": false
     },
     "current_source_full_regression": {
       "report": "artifacts/full-regression.md",
       "machine_report": "artifacts/full-regression.json",
       "stages": 4,
       "passed": 4,
+      "scanner_measurement": false,
+      "source_snapshot_recorded": false
+    },
+    "latest_offline_tools_unit": {
+      "report": "artifacts/tools-check.md",
+      "machine_report": "artifacts/tools-check.json",
+      "passed": 215,
+      "tests": 215,
+      "files": 17,
+      "source_sha256": "ad469e5425b8f1d174c446745a049a1b1db663e70119c2e0bcfee72e148a94df",
+      "source_snapshot_recorded": true,
+      "application_acceptance": false,
       "scanner_measurement": false
     }
   },
@@ -20775,17 +20788,17 @@
   "file_sha256": {
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
     "artifacts/docker-smoke-selected.json": "fb9d36a81b594b50c2edbd6db4bf07d0ecc96fecd438a5731a554ec52f4d14be",
-    "artifacts/README.md": "0a1f3835e0a30f23d59296fd8388630273e561e940518f8eca9de0a5050200c1",
-    "compose.yaml": "36bc18206ed67038d582a74f11e8438e026cd5ee9ad4a304e1374b59b6f1aed0",
+    "artifacts/README.md": "4058f0073f77c64544292e2a91e8d8fbff304848c1f8aecc1b7b63d8e7f4342a",
+    "compose.yaml": "59597db63476147be76fbd767767c6e378f61bdbc0314d6b4edb735e0f0dafae",
     "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
-    "Dockerfile": "251c19e0c02f27df02ba3974b0a98a058a789e86915cf43797893bbceefeba13",
+    "Dockerfile": "1cbad0e90f26e90b444eccb641f938e5a6986011d944e33eae39de7da1122484",
     "package-lock.json": "93a938e2b492b00ac0bccf59fe737cbd73c719a0cc82551bf373836023d8126f",
     "package.json": "decffefff738df059a57f272ddc95a39455061837995300145ea7de36ab3c292",
-    "README-coverage.md": "0b283417130346b312361f7b32e308150d3358680338f4be032f632e01877495",
+    "README-coverage.md": "5678ea6d687cf2a1a648f511675af0f43ee82904280f984a36d31703a8618102",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3b94b3f80ac4c79a80d72fe0d46be335fb9d36335d967561b8e08435cd512545",
     "README-zap.md": "1cd0cef0c9f7349c29874eaa727cc7eef876d32d61668a17208b49eedce89217",
-    "README.md": "f11f28672f8656d4ecb1dc2f87f117c1355c82fe043b6af365879f46b1c04889",
+    "README.md": "eb47ad4dd8fb5438cd673e083b779fb6f20d0cf7363346be9fb4b79253f0b9e5",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20885,9 +20898,9 @@
     "tests/runner-public-contracts.mjs": "f9f5aed2ac82b83da4a962982661acce71fc94cefa6efd7a8a3aec6c1ceb1d7f",
     "tests/runner-scan-policy.mjs": "1544c8fb4d806ececc866063289d54a881001c04b55049fb0ee7333b7df3a339",
     "tests/workflow-cases.mjs": "635a8f821597fbff52a0be5e0293113b5000d8a4854ddae7c02fefb444923483",
-    "verify.cmd": "15d4379dac8fd7bd1a52610f0f76cd2b8dace0c632f362d33f7f37a54a22b057",
-    "verify.ps1": "99d689df589a00a801d3051378fc6664f201cdee22abfc69eb0490da7b08b4bf",
-    "verify.sh": "3b57e4d6be2cfd1b02a0841a8455f6b25229b5f4c5fbc098c0c136b7f1f88d8a",
+    "verify.cmd": "d4ca67c716d0e617b7554095c140694ab2eeeed683336fef8af65d18ceaf3261",
+    "verify.ps1": "2cc38cfa368066aec655b82dd9d0c1a1f65dddabd72d9dee0edbae94dd78c124",
+    "verify.sh": "7b87f327bfe905699c27b1db9985d7ebb44f0aea370bff26044f8d432b99d1d5",
     "src/cases/batch6-archives.mjs": "0351ec923383286dee65ef31cb75537c4fb8cbfedd9ad1badf34cd259dee7491",
     "src/cases/batch6-uploads.mjs": "d5f03bcd22631d81515a1160d86d644993e5ba546c4d3ce1fd6f2f7f913c7a8e",
     "tests/batch6-cookie-shadow.mjs": "d171cfd4a69aab0d561fa22089a3d8cd336ef2e42e4998a919d09103954e2bbf",
@@ -20936,15 +20949,19 @@
     "tests/runner-script-inventory.mjs": "fb236c198698979c24281d7d0d982208b5ba1927ebdc9a139ecdbaafc3ed0f5a",
     "src/runner/zap-rules/mongo-operator-differential.js": "78970fd97fae24b562b7036200932804bbb1b68c8013d47424292d4776db5246",
     "tests/extended-regression.mjs": "83b994eaa13c1f08d4f7e0211c7cc7eb56bfcd5507898b636f83f20510ebbe99",
-    "tests/full-regression.mjs": "995165f44a45a324b3be35b4200f3202a495eb4b05afd0fbca7f567a67fbe052",
+    "tests/full-regression.mjs": "26311d7fa7e76389ce86b1d6cf6b34c485a6a0f551abc843a5825fc291905858",
     "src/runner/zap-rules/event-attribute-name.js": "c93dff49da1c53dec794dafb519ded472749673cb55adfd904511044cfab88b7",
     "src/runner/zap-rules/json-script-html-boundary.js": "ef82ccf405123b1642189809a9fa94adc89635d943529dcd6e9a7cb1cb3de4eb",
     "reports.cmd": "b79b1e32639e41448f6180192b5c69044c9b58db9c28055c13463553fa61fd26",
     "reports.sh": "2d292b31f53c2177c6900a6d29e08a112fa880ffda3d9af5e1fdb48c82994c29",
-    "src/reporting/index.mjs": "936dd48d7874dfa9cbcaad938dc6467e4dfd883a96fe2c3e66d985346f51e308",
+    "src/reporting/index.mjs": "0cdc7d0314a68c7b5e5c0d7247f629462e1d16c6f24462196ae40a2fcf0c4d6e",
     "tests/runner-report-index.mjs": "d52ff108bcbf8b6e891d0720e485fb3b2ef3db1bd6ca9942c29c898273a11668",
     "src/reporting/files.mjs": "7aab9027bf1a68ae0aff065a6c7623bce26a7816bfd87ed061b07f2e92f7f18b",
     "src/reporting/audit.mjs": "3062599e1b484f20b3aa1b85da173312380a700b6c7a21c375de61e1366bfdfe",
-    "tests/runner-artifact-audit.mjs": "e7016f5bd16ae645f50c0b6ac1a8a8a27fd0997ff3f3197a465e8503cfe7bbcc"
+    "tests/runner-artifact-audit.mjs": "e7016f5bd16ae645f50c0b6ac1a8a8a27fd0997ff3f3197a465e8503cfe7bbcc",
+    "src/reporting/source.mjs": "303905a2c602e5d9b1f02d7e4d6df20b6cfed409e5b64637fff74a4042ea06fe",
+    "src/reporting/tool-tests.mjs": "9c06b5e07fcf213f8af8d2160c320552a7a65b428b005754a975d5a4c530aac7",
+    "src/reporting/check-tools.mjs": "0aed46df6440bc8c65859afc599ffd6dc51f2f280e77b6d4b8628be15e5a9ed4",
+    "tests/runner-source-snapshot.mjs": "cc672f81984747557412a3afc39328d4dc2f48756e70b61b0a69dccf62acbb78"
   }
 }
