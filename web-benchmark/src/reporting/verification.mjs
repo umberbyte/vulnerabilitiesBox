@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {artifactReader} from './files.mjs';
 import {compareSources} from './source.mjs';
 import {tapSummary} from './tool-tests.mjs';
+import {validEnvironment} from './environment.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const integer=value=>Number.isSafeInteger(value)&&value>=0;
@@ -14,7 +15,7 @@ const summaryKeys={unit:['tests','passed','failed'], 'representative-acceptance'
 export async function auditVerification(directory){
   const reader=await artifactReader(directory,{maxBytes:8*1024*1024}),records=[],issues=[];
   async function record(path,kind){
-    const result={path,kind,recordedStatus:null,evidenceStatus:'incomplete',logs:[],sourceStatus:'unrecorded'};
+    const result={path,kind,recordedStatus:null,evidenceStatus:'incomplete',logs:[],sourceStatus:'unrecorded',environmentStatus:'unrecorded'};
     const start=issues.length;
     const issue=(level,code,reference=path)=>issues.push({level,code,path:reference,record:path});
     let data;
@@ -24,6 +25,11 @@ export async function auditVerification(directory){
     result.recordedStatus=kind==='tools'?data.status:data.summary?.complete===true?'complete':'incomplete';
     const started=typeof data.startedAt==='string'?Date.parse(data.startedAt):NaN,finished=typeof data.finishedAt==='string'?Date.parse(data.finishedAt):NaN;
     if(!Number.isFinite(started)||!Number.isFinite(finished)||finished<started)issue('error','invalid_execution_dates');
+    if(data.environment!=null){
+      const captured=Date.parse(data.environment.capturedAt);
+      if(!validEnvironment(data.environment)||!Number.isFinite(started)||!Number.isFinite(finished)||captured<started||captured>finished){result.environmentStatus='invalid';issue('error','invalid_environment_snapshot');}
+      else result.environmentStatus='recorded';
+    }else issue('info','environment_unrecorded');
     if(data.source){
       result.sourceStatus=compareSources(data.source,data.source).status==='matched'?'recorded':'invalid';
       if(result.sourceStatus==='invalid')issue('error','invalid_source_snapshot');
