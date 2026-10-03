@@ -12,7 +12,7 @@
     "validated_execution_cells": 630,
     "remaining_unimplemented_roots": 0,
     "remaining_unimplemented_positive_variants": 0,
-    "checks": 13207,
+    "checks": 13213,
     "comparison_tracks": {
       "audit": 16,
       "bounded_stress": 20,
@@ -24,7 +24,7 @@
     "previous_release_verified_roots": 210,
     "pending_final_acceptance_roots": 127,
     "planned_execution_cells": 1011,
-    "validated_execution_scope": "historical_210_release_only",
+    "validated_execution_scope": "current_source_210_representative_roots_vfn",
     "additional_source_variants": 163
   },
   "verification": {
@@ -40,7 +40,7 @@
     },
     "current_source_selected_docker_smoke": {
       "report": "artifacts/docker-smoke-selected.json",
-      "report_sha256": "5c51d7ec97b07346a90aced2fe08b6ac1b0178beed3c8010728191479fdc2cf1",
+      "report_sha256": "fb9d36a81b594b50c2edbd6db4bf07d0ecc96fecd438a5731a554ec52f4d14be",
       "variants": 10,
       "arms": [
         "V",
@@ -49,7 +49,7 @@
       "passed_cells": 20,
       "includes_full_regression": false
     },
-    "current_full_acceptance": "not_run",
+    "current_full_acceptance": "not_run_for_all_500_variants",
     "scanner_detection": "selected_local_cases_only; no 500-variant detection rate",
     "current_source_batch6_docker": {
       "variants": 15,
@@ -160,6 +160,39 @@
         "asan_violations": 5,
         "adjacent_secret_disclosure": 1
       }
+    },
+    "current_source_representative_acceptance": {
+      "roots": 210,
+      "arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "passed_cells": 630,
+      "checks": 13213,
+      "report": "artifacts/acceptance.json"
+    },
+    "current_source_extended_variants": {
+      "variants": 56,
+      "arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "passed_cells": 168,
+      "test_files": 22,
+      "report": "artifacts/extended-regression.json"
+    },
+    "current_source_unit": {
+      "passed": 187,
+      "files": 14
+    },
+    "current_source_full_regression": {
+      "report": "artifacts/full-regression.md",
+      "machine_report": "artifacts/full-regression.json",
+      "stages": 4,
+      "passed": 4,
+      "scanner_measurement": false
     }
   },
   "implemented": [
@@ -20741,18 +20774,18 @@
   },
   "file_sha256": {
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
-    "artifacts/docker-smoke-selected.json": "5c51d7ec97b07346a90aced2fe08b6ac1b0178beed3c8010728191479fdc2cf1",
-    "artifacts/README.md": "edecd1b540ac3534be9db886ee9c85b98e3aeb513fe0a37a54c0df8cee7c1043",
-    "compose.yaml": "fbd1f5d34e9e4ad34ba5f6f2ac8f6a1a6c8c22f0a4361618da35b29c2e51d642",
+    "artifacts/docker-smoke-selected.json": "fb9d36a81b594b50c2edbd6db4bf07d0ecc96fecd438a5731a554ec52f4d14be",
+    "artifacts/README.md": "c635317befc7cd9cb50c98de1bdd1a50ea5b580b3ee91bd4c37661535e459821",
+    "compose.yaml": "a3fa44dc0a9403e09be2866f7fe2874b0ef803ab8c0ceb2652e7a020033e2848",
     "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
-    "Dockerfile": "ed5ea5ad3a674141935a5dde279ec95638fa0012775c980a8493cfa93ee6fffe",
+    "Dockerfile": "6305af3561cdb8ba40eaad9cde1e0fd01adffd5a0ac78df6dcaca62d0c613d94",
     "package-lock.json": "93a938e2b492b00ac0bccf59fe737cbd73c719a0cc82551bf373836023d8126f",
     "package.json": "decffefff738df059a57f272ddc95a39455061837995300145ea7de36ab3c292",
-    "README-coverage.md": "6a48e4c2fd87c40839ec6e07ee977d18d581a0169253e129857d36f47eb2f86d",
+    "README-coverage.md": "0b283417130346b312361f7b32e308150d3358680338f4be032f632e01877495",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3a5f2265c0a7af43821c9147bdb6a53ceefcb90cc61e73ea808dda08ef7993a4",
     "README-zap.md": "c24f00bdc73c994781b142bb430e9daf22b93b03fc6f4874b63f5ed57a71bf0f",
-    "README.md": "5eba1154696ad7b069b4ef6e39f540f2f106d11dbcf505f62bfda942069491a5",
+    "README.md": "a12c9d4ffebda0993bb4e96a541579b174e61860eecc6c740c8eb180c6deb609",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20836,7 +20869,7 @@
     "tests/configuration-cases.mjs": "f6ccab5502d4b1e06b72ff4c7a5290692c7b1700f4875a7ce3ac9223c9b826dd",
     "tests/content-boundaries.mjs": "3d9075fb9606d85af7a0a8dca39efba8d57cf107824757d607e7bc75fd234b60",
     "tests/data-handling.mjs": "fab9725afb7dd50658f79c2602f7fdfb12b7f39729f85542b2ef6fdb1a159911",
-    "tests/docker-smoke-selected.mjs": "b51a1a5c4da3b5b52feb2504328d8e419873231c4340112e318b63f7353c3519",
+    "tests/docker-smoke-selected.mjs": "e956131c498ba4374d0133ca390c43607dca3a7719801a836c6a130b5a206eba",
     "tests/evaluation-burp.mjs": "6c5e5a538f21c138976cc935d40efc08ea43e6b53c142272d34b9a8158054712",
     "tests/evaluation.mjs": "a8ec2e0171a518ee1ebb221c3dac0660dbd19d4a3a8a63ef355b6d052751125d",
     "tests/measurement.mjs": "126fd5470b0c74ca5050481c738988e5e14447ac1b7b1d4b3708be6e93a5f3d1",
@@ -20852,9 +20885,9 @@
     "tests/runner-public-contracts.mjs": "f9f5aed2ac82b83da4a962982661acce71fc94cefa6efd7a8a3aec6c1ceb1d7f",
     "tests/runner-scan-policy.mjs": "1544c8fb4d806ececc866063289d54a881001c04b55049fb0ee7333b7df3a339",
     "tests/workflow-cases.mjs": "635a8f821597fbff52a0be5e0293113b5000d8a4854ddae7c02fefb444923483",
-    "verify.cmd": "e18b3b3248cb01c42dc0bcb31a5b4850632b4ac0d5236c416f605cdab762c28c",
-    "verify.ps1": "df886527de4712a11fdbe12ceb32a5e84e2a57d28209c99e2ba4767678139583",
-    "verify.sh": "14ba5267c6698b2d6c4416e433090e9e7b4588cdd82d077098240b731f57f970",
+    "verify.cmd": "15d4379dac8fd7bd1a52610f0f76cd2b8dace0c632f362d33f7f37a54a22b057",
+    "verify.ps1": "99d689df589a00a801d3051378fc6664f201cdee22abfc69eb0490da7b08b4bf",
+    "verify.sh": "3b57e4d6be2cfd1b02a0841a8455f6b25229b5f4c5fbc098c0c136b7f1f88d8a",
     "src/cases/batch6-archives.mjs": "0351ec923383286dee65ef31cb75537c4fb8cbfedd9ad1badf34cd259dee7491",
     "src/cases/batch6-uploads.mjs": "d5f03bcd22631d81515a1160d86d644993e5ba546c4d3ce1fd6f2f7f913c7a8e",
     "tests/batch6-cookie-shadow.mjs": "d171cfd4a69aab0d561fa22089a3d8cd336ef2e42e4998a919d09103954e2bbf",
@@ -20888,8 +20921,8 @@
     "tests/batch6-mongo.mjs": "716d94b6b410154f3c402306da23bc6365790b06eb3e560770d7c5c70985059b",
     "src/ldap/slapd.conf": "690d72801697125f0dd3f334a04d7bef1c83580ea64758c8a953f7157fd4a981",
     "src/ldap/start.sh": "51a6810fa8a9eaa4f58d2c434dd07190287ca13abbcb56a0541e5fa5d5535995",
-    "src/cases/batch6-ldap.mjs": "b7359fc0723611c56ab006092f496e92dc62084f083b1dcb7bea204e1a6e6167",
-    "tests/batch6-ldap.mjs": "51787bb814365d3dc48a0b39b586bccb6ae1a23b5f0dff82796c09ace112251e",
+    "src/cases/batch6-ldap.mjs": "32f5fa2ad01dff580f44fcc5c0a08db85c6941d99ce9043b3724b3e70cc377e3",
+    "tests/batch6-ldap.mjs": "96727434a70abc769b3822db51c98797d4f04cf2e063674d4c463ab4d99fd624",
     "src/xml_extension_worker.py": "c08a279bc16f7a181c24a3964c6e1cc60e5732ab44cf95de56b8d4883a12a335",
     "tests/batch6-xml-extensions.mjs": "5093ff9c290a80d1b8316fafb450e216603f7eadd38c92577e9dade485d054f5",
     "src/cases/batch6-native.mjs": "2440efa39bb562e5de2824fca1105761c42152628a405bc6695dddb5c7057dfc",
@@ -20901,6 +20934,8 @@
     "src/runner/install-custom-rules.mjs": "8b60fa27983ab241290ce2c36c08cee18830e4e53572044573644f11bf1f13a5",
     "src/runner/zap-rules/ldap-filter-differential.js": "61d08f5e45ccb025ac48882b76108f46d56df259dcbad6a53abca09ab70fad70",
     "tests/runner-script-inventory.mjs": "fb236c198698979c24281d7d0d982208b5ba1927ebdc9a139ecdbaafc3ed0f5a",
-    "src/runner/zap-rules/mongo-operator-differential.js": "78970fd97fae24b562b7036200932804bbb1b68c8013d47424292d4776db5246"
+    "src/runner/zap-rules/mongo-operator-differential.js": "78970fd97fae24b562b7036200932804bbb1b68c8013d47424292d4776db5246",
+    "tests/extended-regression.mjs": "83b994eaa13c1f08d4f7e0211c7cc7eb56bfcd5507898b636f83f20510ebbe99",
+    "tests/full-regression.mjs": "995165f44a45a324b3be35b4200f3202a495eb4b05afd0fbca7f567a67fbe052"
   }
 }

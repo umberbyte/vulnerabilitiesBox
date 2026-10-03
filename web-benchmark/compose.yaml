@@ -123,7 +123,7 @@ services:
       CONTROL_URL: http://app:8099
       BENCHMARK_CONTROL_KEY: ${BENCHMARK_CONTROL_KEY:-}
     networks: [scan]
-    volumes: ["./artifacts:/opt/benchmark/artifacts"]
+    volumes: ["./artifacts:/opt/benchmark/artifacts", "../benchmark-design-v2.json:/opt/benchmark-design-v2.json:ro"]
     depends_on:
       app: {condition: service_healthy}
     shm_size: 256m

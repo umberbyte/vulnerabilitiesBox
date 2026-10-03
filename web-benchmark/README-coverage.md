@@ -7,10 +7,11 @@
 | 設計 | 337根本原因／500変種 | 目標集合 |
 | ソース実装 | 337根本原因／500変種 | V/F/Nへ切り替え可能なコードがある集合 |
 | 未実装 | 0根本原因／0変種 | 設計上の未実装は解消 |
-| 全条件の成立確認済み | 210根本原因・V/F/N計630条件 | **過去の210件版**で確認した履歴 |
-| 現行ソースの局所Docker確認 | 選択10変種のV/F計20条件、追加56変種のV/F/N計168条件 | [スモーク結果](artifacts/docker-smoke-selected.json)と下記の局所テスト。全条件合格 |
+| 代表ケースの成立確認 | 旧210根本原因・V/F/N計630条件 | 現行ソースで再実行する統合検証の一部 |
+| 追加変種の専用確認 | 56変種のV/F/N計168条件 | 22個の専用テストを順次実行 |
+| 選択スモーク | 10変種のV/F計20条件 | [スモーク結果](artifacts/docker-smoke-selected.json) |
 
-根本原因が同じ変種は一件に統合して採点します。Vは脆弱な処理、Fは修正版、Nは安全な類似入力です。FとNを新しい脆弱性として数えません。ソース実装は診断ツールによる検出の証拠ではありません。現行500変種すべてのV/F/N成立確認、全体回帰、ZAP・Burpの検出率測定は未実施です。Burp実測はライセンス調達後です。直近の追加37変種は局所DockerでV/F/N計111条件を確認しました。PDFは文書内資源をHTTP取得して本文へ描画する小さなPDF生成器であり、汎用HTMLレンダラではありません。H2ヘッダケースはHPACK literal subsetを受ける専用fixtureであり、Node標準HTTP/2 parserの欠陥を主張しません。N-APIの6変種は隔離された子プロセスで実C addonをASan付きで実行し、5件はASan違反、1件は隣接秘密値の返却を成立根拠とします。
+根本原因が同じ変種は一件に統合して採点します。Vは脆弱な処理、Fは修正版、Nは安全な類似入力です。FとNを新しい脆弱性として数えません。ソース実装は診断ツールによる検出の証拠ではありません。現行500変種すべてのV/F/N成立確認、ZAP・Burpの全体検出率測定は未実施です。Burp実測はライセンス調達後です。[統合検証結果](artifacts/full-regression.md)は現在のソースについて上記の範囲を確認します。PDFは文書内資源をHTTP取得して本文へ描画する小さなPDF生成器であり、汎用HTMLレンダラではありません。H2ヘッダケースはHPACK literal subsetを受ける専用fixtureであり、Node標準HTTP/2 parserの欠陥を主張しません。N-APIの6変種は隔離された子プロセスで実C addonをASan付きで実行し、5件はASan違反、1件は隣接秘密値の返却を成立根拠とします。
 
 ## 代表的な対象
 
@@ -29,7 +30,7 @@
 
 未実装は0変種です。N-APIの6根本原因は設計どおり`native_lab`として独立集計し、通常のWeb DAST検出率には混ぜません。残る作業は現行500変種の全体成立確認と回帰、ZAPの検出測定、Burpライセンス調達後の同条件比較です。
 
-局所検証は、`BENCHMARK_CONTROL_KEY`を設定した後に `docker compose --profile test run --build --rm -T verify node tests/<名前>.mjs` で個別に再実行できます。直近の6変種は `batch6-native`、その前の2変種は `batch6-xml-extensions`、その前の7変種は `batch6-ldap`、さらに前の7変種は `batch6-mongo`、その前の7変種は `batch6-h2-header`、`batch6-xml`、その前の8変種は `batch6-cli-transport`、`batch6-cli-http`、`batch6-cli-media`、`batch6-pdf`、`batch6-grpc`、`batch6-h2` です。以前の15変種は `batch6-cli`、`batch6-cli-boundaries`、`batch6-multipart`、`batch6-duplicate-cl`、`batch6-te-grammar`、`batch6-encrypted-zip`、`batch6-docx`、さらに前の4変種は `batch6-cookie-shadow`、`batch6-tar`、`batch6-uploads` で確認できます。
+利用者向けの入口は`verify.cmd`または`verify.sh`です。個別テストを再実行する場合は、先に`docker compose --profile test build verify`を済ませ、その後に現在のappから`BENCHMARK_CONTROL_KEY`を取得して`docker compose --profile test run --rm -T verify node tests/<名前>.mjs`を実行してください。キー取得後に`--build`を指定するとappが再作成され、キーが失効することがあります。
 
 依存エンジンの異なる欠陥をPostgreSQLだけで模倣したり、ヘッダ名だけを変えたりして実装済みとは数えません。正常系、Vの実結果、F/Nの防止、初期化を実環境で確認してから成立済みとします。
 

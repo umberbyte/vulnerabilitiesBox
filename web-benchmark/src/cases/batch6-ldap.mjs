@@ -27,7 +27,7 @@ function people(canary){
     ['uid=bob,ou=teamB,dc=benchmark,dc=test',member('bob','Bob Private','private','Private address')]
   ];
 }
-export const definitions=Object.keys(normal).filter(id=>!['B0103','B0104'].includes(id)).map(variant=>({root:'R'+variant.slice(1),variant,title:titles[variant],feature:'b6-ldap-'+variant.slice(1),family:'LDAP検索・bind境界',entry:variant==='B0181'?'/ldap-login':'/ldap-workbook',allowedPaths:variant==='B0181'?['ldap-login','ldap-private']:['ldap-workbook'],requests:variant==='B0181'?[['POST','/ldap-login',normal[variant]],['GET','/ldap-private',{}]]:[['GET','/ldap-workbook',{}],['POST','/ldap-workbook',normal[variant]]],negativeDescription:'許可されたLDAP検索と資格情報bindは成功し、OU・秘密属性・匿名bindから保護対象へ到達しない。',implementationNote:'Compose内の実OpenLDAPとldaptsクライアントを使用。Vは利用者filter、属性名、DN、base、scope、返却属性または匿名bind結果を採用し、F/Nは固定境界で評価する。'}));
+export const definitions=Object.keys(normal).filter(id=>!['B0103','B0104'].includes(id)).map(variant=>({root:'R'+variant.slice(1),variant,title:titles[variant],feature:'b6-ldap-'+variant.slice(1),family:'LDAP検索・bind境界',entry:variant==='B0181'?'/ldap-login':'/ldap-workbook',allowedPaths:variant==='B0181'?['ldap-login','ldap-private']:['ldap-workbook'],requests:variant==='B0181'?[['GET','/ldap-login',{}],['POST','/ldap-login',normal[variant]],['GET','/ldap-private',{}]]:[['GET','/ldap-workbook',{}],['POST','/ldap-workbook',normal[variant]]],negativeDescription:'許可されたLDAP検索と資格情報bindは成功し、OU・秘密属性・匿名bindから保護対象へ到達しない。',implementationNote:'Compose内の実OpenLDAPとldaptsクライアントを使用。Vは利用者filter、属性名、DN、base、scope、返却属性または匿名bind結果を採用し、F/Nは固定境界で評価する。'}));
 export const variantDefinitions=Object.keys(normal).filter(id=>['B0103','B0104'].includes(id)).map(variant=>({root:variant==='B0103'?'R0102':'R0094',variant,additionalVariant:true,title:titles[variant],feature:'b6-ldap-'+variant.slice(1),family:'LDAP検索範囲・返却属性',entry:'/ldap-workbook',allowedPaths:['ldap-workbook'],requests:[['GET','/ldap-workbook',{}],['POST','/ldap-workbook',normal[variant]]],negativeDescription:'正常な本人検索は成功し、別OUまたは秘密属性を返さない。',implementationNote:'実OpenLDAP上でscopeまたはattribute listのV/F/Nを比較する。'}));
 export async function reset({getRun}){
   records=[];sessions=new Map();if(!active.has(getRun().variant))return;
@@ -80,6 +80,7 @@ export function register(router,{getRun,vulnerable,page,requireLogin}){
       records.push({variant:getRun().variant,hasBob,exposed,count:rows.length});res.json({rows});
     }catch{res.sendStatus(422);}
   });
+  router.get('/ldap-login',selected,(req,res)=>{if(getRun().variant!=='B0181')return res.sendStatus(404);res.type('html').send(page('ディレクトリ認証','<p>ユーザー名とパスワードでログインします。</p>'));});
   router.post('/ldap-login',selected,async(req,res)=>{
     if(getRun().variant!=='B0181')return res.sendStatus(404);
     const username=req.body?.username,password=req.body?.password;

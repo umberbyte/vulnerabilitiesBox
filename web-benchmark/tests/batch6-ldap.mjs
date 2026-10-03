@@ -36,6 +36,7 @@ for(const [variant,root,normal,attack,blockedStatus,proof] of cases)for(const mo
 }
 for(const mode of ['V','F','N']){
   const manifest=await ctl('/reset',{root:'R0181',variant:'B0181',mode,seed:'ldap-empty-bind-acceptance-v1'});
+  assert.equal((await fetch(target+manifest.base+'/ldap-login')).status,200);
   async function login(password){
     const response=await fetch(target+manifest.base+'/ldap-login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'alice',password})});
     return {status:response.status,cookie:response.headers.get('set-cookie')?.split(';')[0]};

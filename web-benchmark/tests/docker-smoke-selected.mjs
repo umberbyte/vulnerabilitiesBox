@@ -11,6 +11,7 @@ const container=process.env.BENCHMARK_VALIDATION_CONTAINER||'web-benchmark-valid
 const origin=process.env.BENCHMARK_VALIDATION_ORIGIN||'http://127.0.0.1:18080';
 const controlUrl=process.env.CONTROL_URL;
 const controlKey=process.env.BENCHMARK_CONTROL_KEY;
+const reportPath=process.env.BENCHMARK_SMOKE_REPORT||'artifacts/docker-smoke-selected.json';
 const seed='batch5-docker-smoke';
 const report={schema:'benchmark-docker-smoke-selected-0.1',scope:'selected V/F boundaries only; no N, no scanner, no full regression',startedAt:new Date().toISOString(),origin,results:[]};
 const assert=(condition,label)=>{if(!condition)throw Error(label);};
@@ -114,6 +115,6 @@ for(const [root,variant,check] of cases)for(const mode of ['V','F']){
 }
 report.finishedAt=new Date().toISOString();
 report.summary={cells:report.results.length,passed:report.results.filter(x=>x.status==='passed').length,failed:report.results.filter(x=>x.status==='failed').length};
-await mkdir('artifacts',{recursive:true});await writeFile('artifacts/docker-smoke-selected.json',JSON.stringify(report,null,2)+'\n');
+await mkdir('artifacts',{recursive:true});await writeFile(reportPath,JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(report.summary));
 if(report.summary.failed)process.exitCode=1;

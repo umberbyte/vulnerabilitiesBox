@@ -40,7 +40,13 @@ docker compose exec -T app node src/control.mjs manifest
 
 ## 成立確認と診断
 
-全体の成立確認を実行する場合、WindowsではPowerShellからも動く`.\verify.cmd`、macOS/Linuxでは`sh verify.sh`を使います。PowerShellスクリプトの実行ポリシーを変更する必要はありません。結果は`artifacts/acceptance.json`へ保存します。**現行500変種すべてのV/F/N成立確認と全体回帰はまだ実施していません。** 全体受入済みの履歴は過去版の210根本原因・V/F/N計630条件です。現行ソースの局所Docker確認は[選択10変種のV/F計20条件](artifacts/docker-smoke-selected.json)と追加56変種のV/F/N計168条件です。追加分の検証コマンドは[実装範囲と検証状態](README-coverage.md)にまとめています。成立確認の合格はZAP/Burpによる検出を意味しません。
+検証はWindowsならPowerShellからも動く`.\verify.cmd`、macOS/Linuxなら`sh verify.sh`の一つのコマンドで実行します。PowerShellスクリプトの実行ポリシーは変更不要です。結果は人間向けの`artifacts/full-regression.md`と機械向けの`artifacts/full-regression.json`に保存します。このコマンドは単体テスト、旧210根本原因のV/F/N、追加56変種の専用V/F/N、選択10変種のV/Fを順次確認します。**現行500変種すべてのV/F/N成立確認とZAP/Burpの全体検出率測定は未実施です。** 成立確認の合格はZAP/Burpによる検出を意味しません。
+
+```powershell
+.\verify.cmd
+```
+
+macOS/Linuxでは`sh verify.sh`を実行します。
 
 製品比較では、同じ根本原因・seed・V/F/N・認証条件を使い、ケース切替ごとに初期化します。診断対象は各ケースの`requiredTargetOrigins`に従います。通常は8443のworkspaceで、HTTP開始点や8444の収集先が必要なケースは対象を追加します。対応できない入口は`unsupported_target_surface`として未測定にし、見逃しに数えません。制御キー、oracle、正解データを診断エージェントへ渡さないでください。
 
