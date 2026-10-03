@@ -5,6 +5,7 @@ import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
 import {correlateErrorCache} from './history-correlator.mjs';
+import {hasEnabledBenchmarkScanScript} from './script-inventory.mjs';
 
 const settings=options(process.env);
 const control=process.env.CONTROL_URL||'http://app:8099';
@@ -155,7 +156,7 @@ async function collectSettings() {
     }
     customRules=manifest.rules;
     if(customMode==='custom-only'&&activeScanners.scanners.some(scanner=>scanner.id!=='50000'&&String(scanner.enabled)==='true'))throw new Error('Non-custom active scanner is enabled in custom-only mode.');
-  } else if(scripts.some(script=>/^benchmark-[a-z-]+$/.test(script.name)&&String(script.enabled)==='true'))throw new Error('Custom script is enabled in default mode.');
+  } else if(hasEnabledBenchmarkScanScript(scripts))throw new Error('Custom script is enabled in default mode.');
   const settingsSnapshot={installedAddons:await optional('autoupdate','view','installedAddons'),activeScanners,customMode,customRules,passiveScanners:await optional('pscan','view','scanners'),spiderThreads:await optional('spider','view','optionThreadCount'),activeThreads:await optional('ascan','view','optionThreadPerHost'),authPolicy:{configuredAuthentication:settings.auth==='anonymous'?'none':settings.auth,subject:settings.auth==='anonymous'?null:settings.user,headerPolicy:settings.auth==='anonymous'?'none':metadata.authReachability.headerPolicy,engine:settings.auth==='anonymous'?null:'Graal.js',templateVersion:'benchmark-auth-missing-headers-0.1',excludedOperations:metadata.authScopeExclusions||[]}};
   if(settings.profile==='active-low') {
     settingsSnapshot.activeScanPolicy=lowPolicyDescription(lowPolicy);

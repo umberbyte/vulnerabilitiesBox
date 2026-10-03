@@ -50,7 +50,7 @@
       "includes_full_regression": false
     },
     "current_full_acceptance": "not_run",
-    "scanner_detection": "not_measured",
+    "scanner_detection": "selected_local_cases_only; no 500-variant detection rate",
     "current_source_batch6_docker": {
       "variants": 15,
       "arms": [
@@ -20751,7 +20751,7 @@
     "README-coverage.md": "6a48e4c2fd87c40839ec6e07ee977d18d581a0169253e129857d36f47eb2f86d",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3a5f2265c0a7af43821c9147bdb6a53ceefcb90cc61e73ea808dda08ef7993a4",
-    "README-zap.md": "53a6d2085baf8844d3510cdc89086ee2d473b426d4565bc676e569b187a2fc04",
+    "README-zap.md": "5a75d497c87077805f5609d4fd4530f2f91e0ada4d5bc89c30328e9c7b4a7609",
     "README.md": "5eba1154696ad7b069b4ef6e39f540f2f106d11dbcf505f62bfda942069491a5",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
@@ -20814,7 +20814,7 @@
     "src/runner/panel-runner.mjs": "77a67e73b361377407b514122e546f76582095e4faa086799d23c7a4b1842b37",
     "src/runner/panel.mjs": "b5afbbf61d3a43bc51c6ea42e18b197450884d0f93b3ff1b0fb0b4f3486b491d",
     "src/runner/policy.mjs": "48262cebf4a4c93fa4a88b8817766cf65dd8c620649faa94be5e3b848fe9e1d6",
-    "src/runner/scan-zap.mjs": "130ef4c1983307c66045b0d611f7b2f219112ace6c500702aeaddaf2838dd122",
+    "src/runner/scan-zap.mjs": "0128646ad6543d0b7b04b979f0deafe31e3b0b6d596fcf7ea1406ebb4cd90759",
     "src/runner/variant-panel.mjs": "c71e48cc2018876cb21f70e359db2e5d670b47c2554f4a0100b8ffe6b37762e5",
     "src/tls/local.crt": "1fec6120beb373c720d3fedf88c194117381a4807da0c45471de52c191d377a8",
     "src/tls/local.key": "438b50c081397614185fa7ed2acfe2042956fc73d0b1fe9277ae55f7df0db80e",
@@ -20895,6 +20895,11 @@
     "src/cases/batch6-native.mjs": "2440efa39bb562e5de2824fca1105761c42152628a405bc6695dddb5c7057dfc",
     "src/native/fixture.c": "87cd3808f7b735fb47e065ce71cdd3555c946ec1896669a0e0cc9af0d0368ebe",
     "src/native/worker.cjs": "be9a12dcffbf6df499216f7dc14e9ccc3d1b3d0e7568026127ae201989d5cc6f",
-    "tests/batch6-native.mjs": "c973753189e8d65f74859a400975c1a2b88f392ad1775ed738e4512939a88729"
+    "tests/batch6-native.mjs": "c973753189e8d65f74859a400975c1a2b88f392ad1775ed738e4512939a88729",
+    "README-zap-findings.md": "0bf0d7538333c45c97059a1b0652f09135228b6ec38b75443b90007a32fa5c91",
+    "src/runner/script-inventory.mjs": "2a39a24e22d978df8922ec2f6ae71e53aa89c4c3b5ca6582c8e31792e7d1f9c3",
+    "src/runner/install-custom-rules.mjs": "57d63d45eff4e897f34072c67dd05d2461f7eb0cc43f67a3326f33c0f0602530",
+    "src/runner/zap-rules/ldap-filter-differential.js": "61d08f5e45ccb025ac48882b76108f46d56df259dcbad6a53abca09ab70fad70",
+    "tests/runner-script-inventory.mjs": "fb236c198698979c24281d7d0d982208b5ba1927ebdc9a139ecdbaafc3ed0f5a"
   }
 }

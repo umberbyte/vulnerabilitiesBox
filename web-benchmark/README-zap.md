@@ -36,15 +36,17 @@ sh ./scan-zap.sh active 120 300 bearer admin
 
 公開manifestの `requiredTargetOrigins` がHTTPS入口以外のoriginを要求すると、このadapterは計測開始前に `unsupported_target_surface` で終了します。R0461はHTTP開始点、R0457/R0458はHTTPS 8443から別originのHTTPS 8444へ送る収集経路を要求するため、現行runnerでは未対応です。宣言がない従来契約は現在のHTTPS入口を必要originとします。公開入力・workspace・manifest hashを保存し、未到達の対象面を検出／見逃しとして採点しません。
 
-現在のソースは312根本原因・444変種です。全体成立確認済みの210根本原因・V/F/N計630条件は過去版の履歴で、現行ソース全体やZAPの検出率を示しません。このrunnerがすべてのケースに必要な操作を行えるという意味でもありません。描画境界の成立確認では実Chromiumを使いますが、現行runnerにはDOM診断や実クリックの自動化がありません。localStorageとService Worker、認証をまたぐcache再利用、正常応答のIDを使うjob取消も、単なるHTTP探索の完了と区別してください。資源制限は有限の業務上限を検査し、物理的な負荷耐性を測定しません。現在の実装範囲は[カバレッジ資料](README-coverage.md)を参照してください。
+現在のソースは337根本原因・500変種です。全体成立確認済みの210根本原因・V/F/N計630条件は過去版の履歴で、現行ソース全体やZAPの検出率を示しません。このrunnerがすべてのケースに必要な操作を行えるという意味でもありません。描画境界の成立確認では実Chromiumを使いますが、現行runnerにはDOM診断や実クリックの自動化がありません。localStorageとService Worker、認証をまたぐcache再利用、正常応答のIDを使うjob取消も、単なるHTTP探索の完了と区別してください。資源制限は有限の業務上限を検査し、物理的な負荷耐性を測定しません。現在の実装範囲は[カバレッジ資料](README-coverage.md)を参照してください。
 
-追加50件のMFAでは専用signinのpassword段階とOTP完了段階を区別し、通常loginのsessionだけで保護APIへ進めません。`/session`のusername確認はOTP完了の証拠になりません。招待token、委任対象、承認した内容、支払通知なども、通常POST・応答値の引継ぎ・必要な主体切替えを固定したprotocolが必要です。現行runnerの正常保護GET確認だけでは後続の操作へ到達したとは扱いません。R0497～R0500はJavaScriptの数値・配列境界の代表実装で、nativeメモリ破壊やASan検知は評価していません。
+追加50件のMFAでは専用signinのpassword段階とOTP完了段階を区別し、通常loginのsessionだけで保護APIへ進めません。`/session`のusername確認はOTP完了の証拠になりません。招待token、委任対象、承認した内容、支払通知なども、通常POST・応答値の引継ぎ・必要な主体切替えを固定したprotocolが必要です。現行runnerの正常保護GET確認だけでは後続の操作へ到達したとは扱いません。R0491～R0496のN-APIケースはnative_labとして通常のWeb DAST検出率と分け、ASan違反や秘密値返却の成立確認と、診断ツールの到達・検出を別に評価します。R0497～R0500はJavaScriptの数値・配列境界の代表実装です。
 
-以下の9条件の設定比較は、限定した入力と設定に対する動作確認です。全ケースのZAP検出実績とBurpとの比較は未測定です。過去の診断生データは公開リポジトリに含めていません。
+以下の局所的な設定比較は、限定した入力と設定に対する動作確認です。全ケースのZAP検出実績とBurpとの比較は未測定です。過去の診断生データは公開リポジトリに含めていません。
 
 ケースは既存の `src/control.mjs reset ROOT V|F|N [seed]` で選択します。実行スクリプトは起動済みアプリのイメージを再ビルドせず、選択を変更しません。ソース更新後は先に `docker compose up --build -d --wait` を実行してからケースを選択してください。アプリのコンテナーを再作成すると初期ケースに戻ります。
 
 ## 独自ルールの実験
+
+R0099のLDAPフィルタ向けに、公開`uid`入力の通常値・ワイルドカード分岐・不一致分岐を2回比較する独自アクティブスクリプトを追加しました。標準activeのV/F/Nは関連アラート0/0/0、独自ルールのみの局所走査は1/0/0です。[ZAP生成HTMLと失敗履歴](artifacts/zap-ldap-20261003.md)を参照してください。これは固定fixtureでの1反復で、他のLDAPアプリへの適用性は未評価です。
 
 `run-panel.cmd`（macOS/Linuxは`sh run-panel.sh`）の第3引数に`custom`を指定すると、通常のactive scanに独自Graal.jsスクリプトを追加します。`custom-only`は共通スクリプトスキャナーID 50000だけを有効にする切り分け用設定で、計画の全セルが`active`である場合に限ります。第3引数を省けば従来の設定です。計画・ledgerは通常と同じ2ファイルを使います。
 
