@@ -43,6 +43,16 @@ const corsRoots=['R0331','R0333','R0337','R0338','R0340'];
 const csrfPaths = root=>[root==='R0323'?'/b2-signin':'/b2-profile'];
 const auxiliaryRoots=['R0023','R0044','R0048','R0053','R0055','R0314','R0316','R0319','R0323','R0326','R0330','R0331','R0337','R0338','R0340','R0346','R0347','R0470','R0473'];
 export const definitions=specifications.map(([root,title,feature,family,entry,requests,negativeDescription,implementationNote])=>({root,variant:'B'+root.slice(1),title,feature:'b2-'+feature,family,entry,allowedPaths:[...new Set(requests.map(([,route])=>route.split('/')[1]))],requests,negativeDescription,implementationNote,...(cookieRoots.includes(root)?{loginPath:'/b2-cookie-signin',logoutPath:'/b2-cookie-signout'}:{}),...(root==='R0323'?{loginPath:'/b2-signin',loginFields:{csrf:'from-session'}}:{}),...([...profileRoots,'R0023','R0046','R0055','R0058','R0330',...corsRoots,'R0346','R0347'].includes(root)&&!cookieRoots.includes(root)?{sessionProtectedPath:entry}:{}),...(profileRoots.includes(root)||root==='R0323'?{crossOriginPostPaths:csrfPaths(root)}:{}),...(auxiliaryRoots.includes(root)?{requiredTargetOrigins:['https://app:8443','https://app:8444']}:{}),...(root==='R0233'?{requiredTargetOrigins:['https://app.benchmark.test:8443','http://app.benchmark.test:8080']}:{}),...(root==='R0333'?{requiredTargetOrigins:['https://app.benchmark.test:8443','https://partner.benchmark.test:8444','https://evil.benchmark.test:8444']}:{}),...(root==='R0325'?{requiredTargetOrigins:['https://app.benchmark.test:8443','https://attacker.test:8444']}:{}),...(root==='R0058'?{requiresTrustedTLS:true}:{}),...(root==='R0314'?{extractions:{csrf:'GET b2-profile -> form input[name=csrf]'}}:{}),...(root==='R0325'?{extractions:{csrf:'POST b2-cookie-signin -> csrf; GET b2-profile -> form input[name=csrf]'}}:{})}));
+export const variantDefinitions=[{
+  root:'R0235',variant:'B0236',additionalVariant:true,title:'subdomain Cookie shadow',
+  feature:'b2-cookie-subdomain-shadow',family:'同名Cookieの誤選択',entry:'/b2-cookie-account',
+  allowedPaths:['b2-cookie-signin','b2-cookie-signout','b2-cookie-account','b2-cookie-shadow'],
+  requests:[['GET','/b2-cookie-account',{}],['GET','/b2-cookie-shadow',{}]],
+  loginPath:'/b2-cookie-signin',logoutPath:'/b2-cookie-signout',
+  requiredTargetOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8443'],
+  negativeDescription:'本人のhost-only認証Cookieが、別subdomainの親Domain・長いPathの同名Cookieにより置換されない。',
+  implementationNote:'実ChromiumのDomain/Path cookie順序とRedisの二主体sessionを使う。F/Nは__Host-接頭辞を持つhost-only cookieを採用する。'
+}];
 
 const roots=definitions.map(item=>item.root);
 const equal=(a,b)=>{const x=Buffer.from(String(a)),y=Buffer.from(String(b));return x.length===y.length&&timingSafeEqual(x,y);};
@@ -123,6 +133,13 @@ export function register(router,ctx){
   manyGet('/b2-cookie-account',cookieRoots,async(req,res)=>{if(getRun().root==='R0233'&&!req.secure&&!vulnerable())return res.sendStatus(426);const account=await cookieMember(req);if(!account?.member)return res.sendStatus(401);res.json({username:account.member.name,service:'Member service available'});});
   manyGet('/b2-cookie-observation',cookieRoots,async(req,res)=>{const submitted=cookies(req,cookieName());await receipt(redis,{kind:'cookie-transport',secure:req.secure,received:submitted.length>0,values:submitted});if(getRun().root==='R0233'&&!req.secure&&!vulnerable())return res.sendStatus(426);res.json({received:submitted.length>0,secure:req.secure});});
   get('/b2-cookie-bridge','R0235',async(req,res)=>{if(!requireLogin(req,res))return;const selected=String(req.query.username||req.member.name);if(selected!==req.member.name)return res.sendStatus(403);const sid=token();await redis.set('browser:sid:'+sid,JSON.stringify({username:req.member.name,csrf:token()}),{EX:3600});res.cookie('memberSession',sid,{httpOnly:true,secure:req.secure,sameSite:'lax',path:path('/b2-cookie-account')});res.json({ready:true});});
+  get('/b2-cookie-shadow','R0235',async(req,res)=>{
+    if(getRun().variant!=='B0236'||req.hostname!=='evil.benchmark.test'||!req.secure)return res.sendStatus(404);
+    if(!requireLogin(req,res))return;
+    const sid=token();await redis.set('browser:sid:'+sid,JSON.stringify({username:req.member.name,csrf:token()}),{EX:3600});
+    res.cookie('memberSession',sid,{domain:'benchmark.test',path:path('/b2-cookie-account'),httpOnly:true,secure:true,sameSite:'lax'});
+    res.json({ready:true,issuedFor:req.member.name});
+  });
 
   const profilePrincipal=async(req,res)=>{if(getRun().root==='R0325'){const account=await cookieMember(req);if(!account?.member){res.sendStatus(401);return null;}return {member:account.member,session:account.session};}if(!requireLogin(req,res))return null;return {member:req.member,session:req.session};};
   const tokenFor=async(req,res,principal)=>{const root=getRun().root;if(root==='R0313'){await redis.sAdd('browser:csrf-tokens',principal.session.csrf);return principal.session.csrf;}if(root==='R0314'){const csrf=vulnerable()?token():signedCSRF(principal.session);res.cookie('profileCsrf',csrf,{httpOnly:false,secure:req.secure,sameSite:'none',path:'/'});return csrf;}return principal.session.csrf;};

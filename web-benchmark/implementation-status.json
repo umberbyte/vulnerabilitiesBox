@@ -1,17 +1,17 @@
 {
   "schema": "benchmark-implementation-0.8",
-  "date": "2026-10-02",
-  "scope": "設計337根本原因／500変種、ソース実装312根本原因／444変種。成立確認済み範囲とソース実装を区別する。",
+  "date": "2026-10-03",
+  "scope": "設計337根本原因／500変種、ソース実装312根本原因／448変種。成立確認済み範囲とソース実装を区別する。",
   "summary": {
     "design_roots": 337,
     "design_variants": 500,
     "implemented_roots": 312,
-    "implemented_positive_variants": 444,
+    "implemented_positive_variants": 448,
     "fixed_representative_controls": 312,
     "safe_analogue_conditions": 312,
     "validated_execution_cells": 630,
     "remaining_unimplemented_roots": 25,
-    "remaining_unimplemented_positive_variants": 56,
+    "remaining_unimplemented_positive_variants": 52,
     "checks": 13207,
     "comparison_tracks": {
       "audit": 16,
@@ -24,7 +24,7 @@
     "pending_final_acceptance_roots": 102,
     "planned_execution_cells": 936,
     "validated_execution_scope": "historical_210_release_only",
-    "additional_source_variants": 132
+    "additional_source_variants": 136
   },
   "verification": {
     "historical_full_acceptance": {
@@ -3192,9 +3192,7 @@
         "F",
         "N"
       ],
-      "remaining_variants_in_root": [
-        "B0133"
-      ],
+      "remaining_variants_in_root": [],
       "references": [
         {
           "source": "S1",
@@ -3499,10 +3497,7 @@
         "F",
         "N"
       ],
-      "remaining_variants_in_root": [
-        "B0144",
-        "B0160"
-      ],
+      "remaining_variants_in_root": [],
       "references": [
         {
           "source": "S1",
@@ -7412,9 +7407,7 @@
         "F",
         "N"
       ],
-      "remaining_variants_in_root": [
-        "B0236"
-      ],
+      "remaining_variants_in_root": [],
       "references": [
         {
           "source": "S1",
@@ -19001,6 +18994,34 @@
       "group": "transport",
       "title": "HSTSなし降格",
       "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0132",
+      "variant": "B0133",
+      "group": "archive",
+      "title": "TARリンク展開",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0142",
+      "variant": "B0144",
+      "group": "upload",
+      "title": "HTML polyglot",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0142",
+      "variant": "B0160",
+      "group": "upload",
+      "title": "署名型スニッフィング",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0235",
+      "variant": "B0236",
+      "group": "browser",
+      "title": "subdomain Cookie shadow",
+      "status": "source_added_local_docker_vfn_verified"
     }
   ],
   "unimplemented_roots": [
@@ -19067,14 +19088,10 @@
     "B0115",
     "B0116",
     "B0119",
-    "B0133",
-    "B0144",
     "B0147",
     "B0159",
-    "B0160",
     "B0176",
     "B0181",
-    "B0236",
     "B0310",
     "B0352",
     "B0353",
@@ -19103,11 +19120,11 @@
     "Dockerfile": "0ca91748d62e90d616273ec9958264ddce486ea08bc36c45d89664a7dee0a5f3",
     "package-lock.json": "6eb9479263305867183e5c60c18046a15c7aa568595ae6807bf2cd2ad398ea70",
     "package.json": "d13207875da960a6e022b3e5e4356c72c267dabc9ecf99d20eb1785ea877c26d",
-    "README-coverage.md": "0c4d2c5c3ef0499991c2b3e7911d99c569e4cef4ac5bd7f105dfca13c0594a43",
+    "README-coverage.md": "d5fa4c646ef2cc63c413d6d7a36d2f3cecbb484c9309d3620fbd78be803586d1",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0ad35f39115f9e15acedc6f069c6a12e2f713be3effb48194c62de80f12a0baa",
     "README-zap.md": "28842114c51969c787d07a6af80235f1b2fd939b77218aa686b7712e97f416c0",
-    "README.md": "9f4de5044eb8ef4433e6d9b64337e67abe65672f7da6c75b7d6469817fb6ff55",
+    "README.md": "51447053fa863e4fda2a6574f993afb3472a7343a0e0c5265c100931897c623d",
     "run-panel.cmd": "fb819650f8d249fd5b5209d13d4a681da4851f3bf15c3fd76313ceb258d9e820",
     "run-panel.sh": "e66f71749484ccd980d3c8c179cf5c424cb281fb273185db51eeb26aea557fc0",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -19117,7 +19134,7 @@
     "src/cases/batch-auth.mjs": "e45d89115adbe918807e6daeeac47b428fb7ab271fe2092a48d028be6c41af0f",
     "src/cases/batch-authorization.mjs": "d19a14a37581491fea7793ae907c5049ffff78bf85342d1d40d881b9ac13c179",
     "src/cases/batch-boundaries.mjs": "37d527a695a55944bf035c95b78c7f4fe5787d5641d5856c20ecee7c594c13ac",
-    "src/cases/batch2-browser.mjs": "f16be01792220356b2938592ca12b0ffc6be10068a1db0c852c42074489ba17f",
+    "src/cases/batch2-browser.mjs": "87887ce7c39a95e4308398ad7d978274b4a3360ea9823b6678985af45709056e",
     "src/cases/batch2-storage.mjs": "b1698175a0c681a80d93e6f3a1e2a6bf6c0e253e9cd50c0001d4259288358308",
     "src/cases/batch2-workflows.mjs": "885eb4b162881856502351bd02e3324c36b6b89aa08b54cb98e045943b267127",
     "src/cases/batch3-engines.mjs": "0e35ea62ed43e1f8705ce60185dda6622fcd5eccdbc42cb6d337d6d33fba42cc",
@@ -19147,7 +19164,7 @@
     "src/cases/configuration.mjs": "17d205ad0fba695afda7546804de3627baa52639ecac0d6d210662119929da81",
     "src/cases/content-boundaries.mjs": "819b0f8ca1886e6bf28601693ed24323e8309ec29d59efadedcf5e9f2e2299a7",
     "src/cases/data-handling.mjs": "dc3160f38c08294d33d9e2a336b5e43e9cd6b4acb074bc6d8e3886631feccac2",
-    "src/cases/index.mjs": "376639d8bdb23880617fa7d29606e5fa24293cdce124fd18211a2f7ae1fd7258",
+    "src/cases/index.mjs": "5d1b0b819d079634700557eb7eb7b9992481e46f0293a1ba67e70c471f5bddce",
     "src/cases/resource-quotas.mjs": "9e7c39521850e72a4b1004f9e1e6233603c1f7f324b21446e8d733f785bfb94d",
     "src/cases/workflows.mjs": "2ddf90ff0ab8fb9e3e789c4e0926168afc6dbaf89da921dcee4d04853df82c58",
     "src/catalog.mjs": "80b16075504fadad7c89a00d4f620ff56c7e77db1007ca68cebf012f5bf94e17",
@@ -19209,6 +19226,11 @@
     "tests/workflow-cases.mjs": "635a8f821597fbff52a0be5e0293113b5000d8a4854ddae7c02fefb444923483",
     "verify.cmd": "e18b3b3248cb01c42dc0bcb31a5b4850632b4ac0d5236c416f605cdab762c28c",
     "verify.ps1": "df886527de4712a11fdbe12ceb32a5e84e2a57d28209c99e2ba4767678139583",
-    "verify.sh": "14ba5267c6698b2d6c4416e433090e9e7b4588cdd82d077098240b731f57f970"
+    "verify.sh": "14ba5267c6698b2d6c4416e433090e9e7b4588cdd82d077098240b731f57f970",
+    "src/cases/batch6-archives.mjs": "0351ec923383286dee65ef31cb75537c4fb8cbfedd9ad1badf34cd259dee7491",
+    "src/cases/batch6-uploads.mjs": "d5f03bcd22631d81515a1160d86d644993e5ba546c4d3ce1fd6f2f7f913c7a8e",
+    "tests/batch6-cookie-shadow.mjs": "d171cfd4a69aab0d561fa22089a3d8cd336ef2e42e4998a919d09103954e2bbf",
+    "tests/batch6-tar.mjs": "87d89399ad1cd027087a93dda0408d9554732a52e2349cd816c1a3324dc26f83",
+    "tests/batch6-uploads.mjs": "74887df8ff0417ba124cf2089a47c795a9416d8f130bdefa9a75e118fc1e5f2d"
   }
 }
