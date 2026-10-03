@@ -4,7 +4,7 @@ import {mkdtemp,mkdir,readFile,writeFile,rm,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import {storeToolsCheck,collectVerificationHistory} from '../src/reporting/history.mjs';
+import {storeToolsCheck,collectVerificationHistory,historyMarkdown} from '../src/reporting/history.mjs';
 import {collectReports,renderReports} from '../src/reporting/index.mjs';
 
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -46,5 +46,20 @@ test('symlinked history and latest output paths are rejected before writing',asy
 });
 test('report index links archives and preserves the recorded historical state',async t=>{
   const dir=await fixture(t),saved=await storeToolsCheck(dir,report(),log,'result'),index=await collectReports(dir);
-  assert.equal(index.verificationHistory.runs.length,1);assert.ok(renderReports(index).includes(saved.archive+'/tools-check.json'));assert.match(renderReports(index),/評価ツールの検証履歴/);
+  assert.equal(index.verificationHistory.runs.length,1);assert.ok(renderReports(index).includes(saved.archive+'/tools-check.json'));assert.match(renderReports(index),/評価ツール・統合回帰の検証履歴/);
+});
+test('historical source comparison uses the original snapshot and exposes changes',async t=>{
+  const dir=await fixture(t),original=report();await storeToolsCheck(dir,original,log,'result');
+  assert.equal((await collectVerificationHistory(dir,{currentSource:original.source})).runs[0].sourceComparison.status,'matched');
+  const changed=structuredClone(original.source);changed.files['tests/runner-fixture.mjs']=sha('changed');changed.sha256=sha(JSON.stringify(changed.files));
+  const history=await collectVerificationHistory(dir,{currentSource:changed});assert.equal(history.runs[0].sourceComparison.status,'changed');assert.equal(history.runs[0].sourceSha256,original.source.sha256);
+});
+test('human history includes the causes of conflicting saved evidence',async t=>{
+  const dir=await fixture(t),saved=await storeToolsCheck(dir,report(),log,'result');await writeFile(join(dir,saved.archive,'tools-check.log'),log+'# altered\n');
+  const history=await collectVerificationHistory(dir),markdown=historyMarkdown(history),visible=markdown.replace(/&#(\d+);/g,(_,code)=>String.fromCharCode(Number(code)));assert.match(visible,/log_hash_mismatch/);assert.match(markdown,/不整合/);assert.ok(history.runs[0].issues.some(i=>i.code==='log_hash_mismatch'));
+});
+test('untrusted metadata cannot insert Markdown images or executable HTML',()=>{
+  const metadata='![external](https://example.test/pixel)<script>x</script>';
+  const markdown=historyMarkdown({runs:[{kind:'tools',path:'verification-history/tools-fixture/tools-check.json',status:metadata,startedAt:metadata,issues:[]}],warnings:[]});
+  assert.ok(!markdown.includes('![external]'));assert.ok(!markdown.includes('<script>'));assert.ok(markdown.includes('&#33;'));
 });

@@ -198,20 +198,25 @@
     },
     "latest_offline_tools_unit": {
       "report": "artifacts/tools-check.md",
-      "passed": 247,
-      "tests": 247,
-      "files": 20,
-      "source_sha256": "de786cd2b8e7e26f1f2f8efb9e81317c0aaedc5e624168624e90ff6a25c9a36f",
+      "machine_report": "artifacts/tools-check.json",
+      "passed": 262,
+      "tests": 262,
+      "files": 21,
+      "source_sha256": "dccc980001c00f94750ab05ca869d3a9fbca7e042bc1cba8c4a586b8e151e99d",
       "source_snapshot_recorded": true,
       "application_acceptance": false,
       "scanner_measurement": false,
-      "archive": "verification-history/tools-2026-10-03T12-29-28-999Z-de07e3bb-be1c-4d96-9446-afffdf6da85e",
-      "machine_report": "artifacts/tools-check.json"
+      "archive": "verification-history/tools-2026-10-03T12-48-09-911Z-e81f75a8-61ee-4af1-969f-e05694fff57d"
     },
     "offline_verification_evidence_audit": {
       "report": "artifacts/verification-audit.md",
       "scope": "Saved verification logs, hashes, summaries, completion and source records; no application or scanner execution",
       "machine_report": "artifacts/verification-audit.json"
+    },
+    "offline_verification_history": {
+      "report": "artifacts/verification-history.md",
+      "index": "artifacts/report-index.json",
+      "scope": "Preserved verification bytes, log hashes and source comparisons; saved versions are not additional executions"
     }
   },
   "implemented": [
@@ -20794,7 +20799,7 @@
   "file_sha256": {
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
     "artifacts/docker-smoke-selected.json": "fb9d36a81b594b50c2edbd6db4bf07d0ecc96fecd438a5731a554ec52f4d14be",
-    "artifacts/README.md": "399e7ffff5784e5c232222dc43d690def8c1a5c8680bd4f83923851bae06b69d",
+    "artifacts/README.md": "b9b8be71188cd54b46b89918c7e7d4e7cf9d521a9b23e07be7934273b32357f0",
     "compose.yaml": "59597db63476147be76fbd767767c6e378f61bdbc0314d6b4edb735e0f0dafae",
     "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
     "Dockerfile": "a0843b00305dbcf63c3d566a94460e1fb42f78303faaa27412eda5958f737119",
@@ -20804,7 +20809,7 @@
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3b94b3f80ac4c79a80d72fe0d46be335fb9d36335d967561b8e08435cd512545",
     "README-zap.md": "1cd0cef0c9f7349c29874eaa727cc7eef876d32d61668a17208b49eedce89217",
-    "README.md": "fa20c733ab278751eb15e88cf754efe9b08877e973bb3bc8a9320896d596a72b",
+    "README.md": "1cc77acb1f73707c7f3a8210adf9b52124cadc66c2a19f7ea1b90df75a75ea6f",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20955,12 +20960,12 @@
     "tests/runner-script-inventory.mjs": "fb236c198698979c24281d7d0d982208b5ba1927ebdc9a139ecdbaafc3ed0f5a",
     "src/runner/zap-rules/mongo-operator-differential.js": "78970fd97fae24b562b7036200932804bbb1b68c8013d47424292d4776db5246",
     "tests/extended-regression.mjs": "e56969914b4461daebbf7eb13b9c3722a7c66f707ce800b9bc54842be7347bc2",
-    "tests/full-regression.mjs": "26311d7fa7e76389ce86b1d6cf6b34c485a6a0f551abc843a5825fc291905858",
+    "tests/full-regression.mjs": "34b79bc20d88630938a84d618ad6d8c7f67181611230363c700351ee7458eeba",
     "src/runner/zap-rules/event-attribute-name.js": "c93dff49da1c53dec794dafb519ded472749673cb55adfd904511044cfab88b7",
     "src/runner/zap-rules/json-script-html-boundary.js": "ef82ccf405123b1642189809a9fa94adc89635d943529dcd6e9a7cb1cb3de4eb",
     "reports.cmd": "b79b1e32639e41448f6180192b5c69044c9b58db9c28055c13463553fa61fd26",
     "reports.sh": "2d292b31f53c2177c6900a6d29e08a112fa880ffda3d9af5e1fdb48c82994c29",
-    "src/reporting/index.mjs": "15d412ee3e899ca113bf87f09e66920a5cfe835d159df363bce1639041c52877",
+    "src/reporting/index.mjs": "a1c8dd3665c54c28fa27c9984fbf051f802955cb0690292863687f9de3760ae5",
     "tests/runner-report-index.mjs": "d52ff108bcbf8b6e891d0720e485fb3b2ef3db1bd6ca9942c29c898273a11668",
     "src/reporting/files.mjs": "7aab9027bf1a68ae0aff065a6c7623bce26a7816bfd87ed061b07f2e92f7f18b",
     "src/reporting/audit.mjs": "3062599e1b484f20b3aa1b85da173312380a700b6c7a21c375de61e1366bfdfe",
@@ -20972,8 +20977,10 @@
     "src/reporting/coverage.mjs": "1e7456440827a5f2b99fee0f5d867a53df8533838add1686b5773fbbe5d05c1f",
     "tests/runner-coverage-inventory.mjs": "f32e7ce8146abd9a147b2d42caec3a99246d94e3e11686e5e5b30cb5a58a0450",
     "src/reporting/verification.mjs": "e1f093667fc001a1a255a1d7775a36163c102b1e8b898b16c58a5d69a6e2d0c4",
-    "src/reporting/history.mjs": "0c974036c26eba73ede45849903cd88cca5f60252024cf67c53afa07c2fcc083",
+    "src/reporting/history.mjs": "8deb168f3e56c8a179dff6c747e535f7c323e9e25d99fa2f2eeed68849aba61a",
     "tests/runner-verification-audit.mjs": "d13bcf9026a3b0642b55b3cd875e67ad27bff5969c1f3ecd63336858a39d3993",
-    "tests/runner-verification-history.mjs": "186b2adde627ca3fe169fb4ae790eacd73f54b422a6d3b01d89540434218665b"
+    "tests/runner-verification-history.mjs": "920e6ccc7abd4e86b36246a087ce024fc369c59eaa50e1a9c562d05d36701f53",
+    "src/reporting/regression-archive.mjs": "b346c80706dd4b369aa395d38b630755a8f3b8c77d18ff045387e2b262ad145a",
+    "tests/runner-regression-archive.mjs": "105f246f4b319fcfd5927e634cf1595fd08cccaeb8ff26efd08dd65991d629af"
   }
 }

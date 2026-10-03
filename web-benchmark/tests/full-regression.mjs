@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {unitTestFiles} from '../src/reporting/tool-tests.mjs';
 import {sourceSnapshot,compareSources} from '../src/reporting/source.mjs';
+import {archiveRegression} from '../src/reporting/regression-archive.mjs';
 
 // One repeatable Docker entry point. Scope is explicit: the newer variants have
 // dedicated V/F/N tests, while the older acceptance harness covers 210 roots.
@@ -11,6 +12,7 @@ const roots=status.implemented.filter(item=>item.status==='previous_release_acce
 if(roots.length!==210||new Set(roots).size!==210)throw Error('The representative acceptance root set changed');
 if(!process.env.BENCHMARK_CONTROL_KEY)throw Error('BENCHMARK_CONTROL_KEY is required');
 const unitFiles=await unitTestFiles('.');
+await archiveRegression('artifacts');
 const report={schema:'benchmark-full-regression-0.1',startedAt:new Date().toISOString(),scope:{sourceRoots:337,sourceVariants:500,representativeAcceptanceRoots:roots.length,representativeAcceptanceArms:['V','F','N'],extendedTests:'batch6-* V/F/N',selectedSmokeArms:['V','F'],full500VariantAcceptance:false,scannerMeasurement:false},stages:[]};
 await mkdir('artifacts/full-regression-logs',{recursive:true});
 report.source=await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'});
