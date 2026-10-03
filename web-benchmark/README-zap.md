@@ -44,7 +44,7 @@ sh ./scan-zap.sh active 120 300 bearer admin
 
 ケースは既存の `src/control.mjs reset ROOT V|F|N [seed]` で選択します。実行スクリプトは起動済みアプリのイメージを再ビルドせず、選択を変更しません。ソース更新後は先に `docker compose up --build -d --wait` を実行してからケースを選択してください。アプリのコンテナーを再作成すると初期ケースに戻ります。
 
-## 独自SQLルールの実験
+## 独自ルールの実験
 
 `run-panel.cmd`（macOS/Linuxは`sh run-panel.sh`）の第3引数に`custom`を指定すると、通常のactive scanに独自Graal.jsスクリプトを追加します。`custom-only`は共通スクリプトスキャナーID 50000だけを有効にする切り分け用設定で、計画の全セルが`active`である場合に限ります。第3引数を省けば従来の設定です。計画・ledgerは通常と同じ2ファイルを使います。
 
@@ -53,9 +53,13 @@ docker compose --profile panel run --build --rm panel generate artifacts/panel-s
 .\run-panel.cmd artifacts/panel-sql.json artifacts/panel-sql-ledger.json custom-only
 ```
 
-ルールは公開のパラメーター名と正常値からSQL構文位置を推測し、ORDER BYでは真偽の式で同一商品集合の順序差、比較演算子では偽条件が正常結果に一致し真条件だけ結果を増やす差を、それぞれ再送して確認します。root ID、V/F/N、制御API、非公開fixture値はスクリプトへ渡しません。検出ロジックはPostgreSQLの式とJSONの`items`配列に依存します。今回の成功はこの2ケースでの局所的な結果で、他製品・他アプリでの精度を保証しません。
+SQLルールは公開のパラメーター名と正常値からSQL構文位置を推測し、ORDER BYでは真偽の式で同一商品集合の順序差、比較演算子では偽条件が正常結果に一致し真条件だけ結果を増やす差を、それぞれ再送して確認します。検出ロジックはPostgreSQLの式とJSONの`items`配列に依存します。経路区切りルールは公開の正常ファイル名からバックスラッシュ型とスラッシュ型の親要素を作り、通常応答との差を比較します。これらのスクリプトへroot ID、V/F/N、制御API、非公開fixture値は渡しません。
+
+R0380ではOpenAPI取り込みが独自アクティブスクリプトより先に公開ヘッダーを変異させるため、順序付き検査をアクティブスクリプトだけで確実に行えません。`custom`と`custom-only`では、走査後にコントローラーがZAPの先頭500履歴を同一URL・時系列で照合します。ヘッダーなし200、公開`X-News-Preview`値を本文へ反映する5xx、同本文のヘッダーなし5xxが連続して成立した場合にだけ、[ZAP Alert API](https://www.zaproxy.org/docs/api/)でその最後の通信へ出所明記のアラートを追加します。照合根拠は各runの`history-findings.json`、ZAPのアラートとHTMLは`alerts.json`と`zap-report.html`に保存します。`pluginId=-1`のこのアラートはコントローラーによる後処理で、ZAPネイティブの検出率に算入しません。履歴が500件を超える走査では、先頭500件に証拠がないことを陰性判定としないでください。
 
 この固定ZAPイメージでは独自メタデータを持つfirst-classルールの初期化が失敗したため、標準のScript Active Scan Rules（ID 50000）として登録しています。`scanner-settings.json`には有効ルール一覧、スクリプト名、ソースSHA-256、設定モードを保存します。通常の全ルールと併用した通信上限500件の予備走査は全6セルが`budget_stopped`だったので採点しません。停止目安を900件にした併用走査はR0005/R0006のV/F/N全6セルが完走し、独自SQLアラートは両rootとも1/0/0でした。`custom-only`と通常スキャンを比較するときは、有効ルール集合と予算の違いを明示してください。実測とZAPのHTMLレポートは[検出漏れ記録](README-zap-findings.md)から参照できます。
+
+R0124/R0380の検証には`--roots R0124,R0380 --profiles active --auth anonymous --wall-seconds 120 --requests 900`の計画を使い、第3引数を`custom-only`と`custom`に変えて独立走査しました。どちらもV/F/N全6セルが完走し、両rootの関連アラートは1/0/0でした。これは当該ベンチマーク条件での局所的な結果で、他アプリへの誤警告率や再現性の証明ではありません。
 
 ```powershell
 docker compose up --build -d --wait

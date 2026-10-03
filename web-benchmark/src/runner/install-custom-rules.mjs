@@ -2,7 +2,11 @@ import {readFile,writeFile,chmod} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 
-const rules=[{name:'benchmark-sql-grammar-differential',id:'50000',source:new URL('./zap-rules/sql-grammar-differential.js',import.meta.url)}];
+const rules=[
+  {name:'benchmark-sql-grammar-differential',id:'50000',source:new URL('./zap-rules/sql-grammar-differential.js',import.meta.url),description:'Differential checks for SQL grammar positions'},
+  {name:'benchmark-path-separator-differential',id:'50000',source:new URL('./zap-rules/path-separator-differential.js',import.meta.url),description:'Compare public path normalization across slash conventions'},
+  {name:'benchmark-error-cache-differential',id:'50000',source:new URL('./zap-rules/error-cache-differential.js',import.meta.url),description:'Check whether a header-triggered error persists without that header'}
+];
 
 export async function install({zap=process.env.ZAP_URL||'http://zap:8090',key=process.env.ZAP_API_KEY,inputDirectory='/scan-input',onlyCustom=false}={}) {
   if(zap!=='http://zap:8090'||!key)throw new Error('The isolated ZAP endpoint and API key are required.');
@@ -35,7 +39,7 @@ export async function install({zap=process.env.ZAP_URL||'http://zap:8090',key=pr
     const destination=`${inputDirectory}/${rule.name}.js`;
     await writeFile(destination,source,{flag:'w',mode:0o644});
     await chmod(destination,0o644);
-    await api('script','action','load',{scriptName:rule.name,scriptType:'active',scriptEngine:'Graal.js',fileName:destination,scriptDescription:'Differential checks for SQL grammar positions',charset:'UTF-8'});
+    await api('script','action','load',{scriptName:rule.name,scriptType:'active',scriptEngine:'Graal.js',fileName:destination,scriptDescription:rule.description,charset:'UTF-8'});
     await api('script','action','enable',{scriptName:rule.name});
     installed.push({name:rule.name,id:rule.id,sha256:createHash('sha256').update(source).digest('hex')});
   }

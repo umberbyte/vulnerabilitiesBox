@@ -76,7 +76,7 @@ docker compose --profile panel run --build --rm panel generate artifacts/panel-p
 
 Linux/macOSでは同じ2引数を `sh run-panel.sh` へ渡します。計画とledgerは両方とも`artifacts`内のパスで指定します。存在しない計画、既存ledger、計画と同じledger名、`artifacts`外のパスを拒否します。Windowsの`.cmd`はPowerShellのスクリプト実行ポリシーの変更を必要としません。
 
-SQL構文位置の独自ZAPスクリプトを加える場合だけ第3引数に`custom`を指定します。独自ルール単体の切り分けは`custom-only`を指定し、全セルが`active`の計画を使います。導入したスクリプトの名前・SHA-256・有効スキャナーは各セルの`scanner-settings.json`へ保存します。詳しくは[ZAP手順](README-zap.md)を参照してください。
+SQL構文位置・経路区切りなどの独自ZAPルールを加える場合は第3引数に`custom`を指定します。独自ルール単体の切り分けは`custom-only`を指定し、全セルが`active`の計画を使います。R0380の順序依存の照合はコントローラーがZAPの履歴を後処理し、出所を明記したアラートとしてZAPへ追加します。導入したスクリプトの名前・SHA-256・有効スキャナーは各セルの`scanner-settings.json`へ、後処理の根拠は`history-findings.json`へ保存します。詳しくは[ZAP手順](README-zap.md)を参照してください。
 
 workerは計画全体を生成時のcatalogと条件から再構築し、ID、セル順、root/variant、V/F/N、seed、反復、workspace、profile、認証、予算、未実行statusを照合します。壊れた条件や重複セル、実装から削除・変更されたroot/variantは、対象を初期化する前に拒否します。catalogに新しいrootが増えた場合でも、古い計画のセルを追加して実行することはありません。
 
