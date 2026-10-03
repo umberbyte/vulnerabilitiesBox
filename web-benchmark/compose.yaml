@@ -33,6 +33,19 @@ services:
       interval: 3s
       timeout: 3s
       retries: 40
+  ldap:
+    build: {context: ., target: ldap}
+    networks: [data]
+    read_only: true
+    tmpfs: ["/tmp:rw,nosuid,size=64m,uid=1000,gid=1000"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "ldapwhoami", "-x", "-H", "ldap://127.0.0.1:1389", "-D", "cn=admin,dc=benchmark,dc=test", "-w", "benchmark-local-fixture"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
   executor:
     build: {context: ., target: executor}
     command: ["node", "src/executor.mjs"]
@@ -54,6 +67,7 @@ services:
       REDIS_URL: redis://redis:6379
       EXECUTOR_URL: http://executor:8090
       MONGODB_URL: mongodb://benchmark:benchmark-local-fixture@mongo:27017/benchmark?authSource=admin
+      LDAP_URL: ldap://ldap:1389
     networks:
       data: {}
       execution: {}
@@ -62,6 +76,7 @@ services:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
       mongo: {condition: service_healthy}
+      ldap: {condition: service_healthy}
       executor: {condition: service_started}
     tmpfs: ["/tmp:rw,noexec,nosuid,size=32m,uid=1000,gid=1000", "/opt/benchmark/fixtures:rw,noexec,nosuid,size=4m,uid=1000,gid=1000"]
     read_only: true

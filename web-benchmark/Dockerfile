@@ -23,3 +23,11 @@ RUN mkdir -p /home/node/.pki/nssdb && certutil -N -d sql:/home/node/.pki/nssdb -
 ENV NODE_EXTRA_CA_CERTS=/opt/benchmark/src/tls/local.crt
 USER node
 CMD ["sh", "-c", "node --test --test-reporter=tap --test-reporter-destination=stdout --test-reporter=tap --test-reporter-destination=artifacts/unit-tests.tap tests/measurement.mjs tests/runner-*.mjs tests/evaluation*.mjs && node tests/acceptance.mjs"]
+
+FROM node:24.21.0-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS ldap
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends slapd ldap-utils && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/benchmark
+COPY src/ldap ./src/ldap
+USER node
+CMD ["sh", "src/ldap/start.sh"]

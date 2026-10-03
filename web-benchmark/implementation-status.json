@@ -1,30 +1,30 @@
 {
   "schema": "benchmark-implementation-0.8",
   "date": "2026-10-03",
-  "scope": "設計337根本原因／500変種、ソース実装324根本原因／485変種。成立確認済み範囲とソース実装を区別する。",
+  "scope": "設計337根本原因／500変種、ソース実装329根本原因／492変種。成立確認済み範囲とソース実装を区別する。",
   "summary": {
     "design_roots": 337,
     "design_variants": 500,
-    "implemented_roots": 324,
-    "implemented_positive_variants": 485,
-    "fixed_representative_controls": 324,
-    "safe_analogue_conditions": 324,
+    "implemented_roots": 329,
+    "implemented_positive_variants": 492,
+    "fixed_representative_controls": 329,
+    "safe_analogue_conditions": 329,
     "validated_execution_cells": 630,
-    "remaining_unimplemented_roots": 13,
-    "remaining_unimplemented_positive_variants": 15,
+    "remaining_unimplemented_roots": 8,
+    "remaining_unimplemented_positive_variants": 8,
     "checks": 13207,
     "comparison_tracks": {
       "audit": 16,
       "bounded_stress": 20,
-      "core_dast": 161,
+      "core_dast": 165,
       "protocol_concurrency": 23,
-      "workflow": 104
+      "workflow": 105
     },
     "previous_release_verified_roots": 210,
-    "pending_final_acceptance_roots": 114,
-    "planned_execution_cells": 972,
+    "pending_final_acceptance_roots": 119,
+    "planned_execution_cells": 987,
     "validated_execution_scope": "historical_210_release_only",
-    "additional_source_variants": 161
+    "additional_source_variants": 163
   },
   "verification": {
     "historical_full_acceptance": {
@@ -39,7 +39,7 @@
     },
     "current_source_selected_docker_smoke": {
       "report": "artifacts/docker-smoke-selected.json",
-      "report_sha256": "a916ce7b3b0f80271e39c6b98299f66419ebf51b0538d371a815fab1579379b1",
+      "report_sha256": "dc2ec719f8d66e2a7f9e4dab19aa1cbd8655102098436eafe3695a368b700cc0",
       "variants": 10,
       "arms": [
         "V",
@@ -111,6 +111,19 @@
       "passed_cells": 21,
       "tests": [
         "tests/batch6-mongo.mjs"
+      ],
+      "includes_full_regression": false
+    },
+    "current_source_batch10_docker": {
+      "variants": 7,
+      "arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "passed_cells": 21,
+      "tests": [
+        "tests/batch6-ldap.mjs"
       ],
       "includes_full_regression": false
     }
@@ -2266,6 +2279,67 @@
       "local_docker_passed_cells": 3
     },
     {
+      "root": "R0074",
+      "representative_variant": "B0074",
+      "family": "OSコマンド・引数注入",
+      "title": "Git外部transport",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／OSコマンド",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.5,V1.3.2",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / OSコマンド・引数注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "OS Command Injection Defense",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.2/6",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "コマンドインジェクション",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Node child_processの隔離worker。同一Linux imageにawk/sed/git/rsync/tar/ffmpeg等必要なCLIだけ含める。",
+      "hard_negative": "同じ境界入力で「Git transportからマーカー生成」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
       "root": "R0076",
       "representative_variant": "B0076",
       "family": "CLIオプション制御",
@@ -2321,6 +2395,67 @@
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
       "remaining_variants_in_root": []
+    },
+    {
+      "root": "R0082",
+      "representative_variant": "B0082",
+      "family": "OSコマンド・引数注入",
+      "title": "ffmpeg任意protocol",
+      "partition": "evaluation_reserved",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／OSコマンド",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.5,V1.3.2",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / OSコマンド・引数注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "OS Command Injection Defense",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.2/6",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "コマンドインジェクション",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Node child_processの隔離worker。同一Linux imageにawk/sed/git/rsync/tar/ffmpeg等必要なCLIだけ含める。",
+      "hard_negative": "同じ境界入力で「sandbox秘密をmedia出力へ混入」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
     },
     {
       "root": "R0084",
@@ -2494,6 +2629,174 @@
       "remaining_variants_in_root": []
     },
     {
+      "root": "R0091",
+      "representative_variant": "B0091",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo演算子オブジェクト",
+      "partition": "evaluation_reserved",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「認証条件外の利用者が返る」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0092",
+      "representative_variant": "B0092",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo whereコード",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「隔離の計算マーカーが評価」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0093",
+      "representative_variant": "B0093",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo pipeline段階",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「非公開collectionを参照」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
       "root": "R0094",
       "representative_variant": "B0451",
       "family": "公開DTOの秘密属性",
@@ -2506,9 +2809,7 @@
         "F",
         "N"
       ],
-      "remaining_variants_in_root": [
-        "B0104"
-      ],
+      "remaining_variants_in_root": [],
       "references": [
         {
           "source": "S1",
@@ -2554,7 +2855,8 @@
         "B0094",
         "B0288",
         "B0295",
-        "B0304"
+        "B0304",
+        "B0104"
       ],
       "additional_variant_acceptance": "source_added_runtime_acceptance_pending"
     },
@@ -2619,6 +2921,402 @@
         "B0298",
         "B0299",
         "B0095"
+      ],
+      "additional_variant_acceptance": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0096",
+      "representative_variant": "B0096",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo collection",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「内部collectionが返る」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0097",
+      "representative_variant": "B0097",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo正規表現構文",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「リテラル外の秘密項目が一致」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0098",
+      "representative_variant": "B0098",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo配列条件",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「別要素の属性で権限条件成立」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0099",
+      "representative_variant": "B0099",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "LDAPフィルタ値",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実OpenLDAPとldaptsクライアントを使用。有限の入力と固定fixtureでV/F/Nを比較する。",
+      "hard_negative": "同じ境界入力で「認証候補が意図外に増える」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0100",
+      "representative_variant": "B0100",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "LDAP属性名",
+      "partition": "calibration",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実OpenLDAPとldaptsクライアントを使用。有限の入力と固定fixtureでV/F/Nを比較する。",
+      "hard_negative": "同じ境界入力で「非許可属性の検索成立」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0101",
+      "representative_variant": "B0101",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "LDAP DN値",
+      "partition": "calibration",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実OpenLDAPとldaptsクライアントを使用。有限の入力と固定fixtureでV/F/Nを比較する。",
+      "hard_negative": "同じ境界入力で「別OUのエントリを参照」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0102",
+      "representative_variant": "B0102",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "LDAPベースDN",
+      "partition": "calibration",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実OpenLDAPとldaptsクライアントを使用。有限の入力と固定fixtureでV/F/Nを比較する。",
+      "hard_negative": "同じ境界入力で「別テナントOUを検索」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3,
+      "additional_source_variants": [
+        "B0103"
       ],
       "additional_variant_acceptance": "source_added_runtime_acceptance_pending"
     },
@@ -5134,6 +5832,67 @@
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
       "remaining_variants_in_root": []
+    },
+    {
+      "root": "R0181",
+      "representative_variant": "B0181",
+      "family": "認証・アカウント登録",
+      "title": "空パスワードbind",
+      "partition": "evaluation_reserved",
+      "comparison_track": "workflow",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.3 ID管理／4.4 認証",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V6.2,V6.3,V6.5,V6.6,V6.7",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / 認証・アカウント登録",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A07:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API2:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "Authentication / Multifactor Authentication",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.10",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "認証 / パスワードポリシー",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実OpenLDAPとldaptsクライアントを使用。有限の入力と固定fixtureでV/F/Nを比較する。",
+      "hard_negative": "同じ境界入力で「無資格情報でセッション発行」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
     },
     {
       "root": "R0182",
@@ -10696,6 +11455,67 @@
       "acceptance_checks": 75
     },
     {
+      "root": "R0310",
+      "representative_variant": "B0310",
+      "family": "機能・属性・API認可",
+      "title": "gRPC interceptor順序",
+      "partition": "development",
+      "comparison_track": "workflow",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.5 認可／4.12 API",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V8.2,V8.3,V4.3",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / 機能・属性・API認可",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A01:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API3,API5:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "Authorization / Mass Assignment / REST Security",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.10",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "認可制御の不備",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "一般利用者・申請者・承認者・Admin。REST/GraphQL/gRPCの共通serviceと機能・属性権限表。",
+      "hard_negative": "同じ境界入力で「未認可actionが復号後に実行される」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
       "root": "R0311",
       "representative_variant": "B0311",
       "family": "CSRFトークン",
@@ -11962,6 +12782,62 @@
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
       "remaining_variants_in_root": []
+    },
+    {
+      "root": "R0355",
+      "representative_variant": "B0355",
+      "family": "HTTP解析・Host・ヘッダ境界",
+      "title": "H2ヘッダCRLF変換",
+      "partition": "calibration",
+      "comparison_track": "protocol_concurrency",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／HTTP、4.2 構成",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V4.2,V1.5.3,V1.2.1",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / HTTP解析・Host・ヘッダ境界",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A02:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "HTTP Headers / REST Security",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.5",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "raw TCPでH2 preface・SETTINGS・HEADERSとHPACK literal subsetを処理し、実H1 TCPへ変換。Vだけ制御文字をH1へ直結。",
+      "hard_negative": "同じ境界入力で「下流ヘッダが分割される」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
     },
     {
       "root": "R0356",
@@ -18223,581 +19099,6 @@
       "implementation_note": "実JavaScript Array.atを使用。全条件で整数型と公開上限を検査し、Vだけindex非負を検査しない。元core_dast trackを維持し、native境界外memoryアクセスやASan検知を主張しない。",
       "hard_negative": "公開の0・1番号は取得でき、負indexが末尾の保護文書を参照できない。",
       "acceptance_checks": 50
-    },
-    {
-      "root": "R0074",
-      "representative_variant": "B0074",
-      "family": "OSコマンド・引数注入",
-      "title": "Git外部transport",
-      "partition": "development",
-      "comparison_track": "core_dast",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／OSコマンド",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V1.2.5,V1.3.2",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / OSコマンド・引数注入",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A05:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "OS Command Injection Defense",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.2/6",
-          "relation": "類型対応。ケースごとに個別確定する"
-        },
-        {
-          "source": "S3",
-          "locator": "コマンドインジェクション",
-          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "Node child_processの隔離worker。同一Linux imageにawk/sed/git/rsync/tar/ffmpeg等必要なCLIだけ含める。",
-      "hard_negative": "同じ境界入力で「Git transportからマーカー生成」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0082",
-      "representative_variant": "B0082",
-      "family": "OSコマンド・引数注入",
-      "title": "ffmpeg任意protocol",
-      "partition": "evaluation_reserved",
-      "comparison_track": "core_dast",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／OSコマンド",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V1.2.5,V1.3.2",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / OSコマンド・引数注入",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A05:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "OS Command Injection Defense",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.2/6",
-          "relation": "類型対応。ケースごとに個別確定する"
-        },
-        {
-          "source": "S3",
-          "locator": "コマンドインジェクション",
-          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "Node child_processの隔離worker。同一Linux imageにawk/sed/git/rsync/tar/ffmpeg等必要なCLIだけ含める。",
-      "hard_negative": "同じ境界入力で「sandbox秘密をmedia出力へ混入」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0310",
-      "representative_variant": "B0310",
-      "family": "機能・属性・API認可",
-      "title": "gRPC interceptor順序",
-      "partition": "development",
-      "comparison_track": "workflow",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.5 認可／4.12 API",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V8.2,V8.3,V4.3",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / 機能・属性・API認可",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A01:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API3,API5:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "Authorization / Mass Assignment / REST Security",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.10",
-          "relation": "類型対応。ケースごとに個別確定する"
-        },
-        {
-          "source": "S3",
-          "locator": "認可制御の不備",
-          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "一般利用者・申請者・承認者・Admin。REST/GraphQL/gRPCの共通serviceと機能・属性権限表。",
-      "hard_negative": "同じ境界入力で「未認可actionが復号後に実行される」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0355",
-      "representative_variant": "B0355",
-      "family": "HTTP解析・Host・ヘッダ境界",
-      "title": "H2ヘッダCRLF変換",
-      "partition": "calibration",
-      "comparison_track": "protocol_concurrency",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／HTTP、4.2 構成",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V4.2,V1.5.3,V1.2.1",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / HTTP解析・Host・ヘッダ境界",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A02:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "HTTP Headers / REST Security",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.5",
-          "relation": "類型対応。ケースごとに個別確定する"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "raw TCPでH2 preface・SETTINGS・HEADERSとHPACK literal subsetを処理し、実H1 TCPへ変換。Vだけ制御文字をH1へ直結。",
-      "hard_negative": "同じ境界入力で「下流ヘッダが分割される」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0091",
-      "representative_variant": "B0091",
-      "family": "NoSQL・LDAP・XPath注入",
-      "title": "Mongo演算子オブジェクト",
-      "partition": "evaluation_reserved",
-      "comparison_track": "core_dast",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A05:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.7",
-          "relation": "類型対応。ケースごとに個別確定する"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
-      "hard_negative": "同じ境界入力で「認証条件外の利用者が返る」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0092",
-      "representative_variant": "B0092",
-      "family": "NoSQL・LDAP・XPath注入",
-      "title": "Mongo whereコード",
-      "partition": "development",
-      "comparison_track": "core_dast",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A05:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.7",
-          "relation": "類型対応。ケースごとに個別確定する"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
-      "hard_negative": "同じ境界入力で「隔離の計算マーカーが評価」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0093",
-      "representative_variant": "B0093",
-      "family": "NoSQL・LDAP・XPath注入",
-      "title": "Mongo pipeline段階",
-      "partition": "development",
-      "comparison_track": "core_dast",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A05:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.7",
-          "relation": "類型対応。ケースごとに個別確定する"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
-      "hard_negative": "同じ境界入力で「非公開collectionを参照」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0096",
-      "representative_variant": "B0096",
-      "family": "NoSQL・LDAP・XPath注入",
-      "title": "Mongo collection",
-      "partition": "development",
-      "comparison_track": "core_dast",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A05:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.7",
-          "relation": "類型対応。ケースごとに個別確定する"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
-      "hard_negative": "同じ境界入力で「内部collectionが返る」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0097",
-      "representative_variant": "B0097",
-      "family": "NoSQL・LDAP・XPath注入",
-      "title": "Mongo正規表現構文",
-      "partition": "development",
-      "comparison_track": "core_dast",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A05:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.7",
-          "relation": "類型対応。ケースごとに個別確定する"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
-      "hard_negative": "同じ境界入力で「リテラル外の秘密項目が一致」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
-    },
-    {
-      "root": "R0098",
-      "representative_variant": "B0098",
-      "family": "NoSQL・LDAP・XPath注入",
-      "title": "Mongo配列条件",
-      "partition": "development",
-      "comparison_track": "core_dast",
-      "status": "source_added_local_docker_vfn_verified",
-      "accepted_arms": [
-        "V",
-        "F",
-        "N"
-      ],
-      "remaining_variants_in_root": [],
-      "references": [
-        {
-          "source": "S1",
-          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
-          "relation": "関連分野"
-        },
-        {
-          "source": "S2",
-          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
-          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
-        },
-        {
-          "source": "S4",
-          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
-          "relation": "検証方法の関連分野"
-        },
-        {
-          "source": "S5",
-          "locator": "A05:2025",
-          "relation": "補助分類"
-        },
-        {
-          "source": "S6",
-          "locator": "API8:2023",
-          "relation": "API実装時の補助分類"
-        },
-        {
-          "source": "S7",
-          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
-          "relation": "防御の関連分野"
-        },
-        {
-          "source": "S8",
-          "locator": "付録A 表4-2 関連候補 No.7",
-          "relation": "類型対応。ケースごとに個別確定する"
-        }
-      ],
-      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
-      "hard_negative": "同じ境界入力で「別要素の属性で権限条件成立」が成立せず、正常な機能が維持される。",
-      "local_docker_passed_cells": 3
     }
   ],
   "implemented_additional_variants": [
@@ -18806,6 +19107,13 @@
       "variant": "B0002",
       "group": "sql",
       "title": "数値式",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0003",
+      "variant": "B0004",
+      "group": "sql",
+      "title": "テーブル識別子",
       "status": "source_added_runtime_acceptance_pending"
     },
     {
@@ -18851,17 +19159,10 @@
       "status": "source_added_runtime_acceptance_pending"
     },
     {
-      "root": "R0001",
-      "variant": "B0015",
+      "root": "R0005",
+      "variant": "B0013",
       "group": "sql",
-      "title": "HAVING条件",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0003",
-      "variant": "B0004",
-      "group": "sql",
-      "title": "テーブル識別子",
+      "title": "ORM生式",
       "status": "source_added_runtime_acceptance_pending"
     },
     {
@@ -18869,6 +19170,13 @@
       "variant": "B0014",
       "group": "sql",
       "title": "GROUP BY式",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0001",
+      "variant": "B0015",
+      "group": "sql",
+      "title": "HAVING条件",
       "status": "source_added_runtime_acceptance_pending"
     },
     {
@@ -18894,13 +19202,6 @@
     },
     {
       "root": "R0005",
-      "variant": "B0013",
-      "group": "sql",
-      "title": "ORM生式",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0005",
       "variant": "B0019",
       "group": "sql",
       "title": "動的ビュー定義",
@@ -18911,41 +19212,6 @@
       "variant": "B0020",
       "group": "sql",
       "title": "JSON操作演算子",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0021",
-      "variant": "B0032",
-      "group": "browser",
-      "title": "textarea境界",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0021",
-      "variant": "B0033",
-      "group": "browser",
-      "title": "HTMLコメント境界",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0021",
-      "variant": "B0037",
-      "group": "browser",
-      "title": "保存後の管理画面",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0021",
-      "variant": "B0039",
-      "group": "browser",
-      "title": "JSONエラーHTML化",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0021",
-      "variant": "B0040",
-      "group": "browser",
-      "title": "翻訳プレースホルダ",
       "status": "source_added_runtime_acceptance_pending"
     },
     {
@@ -18970,6 +19236,20 @@
       "status": "source_added_runtime_acceptance_pending"
     },
     {
+      "root": "R0021",
+      "variant": "B0032",
+      "group": "browser",
+      "title": "textarea境界",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0021",
+      "variant": "B0033",
+      "group": "browser",
+      "title": "HTMLコメント境界",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
       "root": "R0034",
       "variant": "B0035",
       "group": "browser",
@@ -18984,10 +19264,31 @@
       "status": "source_added_runtime_acceptance_pending"
     },
     {
+      "root": "R0021",
+      "variant": "B0037",
+      "group": "browser",
+      "title": "保存後の管理画面",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
       "root": "R0034",
       "variant": "B0038",
       "group": "browser",
       "title": "メールHTML表示",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0021",
+      "variant": "B0039",
+      "group": "browser",
+      "title": "JSONエラーHTML化",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0021",
+      "variant": "B0040",
+      "group": "browser",
+      "title": "翻訳プレースホルダ",
       "status": "source_added_runtime_acceptance_pending"
     },
     {
@@ -19005,6 +19306,13 @@
       "status": "source_added_runtime_acceptance_pending"
     },
     {
+      "root": "R0048",
+      "variant": "B0049",
+      "group": "browser",
+      "title": "動的import",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
       "root": "R0050",
       "variant": "B0051",
       "group": "browser",
@@ -19016,496 +19324,6 @@
       "variant": "B0052",
       "group": "browser",
       "title": "Function構築",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0061",
-      "variant": "B0069",
-      "group": "browser",
-      "title": "翻訳テンプレート再評価",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0061",
-      "variant": "B0070",
-      "group": "browser",
-      "title": "ログ表示テンプレート",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0121",
-      "variant": "B0122",
-      "group": "files",
-      "title": "絶対パス優先",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0121",
-      "variant": "B0125",
-      "group": "files",
-      "title": "前方一致境界",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0121",
-      "variant": "B0128",
-      "group": "files",
-      "title": "テンプレートLFI",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0121",
-      "variant": "B0129",
-      "group": "files",
-      "title": "書込パス脱出",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0121",
-      "variant": "B0130",
-      "group": "files",
-      "title": "削除パス脱出",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0121",
-      "variant": "B0131",
-      "group": "files",
-      "title": "コピー宛先脱出",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0121",
-      "variant": "B0134",
-      "group": "files",
-      "title": "グロブ展開",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0121",
-      "variant": "B0140",
-      "group": "files",
-      "title": "任意アーカイブ読込",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0123",
-      "variant": "B0136",
-      "group": "files",
-      "title": "Unicode正規化後脱出",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0126",
-      "variant": "B0139",
-      "group": "files",
-      "title": "リンク先作成",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0117",
-      "variant": "B0120",
-      "group": "ssrf",
-      "title": "OOXML外部relationship",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0117",
-      "variant": "B0161",
-      "group": "ssrf",
-      "title": "URL全体の信頼",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0117",
-      "variant": "B0173",
-      "group": "ssrf",
-      "title": "Webhook自己登録",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0117",
-      "variant": "B0174",
-      "group": "ssrf",
-      "title": "OAuthメタデータ取得",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0117",
-      "variant": "B0175",
-      "group": "ssrf",
-      "title": "リモートJSON schema",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0162",
-      "variant": "B0177",
-      "group": "ssrf",
-      "title": "URLパーサ不一致",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0164",
-      "variant": "B0165",
-      "group": "ssrf",
-      "title": "IPv6分類漏れ",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0164",
-      "variant": "B0166",
-      "group": "ssrf",
-      "title": "IPv4 mapped IPv6",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0167",
-      "variant": "B0180",
-      "group": "ssrf",
-      "title": "複数宛先fallback",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0046",
-      "variant": "B0214",
-      "group": "auth",
-      "title": "メール変更再認証欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0046",
-      "variant": "B0215",
-      "group": "auth",
-      "title": "メール変更片側承認",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0046",
-      "variant": "B0216",
-      "group": "auth",
-      "title": "パスワード変更旧値無視",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0094",
-      "variant": "B0094",
-      "group": "auth",
-      "title": "Mongo projection",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0094",
-      "variant": "B0288",
-      "group": "auth",
-      "title": "属性単位読取認可",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0094",
-      "variant": "B0295",
-      "group": "auth",
-      "title": "GraphQL field権限漏れ",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0094",
-      "variant": "B0304",
-      "group": "auth",
-      "title": "エクスポート形式権限",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0095",
-      "variant": "B0297",
-      "group": "auth",
-      "title": "nested属性更新",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0095",
-      "variant": "B0298",
-      "group": "auth",
-      "title": "JSON Patch保護属性",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0095",
-      "variant": "B0299",
-      "group": "auth",
-      "title": "読取専用属性上書き",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0184",
-      "variant": "B0192",
-      "group": "auth",
-      "title": "入力切詰め認証",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0198",
-      "variant": "B0205",
-      "group": "auth",
-      "title": "reset token再利用",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0198",
-      "variant": "B0213",
-      "group": "auth",
-      "title": "回復コード一括再利用",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0198",
-      "variant": "B0257",
-      "group": "auth",
-      "title": "code単回制御欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0208",
-      "variant": "B0209",
-      "group": "auth",
-      "title": "reset tokenログ公開",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0208",
-      "variant": "B0231",
-      "group": "auth",
-      "title": "URL session",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0208",
-      "variant": "B0345",
-      "group": "auth",
-      "title": "WS token URL漏えい",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0208",
-      "variant": "B0454",
-      "group": "auth",
-      "title": "ブラウザ履歴秘密",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0228",
-      "variant": "B0229",
-      "group": "auth",
-      "title": "停止アカウントsession",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0228",
-      "variant": "B0302",
-      "group": "auth",
-      "title": "認可キャッシュrole陳腐化",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0274",
-      "group": "auth",
-      "title": "リストtenant条件",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0276",
-      "group": "auth",
-      "title": "集計認可欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0277",
-      "group": "auth",
-      "title": "検索index分離漏れ",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0278",
-      "group": "auth",
-      "title": "非同期job所有権",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0286",
-      "group": "auth",
-      "title": "object複製権限",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0289",
-      "group": "auth",
-      "title": "関連expand漏れ",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0291",
-      "variant": "B0292",
-      "group": "auth",
-      "title": "HTTP method認可差",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0291",
-      "variant": "B0293",
-      "group": "auth",
-      "title": "代替API旧版",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0291",
-      "variant": "B0294",
-      "group": "auth",
-      "title": "GraphQL mutation保護漏れ",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0311",
-      "variant": "B0312",
-      "group": "csrf",
-      "title": "空token受理",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0311",
-      "variant": "B0315",
-      "group": "csrf",
-      "title": "token検査method限定",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0311",
-      "variant": "B0317",
-      "group": "csrf",
-      "title": "content-type迂回",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0311",
-      "variant": "B0318",
-      "group": "csrf",
-      "title": "token存在のみ検査",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0311",
-      "variant": "B0327",
-      "group": "csrf",
-      "title": "multipart API",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0319",
-      "variant": "B0320",
-      "group": "csrf",
-      "title": "Origin null受理",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0319",
-      "variant": "B0321",
-      "group": "csrf",
-      "title": "Referer省略許可",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0319",
-      "variant": "B0322",
-      "group": "csrf",
-      "title": "Referer部分一致",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0333",
-      "variant": "B0334",
-      "group": "csrf",
-      "title": "origin正規表現未固定",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0333",
-      "variant": "B0335",
-      "group": "csrf",
-      "title": "HTTPSとHTTP混同",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0333",
-      "variant": "B0336",
-      "group": "csrf",
-      "title": "port混同",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0372",
-      "group": "cache",
-      "title": "未key query",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0373",
-      "group": "cache",
-      "title": "未key Cookie",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0374",
-      "group": "cache",
-      "title": "method cache混同",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0375",
-      "group": "cache",
-      "title": "Content-Type key欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0376",
-      "group": "cache",
-      "title": "認証header無視",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0385",
-      "group": "cache",
-      "title": "fragment cache主体欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0386",
-      "group": "cache",
-      "title": "tenant namespace欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0388",
-      "group": "cache",
-      "title": "GET body key欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0048",
-      "variant": "B0049",
-      "group": "browser",
-      "title": "動的import",
       "status": "source_added_runtime_acceptance_pending"
     },
     {
@@ -19523,241 +19341,38 @@
       "status": "source_added_runtime_acceptance_pending"
     },
     {
-      "root": "R0126",
-      "variant": "B0127",
-      "group": "files",
-      "title": "ハードリンク公開",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0455",
-      "variant": "B0459",
-      "group": "files",
-      "title": "廃棄一時ファイル残留",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0455",
-      "variant": "B0460",
-      "group": "files",
-      "title": "バックアップ秘密公開",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0455",
-      "variant": "B0467",
-      "group": "files",
-      "title": "ソースmap秘密",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0455",
-      "variant": "B0468",
-      "group": "files",
-      "title": "VCS公開",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0455",
-      "variant": "B0469",
-      "group": "files",
-      "title": "設定ファイル公開",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0185",
-      "variant": "B0186",
-      "group": "auth",
-      "title": "メール大小文字衝突",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0210",
-      "variant": "B0217",
-      "group": "auth",
-      "title": "MFA解除回復弱化",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0221",
-      "variant": "B0222",
-      "group": "auth",
-      "title": "権限昇格固定化",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0201",
-      "variant": "B0223",
-      "group": "auth",
-      "title": "session連番",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0251",
-      "variant": "B0252",
-      "group": "auth",
-      "title": "state別session再利用",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0258",
-      "variant": "B0259",
-      "group": "auth",
-      "title": "PKCE downgrade",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0316",
-      "variant": "B0328",
-      "group": "auth",
-      "title": "CSRFリダイレクト後",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0150",
-      "variant": "B0150",
-      "group": "parsing",
-      "title": "multipart二重file",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0150",
-      "variant": "B0359",
-      "group": "parsing",
-      "title": "重複query解釈差",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0150",
-      "variant": "B0360",
-      "group": "parsing",
-      "title": "query/body優先差",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0150",
-      "variant": "B0361",
-      "group": "parsing",
-      "title": "JSON重複キー差",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0150",
-      "variant": "B0370",
-      "group": "parsing",
-      "title": "content encoding差",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0377",
-      "variant": "B0378",
-      "group": "cache",
-      "title": "path delimiter deception",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0377",
-      "variant": "B0379",
-      "group": "cache",
-      "title": "path decode key差",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0380",
-      "variant": "B0381",
-      "group": "cache",
-      "title": "redirect cache汚染",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0371",
-      "variant": "B0389",
-      "group": "cache",
-      "title": "scheme key欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0481",
-      "variant": "B0482",
-      "group": "errors",
-      "title": "SQLエラー詳細",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0331",
-      "variant": "B0339",
-      "group": "transport",
-      "title": "ローカルAPI CORS",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0349",
-      "group": "transport",
-      "title": "SSE tenant漏れ",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0342",
-      "group": "transport",
-      "title": "WS frame主体信頼",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0271",
-      "variant": "B0343",
-      "group": "transport",
-      "title": "WS部屋認可欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0291",
-      "variant": "B0344",
-      "group": "transport",
-      "title": "WS message role欠落",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0461",
-      "variant": "B0462",
-      "group": "transport",
-      "title": "HSTSなし降格",
-      "status": "source_added_runtime_acceptance_pending"
-    },
-    {
-      "root": "R0132",
-      "variant": "B0133",
-      "group": "archive",
-      "title": "TARリンク展開",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0142",
-      "variant": "B0144",
-      "group": "upload",
-      "title": "HTML polyglot",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0142",
-      "variant": "B0160",
-      "group": "upload",
-      "title": "署名型スニッフィング",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0235",
-      "variant": "B0236",
+      "root": "R0061",
+      "variant": "B0069",
       "group": "browser",
-      "title": "subdomain Cookie shadow",
-      "status": "source_added_local_docker_vfn_verified"
+      "title": "翻訳テンプレート再評価",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0061",
+      "variant": "B0070",
+      "group": "browser",
+      "title": "ログ表示テンプレート",
+      "status": "source_added_runtime_acceptance_pending"
     },
     {
       "root": "R0072",
       "variant": "B0073",
       "group": "cmd",
       "title": "sed式実行",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0074",
+      "variant": "B0075",
+      "group": "cmd",
+      "title": "rsync remote-shell",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0076",
+      "variant": "B0077",
+      "group": "cmd",
+      "title": "ツール設定引数",
       "status": "source_added_local_docker_vfn_verified"
     },
     {
@@ -19772,6 +19387,13 @@
       "variant": "B0079",
       "group": "cmd",
       "title": "圧縮コマンドhook",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0076",
+      "variant": "B0080",
+      "group": "cmd",
+      "title": "外部HTTPクライアント",
       "status": "source_added_local_docker_vfn_verified"
     },
     {
@@ -19817,66 +19439,31 @@
       "status": "source_added_local_docker_vfn_verified"
     },
     {
-      "root": "R0034",
-      "variant": "B0147",
-      "group": "upload",
-      "title": "文書HTML抽出",
+      "root": "R0094",
+      "variant": "B0094",
+      "group": "auth",
+      "title": "Mongo projection",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0095",
+      "variant": "B0095",
+      "group": "query",
+      "title": "Mongo更新演算子",
       "status": "source_added_local_docker_vfn_verified"
     },
     {
-      "root": "R0351",
-      "variant": "B0352",
-      "group": "http",
-      "title": "重複CL解釈差",
+      "root": "R0102",
+      "variant": "B0103",
+      "group": "query",
+      "title": "LDAP scope",
       "status": "source_added_local_docker_vfn_verified"
     },
     {
-      "root": "R0351",
-      "variant": "B0353",
-      "group": "http",
-      "title": "TE文法差",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0150",
-      "variant": "B0369",
-      "group": "http",
-      "title": "multipart境界差",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0074",
-      "variant": "B0075",
-      "group": "cmd",
-      "title": "rsync remote-shell",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0076",
-      "variant": "B0077",
-      "group": "cmd",
-      "title": "ツール設定引数",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0076",
-      "variant": "B0080",
-      "group": "cmd",
-      "title": "外部HTTPクライアント",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0117",
-      "variant": "B0176",
-      "group": "ssrf",
-      "title": "PDFレンダラURL",
-      "status": "source_added_local_docker_vfn_verified"
-    },
-    {
-      "root": "R0351",
-      "variant": "B0354",
-      "group": "http",
-      "title": "H2長さ変換不一致",
+      "root": "R0094",
+      "variant": "B0104",
+      "group": "query",
+      "title": "LDAP返却属性",
       "status": "source_added_local_docker_vfn_verified"
     },
     {
@@ -19922,21 +19509,744 @@
       "status": "source_added_local_docker_vfn_verified"
     },
     {
-      "root": "R0095",
-      "variant": "B0095",
-      "group": "query",
-      "title": "Mongo更新演算子",
+      "root": "R0117",
+      "variant": "B0120",
+      "group": "ssrf",
+      "title": "OOXML外部relationship",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0121",
+      "variant": "B0122",
+      "group": "files",
+      "title": "絶対パス優先",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0121",
+      "variant": "B0125",
+      "group": "files",
+      "title": "前方一致境界",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0126",
+      "variant": "B0127",
+      "group": "files",
+      "title": "ハードリンク公開",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0121",
+      "variant": "B0128",
+      "group": "files",
+      "title": "テンプレートLFI",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0121",
+      "variant": "B0129",
+      "group": "files",
+      "title": "書込パス脱出",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0121",
+      "variant": "B0130",
+      "group": "files",
+      "title": "削除パス脱出",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0121",
+      "variant": "B0131",
+      "group": "files",
+      "title": "コピー宛先脱出",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0132",
+      "variant": "B0133",
+      "group": "archive",
+      "title": "TARリンク展開",
       "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0121",
+      "variant": "B0134",
+      "group": "files",
+      "title": "グロブ展開",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0123",
+      "variant": "B0136",
+      "group": "files",
+      "title": "Unicode正規化後脱出",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0126",
+      "variant": "B0139",
+      "group": "files",
+      "title": "リンク先作成",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0121",
+      "variant": "B0140",
+      "group": "files",
+      "title": "任意アーカイブ読込",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0142",
+      "variant": "B0144",
+      "group": "upload",
+      "title": "HTML polyglot",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0034",
+      "variant": "B0147",
+      "group": "upload",
+      "title": "文書HTML抽出",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0150",
+      "variant": "B0150",
+      "group": "parsing",
+      "title": "multipart二重file",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0142",
+      "variant": "B0160",
+      "group": "upload",
+      "title": "署名型スニッフィング",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0117",
+      "variant": "B0161",
+      "group": "ssrf",
+      "title": "URL全体の信頼",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0164",
+      "variant": "B0165",
+      "group": "ssrf",
+      "title": "IPv6分類漏れ",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0164",
+      "variant": "B0166",
+      "group": "ssrf",
+      "title": "IPv4 mapped IPv6",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0117",
+      "variant": "B0173",
+      "group": "ssrf",
+      "title": "Webhook自己登録",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0117",
+      "variant": "B0174",
+      "group": "ssrf",
+      "title": "OAuthメタデータ取得",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0117",
+      "variant": "B0175",
+      "group": "ssrf",
+      "title": "リモートJSON schema",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0117",
+      "variant": "B0176",
+      "group": "ssrf",
+      "title": "PDFレンダラURL",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0162",
+      "variant": "B0177",
+      "group": "ssrf",
+      "title": "URLパーサ不一致",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0167",
+      "variant": "B0180",
+      "group": "ssrf",
+      "title": "複数宛先fallback",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0185",
+      "variant": "B0186",
+      "group": "auth",
+      "title": "メール大小文字衝突",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0184",
+      "variant": "B0192",
+      "group": "auth",
+      "title": "入力切詰め認証",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0198",
+      "variant": "B0205",
+      "group": "auth",
+      "title": "reset token再利用",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0208",
+      "variant": "B0209",
+      "group": "auth",
+      "title": "reset tokenログ公開",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0198",
+      "variant": "B0213",
+      "group": "auth",
+      "title": "回復コード一括再利用",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0046",
+      "variant": "B0214",
+      "group": "auth",
+      "title": "メール変更再認証欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0046",
+      "variant": "B0215",
+      "group": "auth",
+      "title": "メール変更片側承認",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0046",
+      "variant": "B0216",
+      "group": "auth",
+      "title": "パスワード変更旧値無視",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0210",
+      "variant": "B0217",
+      "group": "auth",
+      "title": "MFA解除回復弱化",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0221",
+      "variant": "B0222",
+      "group": "auth",
+      "title": "権限昇格固定化",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0201",
+      "variant": "B0223",
+      "group": "auth",
+      "title": "session連番",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0228",
+      "variant": "B0229",
+      "group": "auth",
+      "title": "停止アカウントsession",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0208",
+      "variant": "B0231",
+      "group": "auth",
+      "title": "URL session",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0235",
+      "variant": "B0236",
+      "group": "browser",
+      "title": "subdomain Cookie shadow",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0251",
+      "variant": "B0252",
+      "group": "auth",
+      "title": "state別session再利用",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0198",
+      "variant": "B0257",
+      "group": "auth",
+      "title": "code単回制御欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0258",
+      "variant": "B0259",
+      "group": "auth",
+      "title": "PKCE downgrade",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0274",
+      "group": "auth",
+      "title": "リストtenant条件",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0276",
+      "group": "auth",
+      "title": "集計認可欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0277",
+      "group": "auth",
+      "title": "検索index分離漏れ",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0278",
+      "group": "auth",
+      "title": "非同期job所有権",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0286",
+      "group": "auth",
+      "title": "object複製権限",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0094",
+      "variant": "B0288",
+      "group": "auth",
+      "title": "属性単位読取認可",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0289",
+      "group": "auth",
+      "title": "関連expand漏れ",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0291",
+      "variant": "B0292",
+      "group": "auth",
+      "title": "HTTP method認可差",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0291",
+      "variant": "B0293",
+      "group": "auth",
+      "title": "代替API旧版",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0291",
+      "variant": "B0294",
+      "group": "auth",
+      "title": "GraphQL mutation保護漏れ",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0094",
+      "variant": "B0295",
+      "group": "auth",
+      "title": "GraphQL field権限漏れ",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0095",
+      "variant": "B0297",
+      "group": "auth",
+      "title": "nested属性更新",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0095",
+      "variant": "B0298",
+      "group": "auth",
+      "title": "JSON Patch保護属性",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0095",
+      "variant": "B0299",
+      "group": "auth",
+      "title": "読取専用属性上書き",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0228",
+      "variant": "B0302",
+      "group": "auth",
+      "title": "認可キャッシュrole陳腐化",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0094",
+      "variant": "B0304",
+      "group": "auth",
+      "title": "エクスポート形式権限",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0311",
+      "variant": "B0312",
+      "group": "csrf",
+      "title": "空token受理",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0311",
+      "variant": "B0315",
+      "group": "csrf",
+      "title": "token検査method限定",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0311",
+      "variant": "B0317",
+      "group": "csrf",
+      "title": "content-type迂回",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0311",
+      "variant": "B0318",
+      "group": "csrf",
+      "title": "token存在のみ検査",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0319",
+      "variant": "B0320",
+      "group": "csrf",
+      "title": "Origin null受理",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0319",
+      "variant": "B0321",
+      "group": "csrf",
+      "title": "Referer省略許可",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0319",
+      "variant": "B0322",
+      "group": "csrf",
+      "title": "Referer部分一致",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0311",
+      "variant": "B0327",
+      "group": "csrf",
+      "title": "multipart API",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0316",
+      "variant": "B0328",
+      "group": "auth",
+      "title": "CSRFリダイレクト後",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0333",
+      "variant": "B0334",
+      "group": "csrf",
+      "title": "origin正規表現未固定",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0333",
+      "variant": "B0335",
+      "group": "csrf",
+      "title": "HTTPSとHTTP混同",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0333",
+      "variant": "B0336",
+      "group": "csrf",
+      "title": "port混同",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0331",
+      "variant": "B0339",
+      "group": "transport",
+      "title": "ローカルAPI CORS",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0342",
+      "group": "transport",
+      "title": "WS frame主体信頼",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0343",
+      "group": "transport",
+      "title": "WS部屋認可欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0291",
+      "variant": "B0344",
+      "group": "transport",
+      "title": "WS message role欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0208",
+      "variant": "B0345",
+      "group": "auth",
+      "title": "WS token URL漏えい",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0271",
+      "variant": "B0349",
+      "group": "transport",
+      "title": "SSE tenant漏れ",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0351",
+      "variant": "B0352",
+      "group": "http",
+      "title": "重複CL解釈差",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0351",
+      "variant": "B0353",
+      "group": "http",
+      "title": "TE文法差",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0351",
+      "variant": "B0354",
+      "group": "http",
+      "title": "H2長さ変換不一致",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0150",
+      "variant": "B0359",
+      "group": "parsing",
+      "title": "重複query解釈差",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0150",
+      "variant": "B0360",
+      "group": "parsing",
+      "title": "query/body優先差",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0150",
+      "variant": "B0361",
+      "group": "parsing",
+      "title": "JSON重複キー差",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0150",
+      "variant": "B0369",
+      "group": "http",
+      "title": "multipart境界差",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0150",
+      "variant": "B0370",
+      "group": "parsing",
+      "title": "content encoding差",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0372",
+      "group": "cache",
+      "title": "未key query",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0373",
+      "group": "cache",
+      "title": "未key Cookie",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0374",
+      "group": "cache",
+      "title": "method cache混同",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0375",
+      "group": "cache",
+      "title": "Content-Type key欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0376",
+      "group": "cache",
+      "title": "認証header無視",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0377",
+      "variant": "B0378",
+      "group": "cache",
+      "title": "path delimiter deception",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0377",
+      "variant": "B0379",
+      "group": "cache",
+      "title": "path decode key差",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0380",
+      "variant": "B0381",
+      "group": "cache",
+      "title": "redirect cache汚染",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0385",
+      "group": "cache",
+      "title": "fragment cache主体欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0386",
+      "group": "cache",
+      "title": "tenant namespace欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0388",
+      "group": "cache",
+      "title": "GET body key欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0371",
+      "variant": "B0389",
+      "group": "cache",
+      "title": "scheme key欠落",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0208",
+      "variant": "B0454",
+      "group": "auth",
+      "title": "ブラウザ履歴秘密",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0455",
+      "variant": "B0459",
+      "group": "files",
+      "title": "廃棄一時ファイル残留",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0455",
+      "variant": "B0460",
+      "group": "files",
+      "title": "バックアップ秘密公開",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0461",
+      "variant": "B0462",
+      "group": "transport",
+      "title": "HSTSなし降格",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0455",
+      "variant": "B0467",
+      "group": "files",
+      "title": "ソースmap秘密",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0455",
+      "variant": "B0468",
+      "group": "files",
+      "title": "VCS公開",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0455",
+      "variant": "B0469",
+      "group": "files",
+      "title": "設定ファイル公開",
+      "status": "source_added_runtime_acceptance_pending"
+    },
+    {
+      "root": "R0481",
+      "variant": "B0482",
+      "group": "errors",
+      "title": "SQLエラー詳細",
+      "status": "source_added_runtime_acceptance_pending"
     }
   ],
   "unimplemented_roots": [
-    "R0099",
-    "R0100",
-    "R0101",
-    "R0102",
     "R0109",
     "R0116",
-    "R0181",
     "R0491",
     "R0492",
     "R0493",
@@ -19945,15 +20255,8 @@
     "R0496"
   ],
   "unimplemented_variants": [
-    "B0099",
-    "B0100",
-    "B0101",
-    "B0102",
-    "B0103",
-    "B0104",
     "B0109",
     "B0116",
-    "B0181",
     "B0491",
     "B0492",
     "B0493",
@@ -19969,18 +20272,18 @@
   },
   "file_sha256": {
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
-    "artifacts/docker-smoke-selected.json": "a916ce7b3b0f80271e39c6b98299f66419ebf51b0538d371a815fab1579379b1",
+    "artifacts/docker-smoke-selected.json": "dc2ec719f8d66e2a7f9e4dab19aa1cbd8655102098436eafe3695a368b700cc0",
     "artifacts/README.md": "edecd1b540ac3534be9db886ee9c85b98e3aeb513fe0a37a54c0df8cee7c1043",
-    "compose.yaml": "11a34c274675a73e76de520a12d82932133b756fe70e6f0cbbb1cf26e64e1721",
+    "compose.yaml": "fbd1f5d34e9e4ad34ba5f6f2ac8f6a1a6c8c22f0a4361618da35b29c2e51d642",
     "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
-    "Dockerfile": "a837ed1085a9c71eee1c30e9a17b91cac3fd4a02da44ec363b8f7452e6760807",
-    "package-lock.json": "89ff6ed8ade0c4b6bc2bacf901bfca0cba07dc73a6379190d943077121a3bbde",
-    "package.json": "9e832eddf1adb4e24784b96ef11d5e55d99decbbd04445680b7ca51dc4084a08",
-    "README-coverage.md": "dcb6a953ac88d21d273ec9bd4f598200102a85b0b3021a1c0ee349567d936f52",
+    "Dockerfile": "1477a613269f91cc73cebb285c32ca6a56fc64f54da42d711dd3fa1b5ab48908",
+    "package-lock.json": "93a938e2b492b00ac0bccf59fe737cbd73c719a0cc82551bf373836023d8126f",
+    "package.json": "decffefff738df059a57f272ddc95a39455061837995300145ea7de36ab3c292",
+    "README-coverage.md": "949c88aecf31c3f6cda81a2775778ca1cf7d78a7c094730c5973b16f14e24d31",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3a5f2265c0a7af43821c9147bdb6a53ceefcb90cc61e73ea808dda08ef7993a4",
     "README-zap.md": "53a6d2085baf8844d3510cdc89086ee2d473b426d4565bc676e569b187a2fc04",
-    "README.md": "a6eeca988c2d88d75611b7756bbe7db2e91bacb1b27cac33a2821315776e5b2b",
+    "README.md": "7d75d03d4cda2761ab2b9e815b385cb84c10f578cecae0975de246d6f05d7996",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20020,7 +20323,7 @@
     "src/cases/configuration.mjs": "17d205ad0fba695afda7546804de3627baa52639ecac0d6d210662119929da81",
     "src/cases/content-boundaries.mjs": "819b0f8ca1886e6bf28601693ed24323e8309ec29d59efadedcf5e9f2e2299a7",
     "src/cases/data-handling.mjs": "dc3160f38c08294d33d9e2a336b5e43e9cd6b4acb074bc6d8e3886631feccac2",
-    "src/cases/index.mjs": "51ad71078a455695d2414979a395797206761460a10774da2e463fcd62d467f5",
+    "src/cases/index.mjs": "78b820eacff7d88a0164aa16b0f88ce852f0b5a631653d075906785fa17a9f53",
     "src/cases/resource-quotas.mjs": "9e7c39521850e72a4b1004f9e1e6233603c1f7f324b21446e8d733f785bfb94d",
     "src/cases/workflows.mjs": "2ddf90ff0ab8fb9e3e789c4e0926168afc6dbaf89da921dcee4d04853df82c58",
     "src/catalog.mjs": "80b16075504fadad7c89a00d4f620ff56c7e77db1007ca68cebf012f5bf94e17",
@@ -20113,6 +20416,10 @@
     "tests/batch6-h2-header.mjs": "6e19453deff74db540892be2e6f04531e17d73bd9def5d926d0ab106a974631a",
     "tests/batch6-xml.mjs": "ef87dc63ae64909700f2a955bceae53b7cfb40579eb75b9a9869b68cbbf2e081",
     "src/cases/batch6-mongo.mjs": "1e8baefbe6c713bacf576571f1e034fa9d9c85caf8dd28540b0ea38ae4628a53",
-    "tests/batch6-mongo.mjs": "716d94b6b410154f3c402306da23bc6365790b06eb3e560770d7c5c70985059b"
+    "tests/batch6-mongo.mjs": "716d94b6b410154f3c402306da23bc6365790b06eb3e560770d7c5c70985059b",
+    "src/ldap/slapd.conf": "690d72801697125f0dd3f334a04d7bef1c83580ea64758c8a953f7157fd4a981",
+    "src/ldap/start.sh": "51a6810fa8a9eaa4f58d2c434dd07190287ca13abbcb56a0541e5fa5d5535995",
+    "src/cases/batch6-ldap.mjs": "b7359fc0723611c56ab006092f496e92dc62084f083b1dcb7bea204e1a6e6167",
+    "tests/batch6-ldap.mjs": "51787bb814365d3dc48a0b39b586bccb6ae1a23b5f0dff82796c09ace112251e"
   }
 }
