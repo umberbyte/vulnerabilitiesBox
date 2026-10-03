@@ -1,8 +1,11 @@
-import {readdir,mkdir,writeFile} from 'node:fs/promises';
+import {readFile,readdir,mkdir,writeFile} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
+import {designCases,passedCells} from '../src/reporting/coverage.mjs';
+import {sourceSnapshot,compareSources} from '../src/reporting/source.mjs';
 
 const files=(await readdir('tests')).filter(name=>/^batch6-.*\.mjs$/.test(name)).sort();
-const report={schema:'benchmark-extended-regression-0.1',startedAt:new Date().toISOString(),scope:'sequential batch6 Docker V/F/N tests; legacy representative acceptance and full 500-variant acceptance are separate',results:[]};
+const design=designCases(JSON.parse(await readFile('../benchmark-design-v2.json','utf8')));
+const report={schema:'benchmark-extended-regression-0.2',startedAt:new Date().toISOString(),scope:'sequential batch6 Docker V/F/N tests with individual cell IDs; legacy representative acceptance and full 500-variant acceptance are separate',source:await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}),results:[]};
 for(const file of files){
   const start=Date.now();
   const result=await new Promise(resolve=>{
@@ -13,15 +16,19 @@ for(const file of files){
     child.on('error',failure=>resolve({code:127,output,error:failure.message}));
     child.on('close',code=>resolve({code,output,error}));
   });
-  const cells=result.output.split(/\r?\n/).filter(line=>{try{return JSON.parse(line).result==='passed';}catch{return false;}}).length;
-  const entry={file,status:result.code===0?'passed':'failed',cells,durationMs:Date.now()-start};
+  let cellResults=[],captureError;
+  try{cellResults=passedCells(result.output,design);if(!cellResults.length&&result.code===0)throw Error('No individual acceptance results recorded');}catch(error){captureError=error.message;}
+  const cells=cellResults.length;
+  const entry={file,status:result.code===0&&!captureError?'passed':'failed',cells,cellResults,durationMs:Date.now()-start};
   if(result.code!==0)entry.error=(result.error||result.output).slice(-3000);
+  if(captureError)entry.error=captureError;
   report.results.push(entry);
   console.log(`${entry.status.toUpperCase()} ${file} ${cells} cells ${entry.durationMs} ms`);
 }
 report.finishedAt=new Date().toISOString();
+report.sourceAfter=compareSources(report.source,await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}));
 report.summary={files:files.length,passed:report.results.filter(entry=>entry.status==='passed').length,failed:report.results.filter(entry=>entry.status==='failed').length,reportedCells:report.results.reduce((sum,entry)=>sum+entry.cells,0)};
 await mkdir('artifacts',{recursive:true});
 await writeFile('artifacts/extended-regression.json',JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(report.summary));
-if(report.summary.failed)process.exitCode=1;
+if(report.summary.failed||report.sourceAfter.status!=='matched')process.exitCode=1;

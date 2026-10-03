@@ -7,3 +7,5 @@ Windowsは`reports.cmd`、macOS/Linuxは`sh reports.sh`で、保存済みの回�
 `artifact-audit.md`と`artifact-audit.json`には、保存された計画・台帳・実行JSONのハッシュと条件の照合結果を記録します。V/F/N完走系列の数は実験系列の数で、検出した脆弱性の件数ではありません。台帳から参照されない実行は単独試験の可能性があり、無効とは自動判定しません。
 
 `verify.cmd tools`／`sh verify.sh tools`は`tools-check.md`、`tools-check.json`、`tools-check.log`へ単体検証結果を保存します。新しい検証結果にはソーススナップショットを記録し、`reports.cmd`／`reports.sh`による一覧では現在のソースとの一致を表示します。古い結果にスナップショットがない場合は「記録なし」として扱います。
+
+`coverage-inventory.md`と`coverage-inventory.json`は、設計500変種と保存された個別の成立確認記録を対応させます。旧形式の追加変種テストの集計は個別行へ配分せず、aggregateEvidenceに保持します。新形式は変種ID・根本原因ID・V/F/Nと合否だけを保存し、原本stdout中の秘密値や入力本文を棚卸しへ複写しません。
