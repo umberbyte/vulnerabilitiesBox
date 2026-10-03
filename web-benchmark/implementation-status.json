@@ -1,28 +1,28 @@
 {
   "schema": "benchmark-implementation-0.8",
   "date": "2026-10-03",
-  "scope": "設計337根本原因／500変種、ソース実装329根本原因／492変種。成立確認済み範囲とソース実装を区別する。",
+  "scope": "設計337根本原因／500変種、ソース実装331根本原因／494変種。成立確認済み範囲とソース実装を区別する。",
   "summary": {
     "design_roots": 337,
     "design_variants": 500,
-    "implemented_roots": 329,
-    "implemented_positive_variants": 492,
-    "fixed_representative_controls": 329,
-    "safe_analogue_conditions": 329,
+    "implemented_roots": 331,
+    "implemented_positive_variants": 494,
+    "fixed_representative_controls": 331,
+    "safe_analogue_conditions": 331,
     "validated_execution_cells": 630,
-    "remaining_unimplemented_roots": 8,
-    "remaining_unimplemented_positive_variants": 8,
+    "remaining_unimplemented_roots": 6,
+    "remaining_unimplemented_positive_variants": 6,
     "checks": 13207,
     "comparison_tracks": {
       "audit": 16,
       "bounded_stress": 20,
-      "core_dast": 165,
+      "core_dast": 167,
       "protocol_concurrency": 23,
       "workflow": 105
     },
     "previous_release_verified_roots": 210,
-    "pending_final_acceptance_roots": 119,
-    "planned_execution_cells": 987,
+    "pending_final_acceptance_roots": 121,
+    "planned_execution_cells": 993,
     "validated_execution_scope": "historical_210_release_only",
     "additional_source_variants": 163
   },
@@ -39,7 +39,7 @@
     },
     "current_source_selected_docker_smoke": {
       "report": "artifacts/docker-smoke-selected.json",
-      "report_sha256": "dc2ec719f8d66e2a7f9e4dab19aa1cbd8655102098436eafe3695a368b700cc0",
+      "report_sha256": "0c2fdb6a346442625ef2a0f7fd93115a18bcbf64f587ae71bcc9b6a3959fe3b0",
       "variants": 10,
       "arms": [
         "V",
@@ -126,6 +126,22 @@
         "tests/batch6-ldap.mjs"
       ],
       "includes_full_regression": false
+    },
+    "current_source_batch11_docker": {
+      "variants": 2,
+      "arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "passed_cells": 6,
+      "tests": [
+        "tests/batch6-xml-extensions.mjs"
+      ],
+      "includes_full_regression": false,
+      "related_existing_xml_tests": [
+        "tests/batch6-xml.mjs"
+      ]
     }
   },
   "implemented": [
@@ -3477,6 +3493,62 @@
       "remaining_variants_in_root": []
     },
     {
+      "root": "R0109",
+      "representative_variant": "B0109",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "XPath関数拡張",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "隔離executor内の実lxml XPath/XSLTを使用。Vは固定マーカー拡張関数を登録し、F/Nでは登録せず入力契約も固定する。",
+      "hard_negative": "同じ境界入力で「マーカー拡張関数が呼出される」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
       "root": "R0111",
       "representative_variant": "B0111",
       "family": "DTD外部実体解決",
@@ -3589,6 +3661,67 @@
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
       "remaining_variants_in_root": []
+    },
+    {
+      "root": "R0116",
+      "representative_variant": "B0116",
+      "family": "XML・外部リソース処理",
+      "title": "XSLT拡張関数",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／XML",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.5.1,V1.3.5,V1.5.3",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / XML・外部リソース処理",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "XML External Entity Prevention / XML Security",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "XXE（外部実体に該当するケースのみ）",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "隔離executor内の実lxml XPath/XSLTを使用。Vは固定マーカー拡張関数を登録し、F/Nでは登録せず入力契約も固定する。",
+      "hard_negative": "同じ境界入力で「隔離マーカー関数が起動」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
     },
     {
       "root": "R0117",
@@ -20245,8 +20378,6 @@
     }
   ],
   "unimplemented_roots": [
-    "R0109",
-    "R0116",
     "R0491",
     "R0492",
     "R0493",
@@ -20255,8 +20386,6 @@
     "R0496"
   ],
   "unimplemented_variants": [
-    "B0109",
-    "B0116",
     "B0491",
     "B0492",
     "B0493",
@@ -20272,18 +20401,18 @@
   },
   "file_sha256": {
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
-    "artifacts/docker-smoke-selected.json": "dc2ec719f8d66e2a7f9e4dab19aa1cbd8655102098436eafe3695a368b700cc0",
+    "artifacts/docker-smoke-selected.json": "0c2fdb6a346442625ef2a0f7fd93115a18bcbf64f587ae71bcc9b6a3959fe3b0",
     "artifacts/README.md": "edecd1b540ac3534be9db886ee9c85b98e3aeb513fe0a37a54c0df8cee7c1043",
     "compose.yaml": "fbd1f5d34e9e4ad34ba5f6f2ac8f6a1a6c8c22f0a4361618da35b29c2e51d642",
     "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
-    "Dockerfile": "1477a613269f91cc73cebb285c32ca6a56fc64f54da42d711dd3fa1b5ab48908",
+    "Dockerfile": "6574bff36c107af4d604449aa77b77063df2b4a0bb25c9355b402b65e76e8300",
     "package-lock.json": "93a938e2b492b00ac0bccf59fe737cbd73c719a0cc82551bf373836023d8126f",
     "package.json": "decffefff738df059a57f272ddc95a39455061837995300145ea7de36ab3c292",
-    "README-coverage.md": "949c88aecf31c3f6cda81a2775778ca1cf7d78a7c094730c5973b16f14e24d31",
+    "README-coverage.md": "fbdc42c4f7133ea8c93ea2a2143f9183faa886ef7a6cc8b7717517c247047763",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3a5f2265c0a7af43821c9147bdb6a53ceefcb90cc61e73ea808dda08ef7993a4",
     "README-zap.md": "53a6d2085baf8844d3510cdc89086ee2d473b426d4565bc676e569b187a2fc04",
-    "README.md": "7d75d03d4cda2761ab2b9e815b385cb84c10f578cecae0975de246d6f05d7996",
+    "README.md": "b7048b5c3d3991e5525519eb9b2ea167c3b788c541ccf7f7ee60e425abfb608f",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20333,7 +20462,7 @@
     "src/evaluation/burp.mjs": "eb74745632897591f8b65e50a27176f1d6df8e5588976b364bbf46345123c9d9",
     "src/evaluation/cli.mjs": "890b50ac23ce1163a7bdce0978d154bbc7f19310e569fcdd70f4f37a8abf9b96",
     "src/evaluation/records.mjs": "6b83972b5423533b200fc1d4e6263d240fbdf2b699d5118e0300ab11c55da75a",
-    "src/executor.mjs": "d3a0eac51917d4a599ce44e800ec10224a4e82b727a99eece8da6a7d8803f7b7",
+    "src/executor.mjs": "c1ce63b456ce7133a2d9b5f46dd17aec0a681cfc171c793e95e328f2adb7a864",
     "src/fixtures/lifecycle-formats.mjs": "655ac26b62113e685a4c00bbd9bf852c5d8e832061247b8516791fccdb03dc33",
     "src/fixtures/lifecycle-worker.mjs": "08cc8cd9aa0a90d3767de157122a5c881da1c8286ac4d4ebaaf88ff3ae8e7fb0",
     "src/measurement.mjs": "a50a35b496a752b6be5bdbdda413e03c71ea7350807d1ff0db791b21908f256c",
@@ -20412,7 +20541,7 @@
     "tests/batch6-cli-media.mjs": "b0b75953344e82c8621956c0ec5ba45c18747b0cff1c8ee31cd842f9dcf83cf3",
     "tests/batch6-pdf.mjs": "208eb2e3803a7e79e05eaa76a99ee5cb1142cefd5a2f26564e04fd58275c9c84",
     "src/cases/batch6-h2-header.mjs": "5e7a0024001a3c19c548c7ed1c49e71213eab562a37805e815a0332ef1f96ef0",
-    "src/cases/batch6-xml.mjs": "a824e486e16af08eae5d98b53e2d6e8c4c2243244fa14489ecc5be7ec862edfa",
+    "src/cases/batch6-xml.mjs": "8a03ef0092b50fa7147e335a1d74b0c3d7b6d3896a87b7228d38e4ac26f263b5",
     "tests/batch6-h2-header.mjs": "6e19453deff74db540892be2e6f04531e17d73bd9def5d926d0ab106a974631a",
     "tests/batch6-xml.mjs": "ef87dc63ae64909700f2a955bceae53b7cfb40579eb75b9a9869b68cbbf2e081",
     "src/cases/batch6-mongo.mjs": "1e8baefbe6c713bacf576571f1e034fa9d9c85caf8dd28540b0ea38ae4628a53",
@@ -20420,6 +20549,8 @@
     "src/ldap/slapd.conf": "690d72801697125f0dd3f334a04d7bef1c83580ea64758c8a953f7157fd4a981",
     "src/ldap/start.sh": "51a6810fa8a9eaa4f58d2c434dd07190287ca13abbcb56a0541e5fa5d5535995",
     "src/cases/batch6-ldap.mjs": "b7359fc0723611c56ab006092f496e92dc62084f083b1dcb7bea204e1a6e6167",
-    "tests/batch6-ldap.mjs": "51787bb814365d3dc48a0b39b586bccb6ae1a23b5f0dff82796c09ace112251e"
+    "tests/batch6-ldap.mjs": "51787bb814365d3dc48a0b39b586bccb6ae1a23b5f0dff82796c09ace112251e",
+    "src/xml_extension_worker.py": "c08a279bc16f7a181c24a3964c6e1cc60e5732ab44cf95de56b8d4883a12a335",
+    "tests/batch6-xml-extensions.mjs": "5093ff9c290a80d1b8316fafb450e216603f7eadd38c92577e9dade485d054f5"
   }
 }
