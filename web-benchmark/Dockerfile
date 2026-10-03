@@ -10,7 +10,8 @@ CMD ["node", "src/app.mjs"]
 
 FROM runtime AS executor
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends curl git rsync imagemagick ffmpeg libxml2-utils xsltproc python3-lxml && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl git rsync imagemagick ffmpeg libxml2-utils xsltproc python3-lxml gcc libc6-dev libasan8 && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /opt/benchmark/native && gcc -shared -fPIC -O0 -g -fsanitize=address -fno-omit-frame-pointer -I/usr/local/include/node -o /opt/benchmark/native/fixture-asan.node src/native/fixture.c && gcc -shared -fPIC -O0 -I/usr/local/include/node -o /opt/benchmark/native/fixture.node src/native/fixture.c && ln -s "$(gcc -print-file-name=libasan.so)" /opt/benchmark/native/libasan.so
 USER node
 CMD ["node", "src/executor.mjs"]
 

@@ -1,7 +1,7 @@
 {
   "schema": "benchmark-docker-smoke-selected-0.1",
   "scope": "selected V/F boundaries only; no N, no scanner, no full regression",
-  "startedAt": "2026-10-03T06:32:38.534Z",
+  "startedAt": "2026-10-03T06:43:26.498Z",
   "origin": "http://app:8080",
   "results": [
     {
@@ -9,7 +9,7 @@
       "variant": "B0378",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 306
+      "elapsedMs": 313
     },
     {
       "root": "R0377",
@@ -23,84 +23,84 @@
       "variant": "B0379",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 244
+      "elapsedMs": 243
     },
     {
       "root": "R0377",
       "variant": "B0379",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 244
+      "elapsedMs": 259
     },
     {
       "root": "R0150",
       "variant": "B0361",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 249
+      "elapsedMs": 280
     },
     {
       "root": "R0150",
       "variant": "B0361",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 250
+      "elapsedMs": 292
     },
     {
       "root": "R0329",
       "variant": "B0329",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 272
+      "elapsedMs": 270
     },
     {
       "root": "R0329",
       "variant": "B0329",
       "mode": "F",
-      "status": "passed",
-      "elapsedMs": 264
-    },
-    {
-      "root": "R0200",
-      "variant": "B0200",
-      "mode": "V",
       "status": "passed",
       "elapsedMs": 245
     },
     {
       "root": "R0200",
       "variant": "B0200",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 248
+    },
+    {
+      "root": "R0200",
+      "variant": "B0200",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 255
+      "elapsedMs": 246
     },
     {
       "root": "R0126",
       "variant": "B0127",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 240
+      "elapsedMs": 238
     },
     {
       "root": "R0126",
       "variant": "B0127",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 237
+      "elapsedMs": 242
     },
     {
       "root": "R0481",
       "variant": "B0482",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 253
+      "elapsedMs": 256
     },
     {
       "root": "R0481",
       "variant": "B0482",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 269
+      "elapsedMs": 252
     },
     {
       "root": "R0271",
@@ -114,38 +114,38 @@
       "variant": "B0342",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 235
+      "elapsedMs": 250
     },
     {
       "root": "R0331",
       "variant": "B0339",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 269
+      "elapsedMs": 238
     },
     {
       "root": "R0331",
       "variant": "B0339",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 236
+      "elapsedMs": 245
     },
     {
       "root": "R0461",
       "variant": "B0462",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 216
+      "elapsedMs": 266
     },
     {
       "root": "R0461",
       "variant": "B0462",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 208
+      "elapsedMs": 224
     }
   ],
-  "finishedAt": "2026-10-03T06:32:43.533Z",
+  "finishedAt": "2026-10-03T06:43:31.613Z",
   "summary": {
     "cells": 20,
     "passed": 20,

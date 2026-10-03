@@ -126,6 +126,16 @@ async function runCli(binary,args,input='',environment={PATH:'/usr/bin:/bin'}){
 const boundaryVariants=new Set(['B0074','B0075','B0077','B0079','B0080','B0081','B0082','B0083','B0085','B0087','B0088','B0090']);
 const safeStylesheet='<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"><xsl:output method="text"/><xsl:template match="/"><xsl:value-of select="/root/public"/></xsl:template></xsl:stylesheet>';
 const safeInclude='<root xmlns:xi="http://www.w3.org/2001/XInclude" xml:base="file:///tmp/execution-fixture/public/"><xi:include href="public.xml" parse="xml"/></root>';
+app.post('/native-engine',async(req,res)=>{
+  const variant=req.body?.variant,amount=req.body?.amount,secondary=req.body?.secondary,canary=req.body?.canary;
+  if(!Number.isInteger(variant)||variant<491||variant>496||!Number.isInteger(amount)||!Number.isInteger(secondary)||typeof canary!=='string'||canary.length>40)return res.sendStatus(400);
+  const vulnerable=req.body.vulnerable===true;
+  const input=JSON.stringify({variant,amount,secondary,vulnerable,canary});
+  const result=await runCli(process.execPath,['/opt/benchmark/src/native/worker.cjs'],input,{PATH:'/usr/bin:/bin',LD_PRELOAD:'/opt/benchmark/native/libasan.so',ASAN_OPTIONS:'detect_leaks=0:abort_on_error=1:allocator_may_return_null=1'});
+  if(result.code!==0)return res.status(200).json({ok:false,asanViolation:/ERROR: AddressSanitizer|AddressSanitizer: attempting double-free/.test(result.error),crashed:true});
+  let value;try{value=JSON.parse(result.output);}catch{return res.sendStatus(422);}
+  res.status(value.ok?200:400).json({...value,asanViolation:false,crashed:false});
+});
 app.post('/xml-extension',async(req,res)=>{
   const {variant,input}=req.body||{};
   if(!['B0109','B0116'].includes(variant)||typeof input!=='string'||Buffer.byteLength(input)>1024||input.includes('\0'))return res.sendStatus(400);

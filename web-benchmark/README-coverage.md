@@ -5,12 +5,12 @@
 | 項目 | 現在値 | 意味 |
 |---|---:|---|
 | 設計 | 337根本原因／500変種 | 目標集合 |
-| ソース実装 | 331根本原因／494変種 | V/F/Nへ切り替え可能なコードがある集合 |
-| 未実装 | 6根本原因／6変種 | 実際の処理がまだない集合 |
+| ソース実装 | 337根本原因／500変種 | V/F/Nへ切り替え可能なコードがある集合 |
+| 未実装 | 0根本原因／0変種 | 設計上の未実装は解消 |
 | 全条件の成立確認済み | 210根本原因・V/F/N計630条件 | **過去の210件版**で確認した履歴 |
-| 現行ソースの局所Docker確認 | 10変種・V/F計20条件 | [結果](artifacts/docker-smoke-selected.json)。全20条件合格 |
+| 現行ソースの局所Docker確認 | 選択10変種のV/F計20条件、追加56変種のV/F/N計168条件 | [スモーク結果](artifacts/docker-smoke-selected.json)と下記の局所テスト。全条件合格 |
 
-根本原因が同じ変種は一件に統合して採点します。Vは脆弱な処理、Fは修正版、Nは安全な類似入力です。FとNを新しい脆弱性として数えません。ソース実装は診断ツールによる検出の証拠ではありません。現行494変種すべてのV/F/N成立確認、全体回帰、ZAP・Burpの検出率測定は未実施です。Burp実測はライセンス調達後です。直近の追加31変種は局所DockerでV/F/N計93条件を確認しました。PDFは文書内資源をHTTP取得して本文へ描画する小さなPDF生成器であり、汎用HTMLレンダラではありません。H2ヘッダケースはHPACK literal subsetを受ける専用fixtureであり、Node標準HTTP/2 parserの欠陥を主張しません。
+根本原因が同じ変種は一件に統合して採点します。Vは脆弱な処理、Fは修正版、Nは安全な類似入力です。FとNを新しい脆弱性として数えません。ソース実装は診断ツールによる検出の証拠ではありません。現行500変種すべてのV/F/N成立確認、全体回帰、ZAP・Burpの検出率測定は未実施です。Burp実測はライセンス調達後です。直近の追加37変種は局所DockerでV/F/N計111条件を確認しました。PDFは文書内資源をHTTP取得して本文へ描画する小さなPDF生成器であり、汎用HTMLレンダラではありません。H2ヘッダケースはHPACK literal subsetを受ける専用fixtureであり、Node標準HTTP/2 parserの欠陥を主張しません。N-APIの6変種は隔離された子プロセスで実C addonをASan付きで実行し、5件はASan違反、1件は隣接秘密値の返却を成立根拠とします。
 
 ## 代表的な対象
 
@@ -25,20 +25,11 @@
 | 情報露出・設定 | R0455、R0478、R0481 | 公開ファイル、クライアント設定、DB例外詳細 |
 | 有限の資源制限 | R0428、R0437–R0440 | 件数、通知、queue、retry、ログ追記量の上限 |
 
-上表は索引です。全331根本原因・494変種の網羅表ではありません。`docker compose exec -T app node src/control.mjs catalog`と`variant-catalog`で現在の選択肢を確認してください。
+上表は索引です。全337根本原因・500変種の網羅表ではありません。`docker compose exec -T app node src/control.mjs catalog`と`variant-catalog`で現在の選択肢を確認してください。
 
-## 未実装の6変種
+未実装は0変種です。N-APIの6根本原因は設計どおり`native_lab`として独立集計し、通常のWeb DAST検出率には混ぜません。残る作業は現行500変種の全体成立確認と回帰、ZAPの検出測定、Burpライセンス調達後の同条件比較です。
 
-| 技術領域 | 変種数 | 完了に必要なもの |
-|---|---:|---|
-| CLI・外部プログラム | 0 | 実ツールによる局所DockerのV/F/N確認済み |
-| MongoDB・LDAP・XML処理 | 0 | lxml拡張関数の呼出しを局所Dockerで確認済み |
-| アーカイブ・文書・同名Cookieなど | 0 | PDF生成時の資源取得を局所Dockerで確認済み |
-| gRPC・低レベルHTTP解析 | 0 | H2ヘッダの制御文字境界を局所Dockerで確認済み |
-| N-API・native memory | 6 | クラッシュを隔離するworkerと計測 |
-| **合計** | **6** | |
-
-局所検証は、`BENCHMARK_CONTROL_KEY`を設定した後に `docker compose --profile test run --build --rm -T verify node tests/<名前>.mjs` で個別に再実行できます。直近の2変種は `batch6-xml-extensions`、その前の7変種は `batch6-ldap`、さらに前の7変種は `batch6-mongo`、その前の7変種は `batch6-h2-header`、`batch6-xml`、その前の8変種は `batch6-cli-transport`、`batch6-cli-http`、`batch6-cli-media`、`batch6-pdf`、`batch6-grpc`、`batch6-h2` です。以前の15変種は `batch6-cli`、`batch6-cli-boundaries`、`batch6-multipart`、`batch6-duplicate-cl`、`batch6-te-grammar`、`batch6-encrypted-zip`、`batch6-docx`、さらに前の4変種は `batch6-cookie-shadow`、`batch6-tar`、`batch6-uploads` で確認できます。
+局所検証は、`BENCHMARK_CONTROL_KEY`を設定した後に `docker compose --profile test run --build --rm -T verify node tests/<名前>.mjs` で個別に再実行できます。直近の6変種は `batch6-native`、その前の2変種は `batch6-xml-extensions`、その前の7変種は `batch6-ldap`、さらに前の7変種は `batch6-mongo`、その前の7変種は `batch6-h2-header`、`batch6-xml`、その前の8変種は `batch6-cli-transport`、`batch6-cli-http`、`batch6-cli-media`、`batch6-pdf`、`batch6-grpc`、`batch6-h2` です。以前の15変種は `batch6-cli`、`batch6-cli-boundaries`、`batch6-multipart`、`batch6-duplicate-cl`、`batch6-te-grammar`、`batch6-encrypted-zip`、`batch6-docx`、さらに前の4変種は `batch6-cookie-shadow`、`batch6-tar`、`batch6-uploads` で確認できます。
 
 依存エンジンの異なる欠陥をPostgreSQLだけで模倣したり、ヘッダ名だけを変えたりして実装済みとは数えません。正常系、Vの実結果、F/Nの防止、初期化を実環境で確認してから成立済みとします。
 
