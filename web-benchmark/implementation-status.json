@@ -1,30 +1,30 @@
 {
   "schema": "benchmark-implementation-0.8",
   "date": "2026-10-03",
-  "scope": "設計337根本原因／500変種、ソース実装312根本原因／448変種。成立確認済み範囲とソース実装を区別する。",
+  "scope": "設計337根本原因／500変種、ソース実装314根本原因／463変種。成立確認済み範囲とソース実装を区別する。",
   "summary": {
     "design_roots": 337,
     "design_variants": 500,
-    "implemented_roots": 312,
-    "implemented_positive_variants": 448,
-    "fixed_representative_controls": 312,
-    "safe_analogue_conditions": 312,
+    "implemented_roots": 314,
+    "implemented_positive_variants": 463,
+    "fixed_representative_controls": 314,
+    "safe_analogue_conditions": 314,
     "validated_execution_cells": 630,
-    "remaining_unimplemented_roots": 25,
-    "remaining_unimplemented_positive_variants": 52,
+    "remaining_unimplemented_roots": 23,
+    "remaining_unimplemented_positive_variants": 37,
     "checks": 13207,
     "comparison_tracks": {
       "audit": 16,
       "bounded_stress": 20,
-      "core_dast": 147,
+      "core_dast": 153,
       "protocol_concurrency": 22,
-      "workflow": 102
+      "workflow": 103
     },
     "previous_release_verified_roots": 210,
-    "pending_final_acceptance_roots": 102,
-    "planned_execution_cells": 936,
+    "pending_final_acceptance_roots": 104,
+    "planned_execution_cells": 942,
     "validated_execution_scope": "historical_210_release_only",
-    "additional_source_variants": 136
+    "additional_source_variants": 149
   },
   "verification": {
     "historical_full_acceptance": {
@@ -49,7 +49,26 @@
       "includes_full_regression": false
     },
     "current_full_acceptance": "not_run",
-    "scanner_detection": "not_measured"
+    "scanner_detection": "not_measured",
+    "current_source_batch6_docker": {
+      "variants": 15,
+      "arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "passed_cells": 45,
+      "tests": [
+        "tests/batch6-cli.mjs",
+        "tests/batch6-cli-boundaries.mjs",
+        "tests/batch6-multipart.mjs",
+        "tests/batch6-duplicate-cl.mjs",
+        "tests/batch6-te-grammar.mjs",
+        "tests/batch6-encrypted-zip.mjs",
+        "tests/batch6-docx.mjs"
+      ],
+      "includes_full_regression": false
+    }
   },
   "implemented": [
     {
@@ -842,9 +861,7 @@
         "F",
         "N"
       ],
-      "remaining_variants_in_root": [
-        "B0147"
-      ],
+      "remaining_variants_in_root": [],
       "references": [
         {
           "source": "S1",
@@ -2140,12 +2157,68 @@
         }
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "remaining_variants_in_root": [
-        "B0081",
-        "B0083",
-        "B0087",
-        "B0088"
-      ]
+      "remaining_variants_in_root": []
+    },
+    {
+      "root": "R0072",
+      "representative_variant": "B0072",
+      "family": "OSコマンド・引数注入",
+      "title": "awk式実行",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／OSコマンド",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.5,V1.3.2",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / OSコマンド・引数注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "OS Command Injection Defense",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.2/6",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "コマンドインジェクション",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Node child_processの隔離worker。同一Linux imageにawk/sed/git/rsync/tar/ffmpeg等必要なCLIだけ含める。",
+      "hard_negative": "同じ境界入力で「awkのsystemでマーカー生成」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
     },
     {
       "root": "R0076",
@@ -2204,9 +2277,7 @@
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
       "remaining_variants_in_root": [
         "B0077",
-        "B0079",
-        "B0080",
-        "B0090"
+        "B0080"
       ]
     },
     {
@@ -2264,9 +2335,7 @@
         }
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "remaining_variants_in_root": [
-        "B0085"
-      ]
+      "remaining_variants_in_root": []
     },
     {
       "root": "R0086",
@@ -3851,9 +3920,7 @@
         "F",
         "N"
       ],
-      "remaining_variants_in_root": [
-        "B0369"
-      ],
+      "remaining_variants_in_root": [],
       "references": [
         {
           "source": "S1",
@@ -4335,6 +4402,67 @@
       "implementation_note": "実fs保存byteとPG used byteを比較。Vだけ申告値で容量を加算、F/NはUTF8実byte長。共通物理guard32KB、fixture業務quota128bytes。",
       "hard_negative": "通常添付と非ASCII文字を正しく保存でき、実保存量がquotaを超過しない。",
       "acceptance_checks": 81
+    },
+    {
+      "root": "R0159",
+      "representative_variant": "B0159",
+      "family": "アップロード・文書取込",
+      "title": "暗号化ZIP検査省略",
+      "partition": "evaluation_reserved",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.10 業務ロジック／upload",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V5.2,V5.3,V1.2.10",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / アップロード・文書取込",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "File Upload / Input Validation",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.15",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "ファイルアップロードに関する不備",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "一つのupload serviceで検査・保存・変換・配信を分離。Node画像処理と隔離worker。CSVは外部viewer試験。",
+      "hard_negative": "同じ境界入力で「内部禁止ファイルが取込まれる」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
     },
     {
       "root": "R0162",
@@ -11803,8 +11931,6 @@
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
       "remaining_variants_in_root": [
-        "B0352",
-        "B0353",
         "B0354"
       ]
     },
@@ -19022,10 +19148,100 @@
       "group": "browser",
       "title": "subdomain Cookie shadow",
       "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0072",
+      "variant": "B0073",
+      "group": "cmd",
+      "title": "sed式実行",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0072",
+      "variant": "B0078",
+      "group": "cmd",
+      "title": "検索プログラム式",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0076",
+      "variant": "B0079",
+      "group": "cmd",
+      "title": "圧縮コマンドhook",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0071",
+      "variant": "B0081",
+      "group": "cmd",
+      "title": "出力先リダイレクト",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0071",
+      "variant": "B0083",
+      "group": "cmd",
+      "title": "スクリプト標準入力",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0084",
+      "variant": "B0085",
+      "group": "cmd",
+      "title": "PATH探索",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0071",
+      "variant": "B0087",
+      "group": "cmd",
+      "title": "スクリプト引数再解釈",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0071",
+      "variant": "B0088",
+      "group": "cmd",
+      "title": "改行バッチファイル",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0076",
+      "variant": "B0090",
+      "group": "cmd",
+      "title": "レスポンスファイル",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0034",
+      "variant": "B0147",
+      "group": "upload",
+      "title": "文書HTML抽出",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0351",
+      "variant": "B0352",
+      "group": "http",
+      "title": "重複CL解釈差",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0351",
+      "variant": "B0353",
+      "group": "http",
+      "title": "TE文法差",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0150",
+      "variant": "B0369",
+      "group": "http",
+      "title": "multipart境界差",
+      "status": "source_added_local_docker_vfn_verified"
     }
   ],
   "unimplemented_roots": [
-    "R0072",
     "R0074",
     "R0082",
     "R0091",
@@ -19040,7 +19256,6 @@
     "R0102",
     "R0109",
     "R0116",
-    "R0159",
     "R0181",
     "R0310",
     "R0355",
@@ -19052,21 +19267,11 @@
     "R0496"
   ],
   "unimplemented_variants": [
-    "B0072",
-    "B0073",
     "B0074",
     "B0075",
     "B0077",
-    "B0078",
-    "B0079",
     "B0080",
-    "B0081",
     "B0082",
-    "B0083",
-    "B0085",
-    "B0087",
-    "B0088",
-    "B0090",
     "B0091",
     "B0092",
     "B0093",
@@ -19088,16 +19293,11 @@
     "B0115",
     "B0116",
     "B0119",
-    "B0147",
-    "B0159",
     "B0176",
     "B0181",
     "B0310",
-    "B0352",
-    "B0353",
     "B0354",
     "B0355",
-    "B0369",
     "B0491",
     "B0492",
     "B0493",
@@ -19120,11 +19320,11 @@
     "Dockerfile": "0ca91748d62e90d616273ec9958264ddce486ea08bc36c45d89664a7dee0a5f3",
     "package-lock.json": "6eb9479263305867183e5c60c18046a15c7aa568595ae6807bf2cd2ad398ea70",
     "package.json": "d13207875da960a6e022b3e5e4356c72c267dabc9ecf99d20eb1785ea877c26d",
-    "README-coverage.md": "d5fa4c646ef2cc63c413d6d7a36d2f3cecbb484c9309d3620fbd78be803586d1",
+    "README-coverage.md": "19eef51c497d32ea571370b0384576a990ce4c36cfac761f3f58e94f4f8d9dab",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0ad35f39115f9e15acedc6f069c6a12e2f713be3effb48194c62de80f12a0baa",
     "README-zap.md": "28842114c51969c787d07a6af80235f1b2fd939b77218aa686b7712e97f416c0",
-    "README.md": "51447053fa863e4fda2a6574f993afb3472a7343a0e0c5265c100931897c623d",
+    "README.md": "a8be266a0ebc84d71b3a70b5f15f972b12ff04d9dd4f61ac0c34d80f8656d232",
     "run-panel.cmd": "fb819650f8d249fd5b5209d13d4a681da4851f3bf15c3fd76313ceb258d9e820",
     "run-panel.sh": "e66f71749484ccd980d3c8c179cf5c424cb281fb273185db51eeb26aea557fc0",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -19135,11 +19335,11 @@
     "src/cases/batch-authorization.mjs": "d19a14a37581491fea7793ae907c5049ffff78bf85342d1d40d881b9ac13c179",
     "src/cases/batch-boundaries.mjs": "37d527a695a55944bf035c95b78c7f4fe5787d5641d5856c20ecee7c594c13ac",
     "src/cases/batch2-browser.mjs": "87887ce7c39a95e4308398ad7d978274b4a3360ea9823b6678985af45709056e",
-    "src/cases/batch2-storage.mjs": "b1698175a0c681a80d93e6f3a1e2a6bf6c0e253e9cd50c0001d4259288358308",
+    "src/cases/batch2-storage.mjs": "2d1214ae118c5f2d2f3956718673abfa1758c1c78f41fac7289fc9a775e06ac7",
     "src/cases/batch2-workflows.mjs": "885eb4b162881856502351bd02e3324c36b6b89aa08b54cb98e045943b267127",
     "src/cases/batch3-engines.mjs": "0e35ea62ed43e1f8705ce60185dda6622fcd5eccdbc42cb6d337d6d33fba42cc",
     "src/cases/batch3-lifecycle.mjs": "274fa11fd999f1f84a68cf538f5c8d484a428359509843e3e8eb2aac77cae0b9",
-    "src/cases/batch3-protocols.mjs": "4c3546fa797aad6c95f6840228df17700dcd53219e958fcec6ad78debf709ac1",
+    "src/cases/batch3-protocols.mjs": "34761438509c6c6d239f8b806455977a46f96b099b0c6ae5d0e96f404282df05",
     "src/cases/batch4-auth-object.mjs": "8132bd650adcf1cfe742090fd7105ce7f3f08eaeaafbf873119b5243fc6a32e6",
     "src/cases/batch4-auth-profile.mjs": "bee6b3c33305c3d15d55d0ab16a093f65bc998e8507fbe649fa1844537a7a3e0",
     "src/cases/batch4-auth-state.mjs": "7abb4e3dec243e2d0d786b45e6e2dccb05603f56ca05f64a859e6d5b1c3cbabb",
@@ -19164,7 +19364,7 @@
     "src/cases/configuration.mjs": "17d205ad0fba695afda7546804de3627baa52639ecac0d6d210662119929da81",
     "src/cases/content-boundaries.mjs": "819b0f8ca1886e6bf28601693ed24323e8309ec29d59efadedcf5e9f2e2299a7",
     "src/cases/data-handling.mjs": "dc3160f38c08294d33d9e2a336b5e43e9cd6b4acb074bc6d8e3886631feccac2",
-    "src/cases/index.mjs": "5d1b0b819d079634700557eb7eb7b9992481e46f0293a1ba67e70c471f5bddce",
+    "src/cases/index.mjs": "7d1f91b3d201078b43a978a59be215e115672adf7b68c6630e4f096be8490141",
     "src/cases/resource-quotas.mjs": "9e7c39521850e72a4b1004f9e1e6233603c1f7f324b21446e8d733f785bfb94d",
     "src/cases/workflows.mjs": "2ddf90ff0ab8fb9e3e789c4e0926168afc6dbaf89da921dcee4d04853df82c58",
     "src/catalog.mjs": "80b16075504fadad7c89a00d4f620ff56c7e77db1007ca68cebf012f5bf94e17",
@@ -19174,7 +19374,7 @@
     "src/evaluation/burp.mjs": "eb74745632897591f8b65e50a27176f1d6df8e5588976b364bbf46345123c9d9",
     "src/evaluation/cli.mjs": "890b50ac23ce1163a7bdce0978d154bbc7f19310e569fcdd70f4f37a8abf9b96",
     "src/evaluation/records.mjs": "6b83972b5423533b200fc1d4e6263d240fbdf2b699d5118e0300ab11c55da75a",
-    "src/executor.mjs": "30b64a6f59e602172a6dbcbe16e630ed1cf6f120cb4ae2d430a0b305141dc0b0",
+    "src/executor.mjs": "753793ce323a207b65285f669e8381fe225ef437c07f00b14d0a3b6c4f54d307",
     "src/fixtures/lifecycle-formats.mjs": "655ac26b62113e685a4c00bbd9bf852c5d8e832061247b8516791fccdb03dc33",
     "src/fixtures/lifecycle-worker.mjs": "08cc8cd9aa0a90d3767de157122a5c881da1c8286ac4d4ebaaf88ff3ae8e7fb0",
     "src/measurement.mjs": "a50a35b496a752b6be5bdbdda413e03c71ea7350807d1ff0db791b21908f256c",
@@ -19231,6 +19431,17 @@
     "src/cases/batch6-uploads.mjs": "d5f03bcd22631d81515a1160d86d644993e5ba546c4d3ce1fd6f2f7f913c7a8e",
     "tests/batch6-cookie-shadow.mjs": "d171cfd4a69aab0d561fa22089a3d8cd336ef2e42e4998a919d09103954e2bbf",
     "tests/batch6-tar.mjs": "87d89399ad1cd027087a93dda0408d9554732a52e2349cd816c1a3324dc26f83",
-    "tests/batch6-uploads.mjs": "74887df8ff0417ba124cf2089a47c795a9416d8f130bdefa9a75e118fc1e5f2d"
+    "tests/batch6-uploads.mjs": "74887df8ff0417ba124cf2089a47c795a9416d8f130bdefa9a75e118fc1e5f2d",
+    "src/cases/batch6-cli.mjs": "1c00ef0610bcddefe79353b29ffe6fbc4ae997fdf8e9f3a96b90b90a87394a31",
+    "src/cases/batch6-multipart.mjs": "702a4c23685ff36200b33e124aa7e3e8dbf7c224959b41e1bca8af500f2ebde6",
+    "src/cases/batch6-encrypted-zip.mjs": "0ee941c6ced40c5a5d5aeaa32c08b9ed708930afc731dcdd27a8491cc2042982",
+    "src/cases/batch6-docx.mjs": "2a9a84d2fa2f5033707c96f0b12132a0ee9305cf11672ae455fd091fc3d7d438",
+    "tests/batch6-cli.mjs": "4fe78ba1d7e9ae39dcf7053e8faaf78077404fc39052db8ca3649b512f2cc389",
+    "tests/batch6-cli-boundaries.mjs": "26b0788aa21da002051fb0f7250155db67c300059b20b3b667aeccb2f6ae6fe4",
+    "tests/batch6-multipart.mjs": "97192cbf717584948fd556d190ff18e2164e04c6c010af51566f506b5ad35e97",
+    "tests/batch6-duplicate-cl.mjs": "aed00ebbec5eb14ec8a742931cf324f53711f699cc7c328eb2221850fd0d70d0",
+    "tests/batch6-te-grammar.mjs": "1b9b870a5fe42e42fe84a116e741d41a413226c9f58b6a10b79691ec31cceabe",
+    "tests/batch6-encrypted-zip.mjs": "24918b1ba7e0704f6a7e4cd7c48846cfa365bb9fefd944bff354cbc897f8b59a",
+    "tests/batch6-docx.mjs": "d983747900608d2c5d5f8b79ab6185ef2dc8375badece7f4273ef0af31c5fe14"
   }
 }

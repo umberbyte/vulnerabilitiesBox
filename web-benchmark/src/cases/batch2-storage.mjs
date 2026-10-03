@@ -50,7 +50,7 @@ export const definitions=[
 
 const crcTable=Array.from({length:256},(_,i)=>{for(let bit=0;bit<8;bit++)i=i&1?0xedb88320^(i>>>1):i>>>1;return i>>>0;});
 const crc32=bytes=>{let value=0xffffffff;for(const byte of bytes)value=crcTable[(value^byte)&255]^(value>>>8);return (value^0xffffffff)>>>0;};
-function zipRead(base64) {
+export function zipRead(base64) {
   if(typeof base64!=='string'||base64.length>60000||!/^[-A-Za-z0-9+/=]*$/.test(base64))throw Error('Invalid ZIP');
   const bytes=Buffer.from(base64,'base64');if(bytes.length<22||bytes.length>40000)throw Error('Invalid ZIP size');
   const end=bytes.length-22;if(bytes.readUInt32LE(end)!==0x06054b50||bytes.readUInt16LE(end+20)!==0||bytes.readUInt16LE(end+4)||bytes.readUInt16LE(end+6))throw Error('ZIP end');
