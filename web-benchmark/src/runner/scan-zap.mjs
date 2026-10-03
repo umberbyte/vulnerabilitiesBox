@@ -115,7 +115,7 @@ async function stop() {
   await optional('ascan','action','stopAllScans');
   // Let already dispatched requests finish; this time is recorded separately.
   const began=Date.now();let previous=-1,stable=0,settled=false;
-  while(Date.now()-began<10000) {
+  while(Date.now()-began<30000) {
     const m=await snapshot();
     stable=m.count===previous?stable+1:0;previous=m.count;
     metadata.drainPendingState=pendingState(m);
