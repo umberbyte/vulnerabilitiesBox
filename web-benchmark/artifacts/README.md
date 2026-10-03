@@ -10,6 +10,8 @@ Windowsは`reports.cmd`、macOS/Linuxは`sh reports.sh`で、保存済みの回�
 
 `coverage-inventory.md`と`coverage-inventory.json`は、設計500変種と保存された個別の成立確認記録を対応させます。旧形式の追加変種テストの集計は個別行へ配分せず、aggregateEvidenceに保持します。新形式は変種ID・根本原因ID・V/F/Nと合否だけを保存し、原本stdout中の秘密値や入力本文を棚卸しへ複写しません。
 
+`evidence-overview.md`と`evidence-overview.json`は、上記の個別記録と診断の終了資料を比較領域・主分類・根本原因ごとに整理します。代表変種の記録だけでは根本原因内の全変種の記録が揃ったとは扱いません。V/F/N完走系列は設定や反復の記録数であり、検出した脆弱性の数ではありません。個別記録の有無と診断終了の有無を別々に表示し、アラートや原文の入力本文は複写しません。
+
 `verification-audit.md`と`verification-audit.json`は、単体検証・統合回帰のログSHA-256と集計、終了状態、ソース記録を照合します。合格と保存された結果でも、ログの欠落・改変や集計の矛盾があれば不整合として表示します。ソース記録のない過去結果は、その不足を残します。
 
 `verification-history/`は評価ツールの単体検証を実行ごとに保存します。最新の`tools-check.*`を更新する前に、固有の履歴フォルダーへJSON・ログ・Markdownを作成します。履歴には実行当時のソース記録を保持し、`index.html`から参照できます。履歴・生成資料も公開Gitに含めません。
