@@ -1,30 +1,30 @@
 {
   "schema": "benchmark-implementation-0.8",
   "date": "2026-10-03",
-  "scope": "設計337根本原因／500変種、ソース実装318根本原因／478変種。成立確認済み範囲とソース実装を区別する。",
+  "scope": "設計337根本原因／500変種、ソース実装324根本原因／485変種。成立確認済み範囲とソース実装を区別する。",
   "summary": {
     "design_roots": 337,
     "design_variants": 500,
-    "implemented_roots": 318,
-    "implemented_positive_variants": 478,
-    "fixed_representative_controls": 318,
-    "safe_analogue_conditions": 318,
+    "implemented_roots": 324,
+    "implemented_positive_variants": 485,
+    "fixed_representative_controls": 324,
+    "safe_analogue_conditions": 324,
     "validated_execution_cells": 630,
-    "remaining_unimplemented_roots": 19,
-    "remaining_unimplemented_positive_variants": 22,
+    "remaining_unimplemented_roots": 13,
+    "remaining_unimplemented_positive_variants": 15,
     "checks": 13207,
     "comparison_tracks": {
       "audit": 16,
       "bounded_stress": 20,
-      "core_dast": 155,
+      "core_dast": 161,
       "protocol_concurrency": 23,
       "workflow": 104
     },
     "previous_release_verified_roots": 210,
-    "pending_final_acceptance_roots": 108,
-    "planned_execution_cells": 954,
+    "pending_final_acceptance_roots": 114,
+    "planned_execution_cells": 972,
     "validated_execution_scope": "historical_210_release_only",
-    "additional_source_variants": 160
+    "additional_source_variants": 161
   },
   "verification": {
     "historical_full_acceptance": {
@@ -39,7 +39,7 @@
     },
     "current_source_selected_docker_smoke": {
       "report": "artifacts/docker-smoke-selected.json",
-      "report_sha256": "0c52626f2c16b008df6aefbdb8a0435dae21a6367e67655e05d34eb8a976482c",
+      "report_sha256": "a916ce7b3b0f80271e39c6b98299f66419ebf51b0538d371a815fab1579379b1",
       "variants": 10,
       "arms": [
         "V",
@@ -98,6 +98,19 @@
       "tests": [
         "tests/batch6-h2-header.mjs",
         "tests/batch6-xml.mjs"
+      ],
+      "includes_full_regression": false
+    },
+    "current_source_batch9_docker": {
+      "variants": 7,
+      "arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "passed_cells": 21,
+      "tests": [
+        "tests/batch6-mongo.mjs"
       ],
       "includes_full_regression": false
     }
@@ -2600,13 +2613,12 @@
         }
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "remaining_variants_in_root": [
-        "B0095"
-      ],
+      "remaining_variants_in_root": [],
       "additional_source_variants": [
         "B0297",
         "B0298",
-        "B0299"
+        "B0299",
+        "B0095"
       ],
       "additional_variant_acceptance": "source_added_runtime_acceptance_pending"
     },
@@ -18450,6 +18462,342 @@
       "implementation_note": "raw TCPでH2 preface・SETTINGS・HEADERSとHPACK literal subsetを処理し、実H1 TCPへ変換。Vだけ制御文字をH1へ直結。",
       "hard_negative": "同じ境界入力で「下流ヘッダが分割される」が成立せず、正常な機能が維持される。",
       "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0091",
+      "representative_variant": "B0091",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo演算子オブジェクト",
+      "partition": "evaluation_reserved",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「認証条件外の利用者が返る」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0092",
+      "representative_variant": "B0092",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo whereコード",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「隔離の計算マーカーが評価」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0093",
+      "representative_variant": "B0093",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo pipeline段階",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「非公開collectionを参照」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0096",
+      "representative_variant": "B0096",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo collection",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「内部collectionが返る」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0097",
+      "representative_variant": "B0097",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo正規表現構文",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「リテラル外の秘密項目が一致」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0098",
+      "representative_variant": "B0098",
+      "family": "NoSQL・LDAP・XPath注入",
+      "title": "Mongo配列条件",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／NoSQL・LDAP・XPath",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.4,V1.2.6,V1.2.7,V1.2.9",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / NoSQL・LDAP・XPath注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "NoSQL Security / LDAP Injection Prevention / XPath Injection Prevention",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.7",
+          "relation": "類型対応。ケースごとに個別確定する"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Docker Compose内の実MongoDB 7と公式Nodeドライバを使用。小さな固定collection、有限入力とmaxTimeMSでV/F/Nを比較。",
+      "hard_negative": "同じ境界入力で「別要素の属性で権限条件成立」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
     }
   ],
   "implemented_additional_variants": [
@@ -19572,15 +19920,16 @@
       "group": "xml",
       "title": "XML base解決",
       "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0095",
+      "variant": "B0095",
+      "group": "query",
+      "title": "Mongo更新演算子",
+      "status": "source_added_local_docker_vfn_verified"
     }
   ],
   "unimplemented_roots": [
-    "R0091",
-    "R0092",
-    "R0093",
-    "R0096",
-    "R0097",
-    "R0098",
     "R0099",
     "R0100",
     "R0101",
@@ -19596,13 +19945,6 @@
     "R0496"
   ],
   "unimplemented_variants": [
-    "B0091",
-    "B0092",
-    "B0093",
-    "B0095",
-    "B0096",
-    "B0097",
-    "B0098",
     "B0099",
     "B0100",
     "B0101",
@@ -19627,18 +19969,18 @@
   },
   "file_sha256": {
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
-    "artifacts/docker-smoke-selected.json": "0c52626f2c16b008df6aefbdb8a0435dae21a6367e67655e05d34eb8a976482c",
+    "artifacts/docker-smoke-selected.json": "a916ce7b3b0f80271e39c6b98299f66419ebf51b0538d371a815fab1579379b1",
     "artifacts/README.md": "edecd1b540ac3534be9db886ee9c85b98e3aeb513fe0a37a54c0df8cee7c1043",
-    "compose.yaml": "b0e287c868161e7818d5040505235128cf44d54bf397e911ef4d432e8fe99def",
+    "compose.yaml": "11a34c274675a73e76de520a12d82932133b756fe70e6f0cbbb1cf26e64e1721",
     "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
     "Dockerfile": "a837ed1085a9c71eee1c30e9a17b91cac3fd4a02da44ec363b8f7452e6760807",
-    "package-lock.json": "6eb9479263305867183e5c60c18046a15c7aa568595ae6807bf2cd2ad398ea70",
-    "package.json": "d13207875da960a6e022b3e5e4356c72c267dabc9ecf99d20eb1785ea877c26d",
-    "README-coverage.md": "3820a1f1fac3fec09de873f598712914b795c5ac47cbbcb6437657478a73ea5b",
+    "package-lock.json": "89ff6ed8ade0c4b6bc2bacf901bfca0cba07dc73a6379190d943077121a3bbde",
+    "package.json": "9e832eddf1adb4e24784b96ef11d5e55d99decbbd04445680b7ca51dc4084a08",
+    "README-coverage.md": "dcb6a953ac88d21d273ec9bd4f598200102a85b0b3021a1c0ee349567d936f52",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3a5f2265c0a7af43821c9147bdb6a53ceefcb90cc61e73ea808dda08ef7993a4",
     "README-zap.md": "53a6d2085baf8844d3510cdc89086ee2d473b426d4565bc676e569b187a2fc04",
-    "README.md": "6b1e4efbbe9ab792263ef729773b0886f6678847173274c455947d214abcf619",
+    "README.md": "a6eeca988c2d88d75611b7756bbe7db2e91bacb1b27cac33a2821315776e5b2b",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -19678,7 +20020,7 @@
     "src/cases/configuration.mjs": "17d205ad0fba695afda7546804de3627baa52639ecac0d6d210662119929da81",
     "src/cases/content-boundaries.mjs": "819b0f8ca1886e6bf28601693ed24323e8309ec29d59efadedcf5e9f2e2299a7",
     "src/cases/data-handling.mjs": "dc3160f38c08294d33d9e2a336b5e43e9cd6b4acb074bc6d8e3886631feccac2",
-    "src/cases/index.mjs": "103061305d73e6f5dc3554612d7effa3ef1d21f2da96470e79990d2410239222",
+    "src/cases/index.mjs": "51ad71078a455695d2414979a395797206761460a10774da2e463fcd62d467f5",
     "src/cases/resource-quotas.mjs": "9e7c39521850e72a4b1004f9e1e6233603c1f7f324b21446e8d733f785bfb94d",
     "src/cases/workflows.mjs": "2ddf90ff0ab8fb9e3e789c4e0926168afc6dbaf89da921dcee4d04853df82c58",
     "src/catalog.mjs": "80b16075504fadad7c89a00d4f620ff56c7e77db1007ca68cebf012f5bf94e17",
@@ -19769,6 +20111,8 @@
     "src/cases/batch6-h2-header.mjs": "5e7a0024001a3c19c548c7ed1c49e71213eab562a37805e815a0332ef1f96ef0",
     "src/cases/batch6-xml.mjs": "a824e486e16af08eae5d98b53e2d6e8c4c2243244fa14489ecc5be7ec862edfa",
     "tests/batch6-h2-header.mjs": "6e19453deff74db540892be2e6f04531e17d73bd9def5d926d0ab106a974631a",
-    "tests/batch6-xml.mjs": "ef87dc63ae64909700f2a955bceae53b7cfb40579eb75b9a9869b68cbbf2e081"
+    "tests/batch6-xml.mjs": "ef87dc63ae64909700f2a955bceae53b7cfb40579eb75b9a9869b68cbbf2e081",
+    "src/cases/batch6-mongo.mjs": "1e8baefbe6c713bacf576571f1e034fa9d9c85caf8dd28540b0ea38ae4628a53",
+    "tests/batch6-mongo.mjs": "716d94b6b410154f3c402306da23bc6365790b06eb3e560770d7c5c70985059b"
   }
 }

@@ -1,7 +1,7 @@
 {
   "schema": "benchmark-docker-smoke-selected-0.1",
   "scope": "selected V/F boundaries only; no N, no scanner, no full regression",
-  "startedAt": "2026-10-03T05:47:13.445Z",
+  "startedAt": "2026-10-03T06:05:20.019Z",
   "origin": "http://app:8080",
   "results": [
     {
@@ -9,143 +9,143 @@
       "variant": "B0378",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 310
+      "elapsedMs": 302
     },
     {
       "root": "R0377",
       "variant": "B0378",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 263
+      "elapsedMs": 240
     },
     {
       "root": "R0377",
       "variant": "B0379",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 259
+      "elapsedMs": 252
     },
     {
       "root": "R0377",
       "variant": "B0379",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 253
+      "elapsedMs": 249
     },
     {
       "root": "R0150",
       "variant": "B0361",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 251
+      "elapsedMs": 241
     },
     {
       "root": "R0150",
       "variant": "B0361",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 273
+    },
+    {
+      "root": "R0329",
+      "variant": "B0329",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 262
+    },
+    {
+      "root": "R0329",
+      "variant": "B0329",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 265
+    },
+    {
+      "root": "R0200",
+      "variant": "B0200",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 278
+    },
+    {
+      "root": "R0200",
+      "variant": "B0200",
       "mode": "F",
       "status": "passed",
       "elapsedMs": 260
     },
     {
-      "root": "R0329",
-      "variant": "B0329",
+      "root": "R0126",
+      "variant": "B0127",
       "mode": "V",
       "status": "passed",
-      "elapsedMs": 257
+      "elapsedMs": 266
     },
     {
-      "root": "R0329",
-      "variant": "B0329",
+      "root": "R0126",
+      "variant": "B0127",
       "mode": "F",
+      "status": "passed",
+      "elapsedMs": 269
+    },
+    {
+      "root": "R0481",
+      "variant": "B0482",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 250
+    },
+    {
+      "root": "R0481",
+      "variant": "B0482",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 275
+    },
+    {
+      "root": "R0271",
+      "variant": "B0342",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 270
+    },
+    {
+      "root": "R0271",
+      "variant": "B0342",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 261
+    },
+    {
+      "root": "R0331",
+      "variant": "B0339",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 247
+    },
+    {
+      "root": "R0331",
+      "variant": "B0339",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 244
+    },
+    {
+      "root": "R0461",
+      "variant": "B0462",
+      "mode": "V",
       "status": "passed",
       "elapsedMs": 248
     },
     {
-      "root": "R0200",
-      "variant": "B0200",
-      "mode": "V",
-      "status": "passed",
-      "elapsedMs": 256
-    },
-    {
-      "root": "R0200",
-      "variant": "B0200",
-      "mode": "F",
-      "status": "passed",
-      "elapsedMs": 254
-    },
-    {
-      "root": "R0126",
-      "variant": "B0127",
-      "mode": "V",
-      "status": "passed",
-      "elapsedMs": 231
-    },
-    {
-      "root": "R0126",
-      "variant": "B0127",
-      "mode": "F",
-      "status": "passed",
-      "elapsedMs": 223
-    },
-    {
-      "root": "R0481",
-      "variant": "B0482",
-      "mode": "V",
-      "status": "passed",
-      "elapsedMs": 224
-    },
-    {
-      "root": "R0481",
-      "variant": "B0482",
-      "mode": "F",
-      "status": "passed",
-      "elapsedMs": 239
-    },
-    {
-      "root": "R0271",
-      "variant": "B0342",
-      "mode": "V",
-      "status": "passed",
-      "elapsedMs": 249
-    },
-    {
-      "root": "R0271",
-      "variant": "B0342",
-      "mode": "F",
-      "status": "passed",
-      "elapsedMs": 228
-    },
-    {
-      "root": "R0331",
-      "variant": "B0339",
-      "mode": "V",
-      "status": "passed",
-      "elapsedMs": 229
-    },
-    {
-      "root": "R0331",
-      "variant": "B0339",
-      "mode": "F",
-      "status": "passed",
-      "elapsedMs": 223
-    },
-    {
-      "root": "R0461",
-      "variant": "B0462",
-      "mode": "V",
-      "status": "passed",
-      "elapsedMs": 231
-    },
-    {
       "root": "R0461",
       "variant": "B0462",
       "mode": "F",
       "status": "passed",
-      "elapsedMs": 225
+      "elapsedMs": 245
     }
   ],
-  "finishedAt": "2026-10-03T05:47:18.358Z",
+  "finishedAt": "2026-10-03T06:05:25.216Z",
   "summary": {
     "cells": 20,
     "passed": 20,
