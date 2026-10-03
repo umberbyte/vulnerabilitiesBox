@@ -6,7 +6,8 @@ const rules=[
   {name:'benchmark-sql-grammar-differential',id:'50000',source:new URL('./zap-rules/sql-grammar-differential.js',import.meta.url),description:'Differential checks for SQL grammar positions'},
   {name:'benchmark-path-separator-differential',id:'50000',source:new URL('./zap-rules/path-separator-differential.js',import.meta.url),description:'Compare public path normalization across slash conventions'},
   {name:'benchmark-error-cache-differential',id:'50000',source:new URL('./zap-rules/error-cache-differential.js',import.meta.url),description:'Check whether a header-triggered error persists without that header'},
-  {name:'benchmark-ldap-filter-differential',id:'50000',source:new URL('./zap-rules/ldap-filter-differential.js',import.meta.url),description:'Compare ordinary, wildcard, and no-match LDAP filter branch results'}
+  {name:'benchmark-ldap-filter-differential',id:'50000',source:new URL('./zap-rules/ldap-filter-differential.js',import.meta.url),description:'Compare ordinary, wildcard, and no-match LDAP filter branch results'},
+  {name:'benchmark-mongo-operator-differential',id:'50000',source:new URL('./zap-rules/mongo-operator-differential.js',import.meta.url),description:'Compare string equality with Mongo operator objects in public JSON filters'}
 ];
 
 export async function install({zap=process.env.ZAP_URL||'http://zap:8090',key=process.env.ZAP_API_KEY,inputDirectory='/scan-input',onlyCustom=false}={}) {

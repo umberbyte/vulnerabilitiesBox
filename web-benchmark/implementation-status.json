@@ -20751,7 +20751,7 @@
     "README-coverage.md": "6a48e4c2fd87c40839ec6e07ee977d18d581a0169253e129857d36f47eb2f86d",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3a5f2265c0a7af43821c9147bdb6a53ceefcb90cc61e73ea808dda08ef7993a4",
-    "README-zap.md": "5a75d497c87077805f5609d4fd4530f2f91e0ada4d5bc89c30328e9c7b4a7609",
+    "README-zap.md": "c24f00bdc73c994781b142bb430e9daf22b93b03fc6f4874b63f5ed57a71bf0f",
     "README.md": "5eba1154696ad7b069b4ef6e39f540f2f106d11dbcf505f62bfda942069491a5",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
@@ -20896,10 +20896,11 @@
     "src/native/fixture.c": "87cd3808f7b735fb47e065ce71cdd3555c946ec1896669a0e0cc9af0d0368ebe",
     "src/native/worker.cjs": "be9a12dcffbf6df499216f7dc14e9ccc3d1b3d0e7568026127ae201989d5cc6f",
     "tests/batch6-native.mjs": "c973753189e8d65f74859a400975c1a2b88f392ad1775ed738e4512939a88729",
-    "README-zap-findings.md": "0bf0d7538333c45c97059a1b0652f09135228b6ec38b75443b90007a32fa5c91",
+    "README-zap-findings.md": "b709c7dc19c4867807c07ae4e5cfc302a8cbecccb62b31cecba339a966ae07e9",
     "src/runner/script-inventory.mjs": "2a39a24e22d978df8922ec2f6ae71e53aa89c4c3b5ca6582c8e31792e7d1f9c3",
-    "src/runner/install-custom-rules.mjs": "57d63d45eff4e897f34072c67dd05d2461f7eb0cc43f67a3326f33c0f0602530",
+    "src/runner/install-custom-rules.mjs": "8b60fa27983ab241290ce2c36c08cee18830e4e53572044573644f11bf1f13a5",
     "src/runner/zap-rules/ldap-filter-differential.js": "61d08f5e45ccb025ac48882b76108f46d56df259dcbad6a53abca09ab70fad70",
-    "tests/runner-script-inventory.mjs": "fb236c198698979c24281d7d0d982208b5ba1927ebdc9a139ecdbaafc3ed0f5a"
+    "tests/runner-script-inventory.mjs": "fb236c198698979c24281d7d0d982208b5ba1927ebdc9a139ecdbaafc3ed0f5a",
+    "src/runner/zap-rules/mongo-operator-differential.js": "78970fd97fae24b562b7036200932804bbb1b68c8013d47424292d4776db5246"
   }
 }
