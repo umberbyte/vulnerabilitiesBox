@@ -1,8 +1,8 @@
-import {writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {sourceSnapshot,compareSources} from './source.mjs';
 import {unitTestFiles,runNode,tapSummary} from './tool-tests.mjs';
 import {artifactReader,assertOutputFiles} from './files.mjs';
+import {storeToolsCheck} from './history.mjs';
 
 const source=await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}),files=await unitTestFiles('.'),startedAt=new Date().toISOString();
 if(!files.length)throw Error('No unit test files selected');
@@ -15,8 +15,6 @@ try{
   report.sourceAfter=compareSources(source,await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}));
   if(result.exitCode===0&&!result.stopReason&&report.summary.passed===report.summary.tests&&report.sourceAfter.status==='matched')report.status='passed';
 }catch(e){report.error=e.message;}
-await writeFile('artifacts/tools-check.log',log);
-await writeFile('artifacts/tools-check.json',JSON.stringify(report,null,2)+'\n');
-await writeFile('artifacts/tools-check.md',`# 評価ツールの単体検証\n\n実行: ${report.startedAt} – ${report.finishedAt}\n\n結果: ${report.status}。${report.summary?report.summary.passed+'/'+report.summary.tests+' テスト、'+files.length+' ファイル':'集計未確定'}。\n\nアプリ、ZAP、外部サイトへの診断は行いません。500変種の成立確認や脆弱性の検出率を示すものではありません。src、tests、Dockerfile、package manifests、Compose、設計JSONをファイル単位のSHA-256で記録しました。実行前後のソース一致: ${report.sourceAfter?.status??'未確認'}。\n\nソースSHA-256: ${source.sha256}\n\n詳細: tools-check.json、実行ログ: tools-check.log。${report.stopReason?'停止理由: '+report.stopReason:''}\n`);
-console.log(JSON.stringify({status:report.status,...report.summary,files:files.length,sourceSha256:source.sha256}));
+const stored=await storeToolsCheck('artifacts',report,log,`# 評価ツールの単体検証\n\n実行: ${report.startedAt} – ${report.finishedAt}\n\n結果: ${report.status}。${report.summary?report.summary.passed+'/'+report.summary.tests+' テスト、'+files.length+' ファイル':'集計未確定'}。\n\nアプリ、ZAP、外部サイトへの診断は行いません。500変種の成立確認や脆弱性の検出率を示すものではありません。src、tests、Dockerfile、.dockerignore、package manifests、Compose、起動スクリプト、設計JSONをファイル単位のSHA-256で記録しました。実行前後のソース一致: ${report.sourceAfter?.status??'未確認'}。\n\nソースSHA-256: ${source.sha256}\n\n詳細: tools-check.json、実行ログ: tools-check.log。再実行時もverification-historyに過去の結果を保持します。${report.stopReason?'停止理由: '+report.stopReason:''}\n`);
+console.log(JSON.stringify({status:report.status,...report.summary,files:files.length,sourceSha256:source.sha256,archive:stored.archive}));
 if(report.status!=='passed')process.exitCode=1;

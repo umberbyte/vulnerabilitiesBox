@@ -23,7 +23,11 @@ export async function runNode(args,{cwd='.',timeoutMs=180000,maxOutputBytes=8*10
 }
 
 export function tapSummary(output){
-  const value=name=>Number(output.match(new RegExp('^# '+name+' (\\d+)$','m'))?.[1]);
+  const value=name=>{
+    const matches=[...output.matchAll(new RegExp('^# '+name+' (\\d+)\\r?$','gm'))];
+    if(matches.length!==1)throw Error('Missing or duplicate TAP summary');
+    return Number(matches[0][1]);
+  };
   const summary={tests:value('tests'),passed:value('pass'),failed:value('fail'),skipped:value('skipped'),cancelled:value('cancelled')};
   if(!Number.isSafeInteger(summary.tests)||summary.tests<1||Object.values(summary).some(v=>!Number.isSafeInteger(v)))throw Error('Missing TAP summary');
   if(summary.tests!==summary.passed+summary.failed+summary.skipped+summary.cancelled)throw Error('Inconsistent TAP summary');

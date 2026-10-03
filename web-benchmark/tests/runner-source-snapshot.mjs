@@ -10,12 +10,17 @@ import {collectReports,renderReports} from '../src/reporting/index.mjs';
 async function fixture(t){const dir=await mkdtemp(join(tmpdir(),'benchmark-source-'));t.after(()=>rm(dir,{recursive:true,force:true}));for(const p of SOURCE_METADATA)await writeFile(join(dir,p),'fixture');await mkdir(join(dir,'src'));await mkdir(join(dir,'tests'));return dir;}
 test('source snapshots are deterministic and exclude documentation and artifacts',async t=>{
   const dir=await fixture(t);await writeFile(join(dir,'src/app.mjs'),'source');const first=await sourceSnapshot(dir);
-  await writeFile(join(dir,'README.md'),'documentation');assert.equal(compareSources(first,await sourceSnapshot(dir)).status,'matched');assert.equal(Object.keys(first.files).length,6);
+  await writeFile(join(dir,'README.md'),'documentation');assert.equal(compareSources(first,await sourceSnapshot(dir)).status,'matched');assert.equal(Object.keys(first.files).length,SOURCE_METADATA.length+1);
 });
 test('modified, added, and removed source files are distinguished',async t=>{
   const dir=await fixture(t);await writeFile(join(dir,'src/old.mjs'),'old');await writeFile(join(dir,'src/change.mjs'),'before');const first=await sourceSnapshot(dir);
   await rm(join(dir,'src/old.mjs'));await writeFile(join(dir,'src/change.mjs'),'after');await writeFile(join(dir,'src/new.mjs'),'new');
   assert.deepEqual(compareSources(first,await sourceSnapshot(dir)).changes.map(c=>c.change).sort(),['added','modified','removed']);
+});
+test('launcher and Docker ignore changes are part of recorded reproduction inputs',async t=>{
+  const dir=await fixture(t),before=await sourceSnapshot(dir);
+  await writeFile(join(dir,'verify.cmd'),'different arguments');await writeFile(join(dir,'.dockerignore'),'different build inputs');
+  assert.deepEqual(compareSources(before,await sourceSnapshot(dir)).changes.map(c=>c.path),['.dockerignore','verify.cmd']);
 });
 
 test('design input bytes are included when supplied to the snapshot',async t=>{

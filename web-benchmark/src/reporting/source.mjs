@@ -5,7 +5,7 @@ import {join} from 'node:path';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const canonical=files=>Object.fromEntries(Object.keys(files).sort().map(path=>[path,files[path]]));
 const digest=files=>hash(JSON.stringify(canonical(files)));
-export const SOURCE_METADATA=['Dockerfile','package.json','package-lock.json','compose.yaml','compose.zap.yaml'];
+export const SOURCE_METADATA=['Dockerfile','.dockerignore','package.json','package-lock.json','compose.yaml','compose.zap.yaml','verify.cmd','verify.sh','verify.ps1','reports.cmd','reports.sh'];
 
 export async function sourceSnapshot(directory,{designPath=null}={}){
   const root=await lstat(directory);
@@ -30,7 +30,7 @@ export async function sourceSnapshot(directory,{designPath=null}={}){
   for(const path of SOURCE_METADATA)await add(path);
   if(designPath)await add('@design/benchmark-design-v2.json',designPath);
   await walk('src');await walk('tests');
-  return {schema:'benchmark-source-snapshot-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',sha256:digest(files),files:canonical(files),scope:'src/, tests/, Dockerfile, package manifests, and Compose files'+(designPath?', design JSON':'')+'; documentation and generated artifacts excluded'};
+  return {schema:'benchmark-source-snapshot-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',sha256:digest(files),files:canonical(files),scope:'src/, tests/, Dockerfile, .dockerignore, package manifests, Compose files, and verification/report launchers'+(designPath?', design JSON':'')+'; documentation and generated artifacts excluded'};
 }
 
 export function compareSources(recorded,current){
