@@ -1,11 +1,24 @@
 import express from 'express';
 import {mkdir,writeFile,readFile,rm,chmod,stat} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
+import {createServer} from 'node:http';
 import path from 'node:path';
 const app=express(); app.use(express.json({limit:'32kb'}));
 const home='/tmp/execution-fixture';
+let cliHttpReceipts=[];
+const cliHttpServer=createServer((req,res)=>{
+  if(req.url==='/public'&&req.method==='GET'){res.writeHead(200,{'content-type':'text/plain'});res.end('Public HTTP fixture');return;}
+  if(req.url==='/collect'&&req.method==='POST'){
+    const chunks=[];let size=0;
+    req.on('data',chunk=>{size+=chunk.length;if(size>1024)req.destroy();else chunks.push(chunk);});
+    req.on('end',()=>{cliHttpReceipts.push(Buffer.concat(chunks).toString('utf8'));res.writeHead(200);res.end('Collected');});return;
+  }
+  res.writeHead(404);res.end();
+});
+cliHttpServer.listen(8091,'127.0.0.1');
 await mkdir(home,{recursive:true});
 app.post('/reset',async(req,res)=>{
+  cliHttpReceipts=[];
   await rm(home,{recursive:true,force:true}); await mkdir(home,{recursive:true});
   await writeFile(path.join(home,'private-canary.txt'),String(req.body.canary));
   await writeFile(path.join(home,'public.txt'),'Public search guide');
@@ -14,6 +27,9 @@ app.post('/reset',async(req,res)=>{
     const program=path.join(home,directory,'fixture-tool');
     await writeFile(program,'#!/bin/sh\n'+body+'\n');await chmod(program,0o755);
   }
+  await writeFile(path.join(home,'remote-shell.sh'),'touch /tmp/execution-fixture/private/rsync-marker.txt\n');
+  const gitInit=await runCli('/usr/bin/git',['init','--bare',path.join(home,'public','repository.git')]);
+  if(gitInit.code!==0)return res.status(500).json({error:'Git fixture initialization failed'});
   res.json({ok:true});
 });
 app.post('/store',async(req,res)=>{
@@ -92,12 +108,32 @@ async function runCli(binary,args,input='',environment={PATH:'/usr/bin:/bin'}){
     child.stdin.end(input);
   });
 }
-const boundaryVariants=new Set(['B0079','B0081','B0083','B0085','B0087','B0088','B0090']);
+const boundaryVariants=new Set(['B0074','B0075','B0077','B0079','B0080','B0081','B0082','B0083','B0085','B0087','B0088','B0090']);
 app.post('/cli-boundary',async(req,res)=>{
   const variant=String(req.body?.variant||''),value=req.body?.value,vulnerable=req.body?.vulnerable===true;
   if(!boundaryVariants.has(variant)||typeof value!=='string'||Buffer.byteLength(value)>160||value.length<1||value.includes('\0'))return res.sendStatus(400);
   let result;
-  if(variant==='B0079'){
+  if(variant==='B0074'){
+    const local='file:///tmp/execution-fixture/public/repository.git';
+    if(!vulnerable&&value!==local)return res.sendStatus(400);
+    result=await runCli('/usr/bin/git',['ls-remote',vulnerable?value:local],'',{PATH:'/usr/bin:/bin',GIT_ALLOW_PROTOCOL:vulnerable?'file:ext':'file'});
+  }else if(variant==='B0075'){
+    if(!vulnerable&&value!=='local')return res.sendStatus(400);
+    result=value==='local'
+      ?await runCli('/usr/bin/rsync',['-a',path.join(home,'public.txt'),path.join(home,'public','synced.txt')])
+      :await runCli('/usr/bin/rsync',['-e',value,path.join(home,'public.txt'),'fixture@127.0.0.1:/tmp/execution-fixture/public/synced.txt']);
+  }else if(variant==='B0077'){
+    if(!vulnerable&&value!=='-colorspace Gray')return res.sendStatus(400);
+    const options=value.split(/\s+/);
+    if(options.length>5||options.some(option=>!option))return res.sendStatus(400);
+    result=await runCli('/usr/bin/convert',['-size','1x1','xc:red',...(vulnerable?options:['-colorspace','Gray']),path.join(home,'public','image.png')]);
+  }else if(variant==='B0082'){
+    const allowed='file:///tmp/execution-fixture/public.txt';
+    if(!vulnerable&&value!==allowed)return res.sendStatus(400);
+    const output=path.join(home,'public','media.bin');
+    result=await runCli('/usr/bin/ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-f','data','-i',vulnerable?value:allowed,'-map','0:0','-c','copy','-f','data',output]);
+    if(result.code===0)result.output=await readFile(output,'utf8');
+  }else if(variant==='B0079'){
     if(!vulnerable&&value!=='public.txt')return res.sendStatus(400);
     const args=['-cf',path.join(home,'package.tar'),'--checkpoint=1',...(vulnerable?[value,'public.txt']:['--','public.txt'])];
     result=await runCli('/usr/bin/tar',args);
@@ -107,6 +143,17 @@ app.post('/cli-boundary',async(req,res)=>{
       const responseFile=path.join(home,'arguments.txt');await writeFile(responseFile,value+'\n');
       result=await runCli('/usr/bin/xargs',['-a',responseFile,'/usr/bin/tar','-cf',path.join(home,'response-package.tar'),'--checkpoint=1']);
     }else result=await runCli('/usr/bin/tar',['-cf',path.join(home,'response-package.tar'),'--','public.txt']);
+  }else if(variant==='B0080'){
+    const publicUrl='http://127.0.0.1:8091/public';
+    if(!vulnerable&&value!==publicUrl)return res.sendStatus(400);
+    if(vulnerable){
+      const args=value.split(/\s+/);
+      if(args.length>8||args.some(arg=>!arg))return res.sendStatus(400);
+      result=await runCli('/usr/bin/curl',['--silent','--show-error','--max-time','1',...args]);
+    }else{
+      const response=await fetch(publicUrl,{signal:AbortSignal.timeout(800)});
+      result={code:response.ok?0:22,output:await response.text(),error:''};
+    }
   }else if(variant==='B0081'){
     if(!vulnerable&&!/^public\/[a-z][a-z0-9-]{0,25}\.txt$/.test(value))return res.sendStatus(400);
     if(vulnerable)result=await runCli('/bin/sh',['-c',`printf 'Public report\\n' > ${value}`]);
@@ -132,6 +179,15 @@ app.post('/cli-boundary',async(req,res)=>{
     }else result=await runCli('/usr/bin/printf',['%s\n',value]);
   }
   let protectedWrite=false;try{protectedWrite=(await stat(path.join(home,'private','proof.txt'))).isFile();}catch{}
-  res.status(result.code===0?200:422).json({...result,protectedWrite});
+  let transportMarker=false;
+  if(['B0074','B0075'].includes(variant)){
+    const name=variant==='B0074'?'git-marker.txt':'rsync-marker.txt';
+    try{transportMarker=(await stat(path.join(home,'private',name))).isFile();}catch{}
+  }
+  let imageMarker=false;
+  if(variant==='B0077')try{imageMarker=(await stat(path.join(home,'private','image-marker.png'))).isFile();}catch{}
+  const secret=variant==='B0080'?(await readFile(path.join(home,'private-canary.txt'),'utf8')).trim():'';
+  const sentSecret=variant==='B0080'&&cliHttpReceipts.some(body=>body.includes(secret));
+  res.status(result.code===0?200:422).json({...result,protectedWrite,sentSecret,transportMarker,imageMarker});
 });
 app.listen(8090,'0.0.0.0');

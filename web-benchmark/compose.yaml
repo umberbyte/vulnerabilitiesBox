@@ -22,7 +22,7 @@ services:
       timeout: 3s
       retries: 30
   executor:
-    build: {context: ., target: runtime}
+    build: {context: ., target: executor}
     command: ["node", "src/executor.mjs"]
     networks: [execution]
     read_only: true

@@ -1,9 +1,14 @@
 const cases={
   B0072:{root:'R0072',title:'awk式実行',normal:'2+3',expected:'5',family:'CLI式評価'},
   B0073:{root:'R0072',title:'sed式実行',normal:'s/Guide/Welcome/p',expected:'Welcome',family:'CLI置換式'},
+  B0074:{root:'R0074',title:'Git外部transport',normal:'file:///tmp/execution-fixture/public/repository.git',expected:'',family:'Git外部transport',kind:'boundary'},
+  B0075:{root:'R0074',title:'rsync remote-shell',normal:'local',expected:'',family:'rsync remote-shell',kind:'boundary'},
+  B0077:{root:'R0076',title:'ツール設定引数',normal:'-colorspace Gray',expected:'',family:'画像変換option',kind:'boundary'},
   B0078:{root:'R0072',title:'検索プログラム式',normal:'-name public.txt',expected:'public.txt',family:'CLI検索式'},
   B0079:{root:'R0076',title:'圧縮コマンドhook',normal:'public.txt',expected:'',family:'CLI圧縮hook',kind:'boundary'},
+  B0080:{root:'R0076',title:'外部HTTPクライアント',normal:'http://127.0.0.1:8091/public',expected:'Public HTTP fixture',family:'CLI URL引数',kind:'boundary'},
   B0081:{root:'R0071',title:'出力先リダイレクト',normal:'public/report.txt',expected:'',family:'shell出力先',kind:'boundary'},
+  B0082:{root:'R0082',title:'ffmpeg任意protocol',normal:'file:///tmp/execution-fixture/public.txt',expected:'Public search guide',family:'ffmpeg入力protocol',kind:'boundary'},
   B0083:{root:'R0071',title:'スクリプト標準入力',normal:'Public guide',expected:'Public guide',family:'shell標準入力',kind:'boundary'},
   B0085:{root:'R0084',title:'PATH探索',normal:'trusted',expected:'Trusted tool',family:'CLI実行ファイル探索',kind:'boundary'},
   B0087:{root:'R0071',title:'スクリプト引数再解釈',normal:'Guide',expected:'Guide',family:'shell子処理',kind:'boundary'},
@@ -13,7 +18,7 @@ const cases={
 const active=new Set(Object.keys(cases));
 let records=[];
 const all=Object.entries(cases).map(([variant,item])=>({
-  root:item.root,variant,...(variant==='B0072'?{}:{additionalVariant:true}),title:item.title,feature:'b6-cli-'+variant.slice(1),family:item.family,
+  root:item.root,variant,...(['B0072','B0074','B0082'].includes(variant)?{}:{additionalVariant:true}),title:item.title,feature:'b6-cli-'+variant.slice(1),family:item.family,
   entry:'/cli-workbook',allowedPaths:variant==='B0081'?['cli-workbook','cli-report']:['cli-workbook'],
   requests:[['GET','/cli-workbook',{}],['POST','/cli-workbook',item.kind==='boundary'?{value:item.normal}:{expression:item.normal}],...(variant==='B0081'?[['GET','/cli-report',{name:'report.txt'}]]:[])],
   sessionProtectedPath:'/cli-workbook',negativeDescription:variant==='B0081'?'公開領域への正常な保存は成功し、shellリダイレクトで保護領域へ書き込まない。':'固定fixtureの正常操作は成功し、CLI・shell・PATH入力から隔離workerの秘密ファイルを出力しない。',
@@ -44,9 +49,9 @@ export function register(router,{getRun,vulnerable,requireLogin,page}){
     });
     if(response.status===400)return res.sendStatus(400);
     const result=await response.json();
-    records.push({variant:getRun().variant,input,status:response.status,code:result.code,exposed:result.output.includes(getRun().canary),protectedWrite:result.protectedWrite===true});
+    records.push({variant:getRun().variant,input,status:response.status,code:result.code,exposed:result.output.includes(getRun().canary),protectedWrite:result.protectedWrite===true,sentSecret:result.sentSecret===true,transportMarker:result.transportMarker===true,imageMarker:result.imageMarker===true});
     if(records.length>8)records.shift();
-    res.status(response.status).json({output:result.output,error:result.error,code:result.code,protectedWrite:result.protectedWrite===true});
+    res.status(response.status).json({output:result.output,error:result.error,code:result.code,protectedWrite:result.protectedWrite===true,sentSecret:result.sentSecret===true,transportMarker:result.transportMarker===true,imageMarker:result.imageMarker===true});
   });
 }
 export async function audit({getRun}){return active.has(getRun().variant)?{batch6Cli:{records:[...records]}}:{};}

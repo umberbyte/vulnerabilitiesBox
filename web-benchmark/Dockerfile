@@ -8,6 +8,12 @@ RUN mkdir -p /opt/benchmark/fixtures && chown -R node:node /opt/benchmark/fixtur
 USER node
 CMD ["node", "src/app.mjs"]
 
+FROM runtime AS executor
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl git rsync imagemagick ffmpeg && rm -rf /var/lib/apt/lists/*
+USER node
+CMD ["node", "src/executor.mjs"]
+
 FROM dependencies AS verify
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends chromium ca-certificates libnss3-tools && rm -rf /var/lib/apt/lists/*

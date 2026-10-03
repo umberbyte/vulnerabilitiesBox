@@ -1,30 +1,30 @@
 {
   "schema": "benchmark-implementation-0.8",
   "date": "2026-10-03",
-  "scope": "設計337根本原因／500変種、ソース実装314根本原因／463変種。成立確認済み範囲とソース実装を区別する。",
+  "scope": "設計337根本原因／500変種、ソース実装317根本原因／471変種。成立確認済み範囲とソース実装を区別する。",
   "summary": {
     "design_roots": 337,
     "design_variants": 500,
-    "implemented_roots": 314,
-    "implemented_positive_variants": 463,
-    "fixed_representative_controls": 314,
-    "safe_analogue_conditions": 314,
+    "implemented_roots": 317,
+    "implemented_positive_variants": 471,
+    "fixed_representative_controls": 317,
+    "safe_analogue_conditions": 317,
     "validated_execution_cells": 630,
-    "remaining_unimplemented_roots": 23,
-    "remaining_unimplemented_positive_variants": 37,
+    "remaining_unimplemented_roots": 20,
+    "remaining_unimplemented_positive_variants": 29,
     "checks": 13207,
     "comparison_tracks": {
       "audit": 16,
       "bounded_stress": 20,
-      "core_dast": 153,
+      "core_dast": 155,
       "protocol_concurrency": 22,
-      "workflow": 103
+      "workflow": 104
     },
     "previous_release_verified_roots": 210,
-    "pending_final_acceptance_roots": 104,
-    "planned_execution_cells": 942,
+    "pending_final_acceptance_roots": 107,
+    "planned_execution_cells": 951,
     "validated_execution_scope": "historical_210_release_only",
-    "additional_source_variants": 149
+    "additional_source_variants": 154
   },
   "verification": {
     "historical_full_acceptance": {
@@ -66,6 +66,24 @@
         "tests/batch6-te-grammar.mjs",
         "tests/batch6-encrypted-zip.mjs",
         "tests/batch6-docx.mjs"
+      ],
+      "includes_full_regression": false
+    },
+    "current_source_batch7_docker": {
+      "variants": 8,
+      "arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "passed_cells": 24,
+      "tests": [
+        "tests/batch6-cli-transport.mjs",
+        "tests/batch6-cli-http.mjs",
+        "tests/batch6-cli-media.mjs",
+        "tests/batch6-pdf.mjs",
+        "tests/batch6-grpc.mjs",
+        "tests/batch6-h2.mjs"
       ],
       "includes_full_regression": false
     }
@@ -2275,10 +2293,7 @@
         }
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "remaining_variants_in_root": [
-        "B0077",
-        "B0080"
-      ]
+      "remaining_variants_in_root": []
     },
     {
       "root": "R0084",
@@ -2915,15 +2930,14 @@
         }
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "remaining_variants_in_root": [
-        "B0176"
-      ],
+      "remaining_variants_in_root": [],
       "additional_source_variants": [
         "B0120",
         "B0161",
         "B0173",
         "B0174",
-        "B0175"
+        "B0175",
+        "B0176"
       ],
       "additional_variant_acceptance": "source_added_runtime_acceptance_pending"
     },
@@ -11930,9 +11944,7 @@
         }
       ],
       "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
-      "remaining_variants_in_root": [
-        "B0354"
-      ]
+      "remaining_variants_in_root": []
     },
     {
       "root": "R0356",
@@ -18194,6 +18206,189 @@
       "implementation_note": "実JavaScript Array.atを使用。全条件で整数型と公開上限を検査し、Vだけindex非負を検査しない。元core_dast trackを維持し、native境界外memoryアクセスやASan検知を主張しない。",
       "hard_negative": "公開の0・1番号は取得でき、負indexが末尾の保護文書を参照できない。",
       "acceptance_checks": 50
+    },
+    {
+      "root": "R0074",
+      "representative_variant": "B0074",
+      "family": "OSコマンド・引数注入",
+      "title": "Git外部transport",
+      "partition": "development",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／OSコマンド",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.5,V1.3.2",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / OSコマンド・引数注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "OS Command Injection Defense",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.2/6",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "コマンドインジェクション",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Node child_processの隔離worker。同一Linux imageにawk/sed/git/rsync/tar/ffmpeg等必要なCLIだけ含める。",
+      "hard_negative": "同じ境界入力で「Git transportからマーカー生成」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0082",
+      "representative_variant": "B0082",
+      "family": "OSコマンド・引数注入",
+      "title": "ffmpeg任意protocol",
+      "partition": "evaluation_reserved",
+      "comparison_track": "core_dast",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.7 入力検証／OSコマンド",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V1.2.5,V1.3.2",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / OSコマンド・引数注入",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A05:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API8:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "OS Command Injection Defense",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.2/6",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "コマンドインジェクション",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "Node child_processの隔離worker。同一Linux imageにawk/sed/git/rsync/tar/ffmpeg等必要なCLIだけ含める。",
+      "hard_negative": "同じ境界入力で「sandbox秘密をmedia出力へ混入」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
+    },
+    {
+      "root": "R0310",
+      "representative_variant": "B0310",
+      "family": "機能・属性・API認可",
+      "title": "gRPC interceptor順序",
+      "partition": "development",
+      "comparison_track": "workflow",
+      "status": "source_added_local_docker_vfn_verified",
+      "accepted_arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "remaining_variants_in_root": [],
+      "references": [
+        {
+          "source": "S1",
+          "locator": "4.5 認可／4.12 API",
+          "relation": "関連分野"
+        },
+        {
+          "source": "S2",
+          "locator": "V8.2,V8.3,V4.3",
+          "relation": "関連要求（番号／節の存在確認済み・設計者の対応解釈）"
+        },
+        {
+          "source": "S4",
+          "locator": "Testing workflow / 機能・属性・API認可",
+          "relation": "検証方法の関連分野"
+        },
+        {
+          "source": "S5",
+          "locator": "A01:2025",
+          "relation": "補助分類"
+        },
+        {
+          "source": "S6",
+          "locator": "API3,API5:2023",
+          "relation": "API実装時の補助分類"
+        },
+        {
+          "source": "S7",
+          "locator": "Authorization / Mass Assignment / REST Security",
+          "relation": "防御の関連分野"
+        },
+        {
+          "source": "S8",
+          "locator": "付録A 表4-2 関連候補 No.10",
+          "relation": "類型対応。ケースごとに個別確定する"
+        },
+        {
+          "source": "S3",
+          "locator": "認可制御の不備",
+          "relation": "当該分野の関連項目。全サブケースを直接規定するという意味ではない。"
+        }
+      ],
+      "source_mapping_status": "分野／節への関連付け。厳密な個別要件充足性は実装時レビューで確定。",
+      "implementation_note": "一般利用者・申請者・承認者・Admin。REST/GraphQL/gRPCの共通serviceと機能・属性権限表。",
+      "hard_negative": "同じ境界入力で「未認可actionが復号後に実行される」が成立せず、正常な機能が維持される。",
+      "local_docker_passed_cells": 3
     }
   ],
   "implemented_additional_variants": [
@@ -19239,11 +19434,44 @@
       "group": "http",
       "title": "multipart境界差",
       "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0074",
+      "variant": "B0075",
+      "group": "cmd",
+      "title": "rsync remote-shell",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0076",
+      "variant": "B0077",
+      "group": "cmd",
+      "title": "ツール設定引数",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0076",
+      "variant": "B0080",
+      "group": "cmd",
+      "title": "外部HTTPクライアント",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0117",
+      "variant": "B0176",
+      "group": "ssrf",
+      "title": "PDFレンダラURL",
+      "status": "source_added_local_docker_vfn_verified"
+    },
+    {
+      "root": "R0351",
+      "variant": "B0354",
+      "group": "http",
+      "title": "H2長さ変換不一致",
+      "status": "source_added_local_docker_vfn_verified"
     }
   ],
   "unimplemented_roots": [
-    "R0074",
-    "R0082",
     "R0091",
     "R0092",
     "R0093",
@@ -19257,7 +19485,6 @@
     "R0109",
     "R0116",
     "R0181",
-    "R0310",
     "R0355",
     "R0491",
     "R0492",
@@ -19267,11 +19494,6 @@
     "R0496"
   ],
   "unimplemented_variants": [
-    "B0074",
-    "B0075",
-    "B0077",
-    "B0080",
-    "B0082",
     "B0091",
     "B0092",
     "B0093",
@@ -19293,10 +19515,7 @@
     "B0115",
     "B0116",
     "B0119",
-    "B0176",
     "B0181",
-    "B0310",
-    "B0354",
     "B0355",
     "B0491",
     "B0492",
@@ -19315,21 +19534,21 @@
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
     "artifacts/docker-smoke-selected.json": "47d76554ba20fbe9f7b9e9adb20429746669447488a1de8eac6c99d530cab087",
     "artifacts/README.md": "edecd1b540ac3534be9db886ee9c85b98e3aeb513fe0a37a54c0df8cee7c1043",
-    "compose.yaml": "06d3db488cbeb6b19a79159ff150fe7d93928844dfff51756e49da442c10b359",
-    "compose.zap.yaml": "9b21b715d79431039e1873f5982103d4c47a42c91b71d76b2aaa0ab36235fbb4",
-    "Dockerfile": "0ca91748d62e90d616273ec9958264ddce486ea08bc36c45d89664a7dee0a5f3",
+    "compose.yaml": "b0e287c868161e7818d5040505235128cf44d54bf397e911ef4d432e8fe99def",
+    "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
+    "Dockerfile": "e987101cbcd9ddb699e2c6d61ec51587a11e40383c7271f3a326a356bfd348de",
     "package-lock.json": "6eb9479263305867183e5c60c18046a15c7aa568595ae6807bf2cd2ad398ea70",
     "package.json": "d13207875da960a6e022b3e5e4356c72c267dabc9ecf99d20eb1785ea877c26d",
-    "README-coverage.md": "19eef51c497d32ea571370b0384576a990ce4c36cfac761f3f58e94f4f8d9dab",
+    "README-coverage.md": "e29354784eed7db4dcf6e8d9211163a90d24881c3e3db1e19a371a6578f6c72f",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
-    "README-panel.md": "0ad35f39115f9e15acedc6f069c6a12e2f713be3effb48194c62de80f12a0baa",
-    "README-zap.md": "28842114c51969c787d07a6af80235f1b2fd939b77218aa686b7712e97f416c0",
-    "README.md": "a8be266a0ebc84d71b3a70b5f15f972b12ff04d9dd4f61ac0c34d80f8656d232",
-    "run-panel.cmd": "fb819650f8d249fd5b5209d13d4a681da4851f3bf15c3fd76313ceb258d9e820",
-    "run-panel.sh": "e66f71749484ccd980d3c8c179cf5c424cb281fb273185db51eeb26aea557fc0",
+    "README-panel.md": "3a5f2265c0a7af43821c9147bdb6a53ceefcb90cc61e73ea808dda08ef7993a4",
+    "README-zap.md": "53a6d2085baf8844d3510cdc89086ee2d473b426d4565bc676e569b187a2fc04",
+    "README.md": "389914a5cceeee6ba647793f0e440a0b77834b8b02c6373fd0e585f1aa0cc55d",
+    "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
+    "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
     "scan-zap.sh": "f62bd5d709047f6c9737c784e80e435afd984398559d5b556a7ebabc6e56f5df",
-    "src/app.mjs": "ac720a265508a337129dcef01404bb9a50b2df962f10504ceb01c8ea9c1feea8",
+    "src/app.mjs": "b0cfa51f81ce6b9f8c2a728f82ee2d57d0ac9014f2616ab7f650a2663ddf08f4",
     "src/cases/backend.mjs": "f6385e7d9e327656ad11001d330923b78a86116bde9d54346d031a923cbfa67c",
     "src/cases/batch-auth.mjs": "e45d89115adbe918807e6daeeac47b428fb7ab271fe2092a48d028be6c41af0f",
     "src/cases/batch-authorization.mjs": "d19a14a37581491fea7793ae907c5049ffff78bf85342d1d40d881b9ac13c179",
@@ -19364,17 +19583,17 @@
     "src/cases/configuration.mjs": "17d205ad0fba695afda7546804de3627baa52639ecac0d6d210662119929da81",
     "src/cases/content-boundaries.mjs": "819b0f8ca1886e6bf28601693ed24323e8309ec29d59efadedcf5e9f2e2299a7",
     "src/cases/data-handling.mjs": "dc3160f38c08294d33d9e2a336b5e43e9cd6b4acb074bc6d8e3886631feccac2",
-    "src/cases/index.mjs": "7d1f91b3d201078b43a978a59be215e115672adf7b68c6630e4f096be8490141",
+    "src/cases/index.mjs": "00f37c2be05d90138187eaed31b079bddf57f75f73bd7a8b3e41745e8c773156",
     "src/cases/resource-quotas.mjs": "9e7c39521850e72a4b1004f9e1e6233603c1f7f324b21446e8d733f785bfb94d",
     "src/cases/workflows.mjs": "2ddf90ff0ab8fb9e3e789c4e0926168afc6dbaf89da921dcee4d04853df82c58",
     "src/catalog.mjs": "80b16075504fadad7c89a00d4f620ff56c7e77db1007ca68cebf012f5bf94e17",
-    "src/contracts.mjs": "e310ffc2f10eef6b3006826a44d7ebb10851d2b2f8f347d52546afa772a52ba3",
+    "src/contracts.mjs": "151636b98c133ebe4b32d453d03501336710d303070a14f45e355fc57584914f",
     "src/control.mjs": "e92702366ddee8dd2e4af0f1dae434a7d3f779d044e143c9d2da7008c23ac944",
     "src/evaluation/burp-xml.mjs": "5c785ee197b985af1271dac7bddfdfad43cf2647c58be77f5cabd23080173f5b",
     "src/evaluation/burp.mjs": "eb74745632897591f8b65e50a27176f1d6df8e5588976b364bbf46345123c9d9",
     "src/evaluation/cli.mjs": "890b50ac23ce1163a7bdce0978d154bbc7f19310e569fcdd70f4f37a8abf9b96",
     "src/evaluation/records.mjs": "6b83972b5423533b200fc1d4e6263d240fbdf2b699d5118e0300ab11c55da75a",
-    "src/executor.mjs": "753793ce323a207b65285f669e8381fe225ef437c07f00b14d0a3b6c4f54d307",
+    "src/executor.mjs": "28bfa0113e8ed0534af315601e55a93e5a106e9318dc9aa0042e52d7493be000",
     "src/fixtures/lifecycle-formats.mjs": "655ac26b62113e685a4c00bbd9bf852c5d8e832061247b8516791fccdb03dc33",
     "src/fixtures/lifecycle-worker.mjs": "08cc8cd9aa0a90d3767de157122a5c881da1c8286ac4d4ebaaf88ff3ae8e7fb0",
     "src/measurement.mjs": "a50a35b496a752b6be5bdbdda413e03c71ea7350807d1ff0db791b21908f256c",
@@ -19383,14 +19602,14 @@
     "src/runner/drain.mjs": "1c5b39e59428b42b69118173254d3f5649e86f83df5319bdc4bea518afd8c091",
     "src/runner/generate-variant-panel.mjs": "42f6d538c349037b681b0948b65b8407378b04c063db0f1bb3ed7bcb653fc389",
     "src/runner/panel-cli.mjs": "4ffb6c38e458a9249b8e08835fab49a0f0f5d5a55218c29240020d1251656548",
-    "src/runner/panel-runner.mjs": "6d68c5c40271c515fff2ad36e4d5b02453b6dce5850ca3117f79f6d11002e35a",
+    "src/runner/panel-runner.mjs": "77a67e73b361377407b514122e546f76582095e4faa086799d23c7a4b1842b37",
     "src/runner/panel.mjs": "b5afbbf61d3a43bc51c6ea42e18b197450884d0f93b3ff1b0fb0b4f3486b491d",
     "src/runner/policy.mjs": "48262cebf4a4c93fa4a88b8817766cf65dd8c620649faa94be5e3b848fe9e1d6",
-    "src/runner/scan-zap.mjs": "949b89cefe3340dc15717369046600536f4e5d065b8a5ea3d1198f7fd7f35789",
+    "src/runner/scan-zap.mjs": "130ef4c1983307c66045b0d611f7b2f219112ace6c500702aeaddaf2838dd122",
     "src/runner/variant-panel.mjs": "c71e48cc2018876cb21f70e359db2e5d670b47c2554f4a0100b8ffe6b37762e5",
     "src/tls/local.crt": "1fec6120beb373c720d3fedf88c194117381a4807da0c45471de52c191d377a8",
     "src/tls/local.key": "438b50c081397614185fa7ed2acfe2042956fc73d0b1fe9277ae55f7df0db80e",
-    "tests/acceptance.mjs": "c10f2a834e2be753d2e1bc9c91a0e4bb320e5b4e687999d108fc293636ae2bcd",
+    "tests/acceptance.mjs": "506820fbb89f02d12d7dd5e4cb1b2261a29c374deea9faa5f0caa873136c8dd8",
     "tests/backend-cases.mjs": "01d3969c48d79bd302c1f9d549616ba8b197fd3bb6a4f8bd9c31b58e20f81061",
     "tests/batch-auth.mjs": "2954ca18523813100287f487ff4277efce452aca0c8ed7b48a03097f2b46b869",
     "tests/batch-authorization.mjs": "529e2dec1c00772fa20160b8ee29ffa18031df2c58bd27fee4fec08d824d6f4e",
@@ -19432,7 +19651,7 @@
     "tests/batch6-cookie-shadow.mjs": "d171cfd4a69aab0d561fa22089a3d8cd336ef2e42e4998a919d09103954e2bbf",
     "tests/batch6-tar.mjs": "87d89399ad1cd027087a93dda0408d9554732a52e2349cd816c1a3324dc26f83",
     "tests/batch6-uploads.mjs": "74887df8ff0417ba124cf2089a47c795a9416d8f130bdefa9a75e118fc1e5f2d",
-    "src/cases/batch6-cli.mjs": "1c00ef0610bcddefe79353b29ffe6fbc4ae997fdf8e9f3a96b90b90a87394a31",
+    "src/cases/batch6-cli.mjs": "10820bef1e87b27e691fefe82d989e80e284b7a6e29fc86a43d88cfac3503222",
     "src/cases/batch6-multipart.mjs": "702a4c23685ff36200b33e124aa7e3e8dbf7c224959b41e1bca8af500f2ebde6",
     "src/cases/batch6-encrypted-zip.mjs": "0ee941c6ced40c5a5d5aeaa32c08b9ed708930afc731dcdd27a8491cc2042982",
     "src/cases/batch6-docx.mjs": "2a9a84d2fa2f5033707c96f0b12132a0ee9305cf11672ae455fd091fc3d7d438",
@@ -19442,6 +19661,15 @@
     "tests/batch6-duplicate-cl.mjs": "aed00ebbec5eb14ec8a742931cf324f53711f699cc7c328eb2221850fd0d70d0",
     "tests/batch6-te-grammar.mjs": "1b9b870a5fe42e42fe84a116e741d41a413226c9f58b6a10b79691ec31cceabe",
     "tests/batch6-encrypted-zip.mjs": "24918b1ba7e0704f6a7e4cd7c48846cfa365bb9fefd944bff354cbc897f8b59a",
-    "tests/batch6-docx.mjs": "d983747900608d2c5d5f8b79ab6185ef2dc8375badece7f4273ef0af31c5fe14"
+    "tests/batch6-docx.mjs": "d983747900608d2c5d5f8b79ab6185ef2dc8375badece7f4273ef0af31c5fe14",
+    "src/cases/batch6-h2.mjs": "493b26dd66a766004df0bd0b9d068f58a839fb2b50ec359787c63379d45d0abe",
+    "src/cases/batch6-grpc.mjs": "4602641c5833885187fe74a186bc40d2cfaab43058f6c5d0462b9f6f334171a2",
+    "src/cases/batch6-pdf.mjs": "90c0b2259ddc25f5c8b6e1172ee6955c10309895e8f1e23ec1f38f849188b496",
+    "tests/batch6-h2.mjs": "45006a5d4a9cda894c288085da3e5ac8c048dddfa60a6daaf8931d1c9408686c",
+    "tests/batch6-grpc.mjs": "a781371dc8ab2efc6a1f5b7183b92afd1f1de8d8703715b831e49a79ea0479a1",
+    "tests/batch6-cli-http.mjs": "8529b71c5efe7ed777e18a8759ae4b1a3fa84c02f164c4ec09ea794c18c43655",
+    "tests/batch6-cli-transport.mjs": "a43a24aa5e76bf8824ac6179ff1bfd394e7202dad1aba5104b499801033eecf6",
+    "tests/batch6-cli-media.mjs": "b0b75953344e82c8621956c0ec5ba45c18747b0cff1c8ee31cd842f9dcf83cf3",
+    "tests/batch6-pdf.mjs": "208eb2e3803a7e79e05eaa76a99ee5cb1142cefd5a2f26564e04fd58275c9c84"
   }
 }

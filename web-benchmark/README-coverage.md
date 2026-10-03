@@ -5,12 +5,12 @@
 | 項目 | 現在値 | 意味 |
 |---|---:|---|
 | 設計 | 337根本原因／500変種 | 目標集合 |
-| ソース実装 | 314根本原因／463変種 | V/F/Nへ切り替え可能なコードがある集合 |
-| 未実装 | 23根本原因／37変種 | 実際の処理がまだない集合 |
+| ソース実装 | 317根本原因／471変種 | V/F/Nへ切り替え可能なコードがある集合 |
+| 未実装 | 20根本原因／29変種 | 実際の処理がまだない集合 |
 | 全条件の成立確認済み | 210根本原因・V/F/N計630条件 | **過去の210件版**で確認した履歴 |
 | 現行ソースの局所Docker確認 | 10変種・V/F計20条件 | [結果](artifacts/docker-smoke-selected.json)。全20条件合格 |
 
-根本原因が同じ変種は一件に統合して採点します。Vは脆弱な処理、Fは修正版、Nは安全な類似入力です。FとNを新しい脆弱性として数えません。ソース実装は診断ツールによる検出の証拠ではありません。現行463変種すべてのV/F/N成立確認、全体回帰、ZAP・Burpの検出率測定は未実施です。Burp実測はライセンス調達後です。今回のCLI・multipart・HTTP解析・暗号化ZIP・DOCXの15変種は、局所DockerでV/F/N計45条件を確認しました。
+根本原因が同じ変種は一件に統合して採点します。Vは脆弱な処理、Fは修正版、Nは安全な類似入力です。FとNを新しい脆弱性として数えません。ソース実装は診断ツールによる検出の証拠ではありません。現行471変種すべてのV/F/N成立確認、全体回帰、ZAP・Burpの検出率測定は未実施です。Burp実測はライセンス調達後です。今回の追加8変種（Git、rsync、curl、ImageMagick、ffmpeg、PDF資源、gRPC、H2長さ）は、局所DockerでV/F/N計24条件を確認しました。PDFは文書内資源をHTTP取得して本文へ描画する小さなPDF生成器であり、汎用HTMLレンダラではありません。
 
 ## 代表的な対象
 
@@ -25,20 +25,20 @@
 | 情報露出・設定 | R0455、R0478、R0481 | 公開ファイル、クライアント設定、DB例外詳細 |
 | 有限の資源制限 | R0428、R0437–R0440 | 件数、通知、queue、retry、ログ追記量の上限 |
 
-上表は索引です。全314根本原因・463変種の網羅表ではありません。`docker compose exec -T app node src/control.mjs catalog`と`variant-catalog`で現在の選択肢を確認してください。
+上表は索引です。全317根本原因・471変種の網羅表ではありません。`docker compose exec -T app node src/control.mjs catalog`と`variant-catalog`で現在の選択肢を確認してください。
 
-## 未実装の37変種
+## 未実装の29変種
 
 | 技術領域 | 変種数 | 完了に必要なもの |
 |---|---:|---|
-| CLI・外部プログラム | 5 | Git・rsync・画像変換・HTTPクライアント・ffmpegの固定fixture |
+| CLI・外部プログラム | 0 | 実ツールによる局所DockerのV/F/N確認済み |
 | MongoDB・LDAP・XML処理 | 22 | 実エンジン／parserと接続先の固定fixture |
-| アーカイブ・文書・同名Cookieなど | 1 | PDFレンダラのURL取得条件 |
-| gRPC・低レベルHTTP解析 | 3 | gRPCとH2→H1境界の実証 |
+| アーカイブ・文書・同名Cookieなど | 0 | PDF生成時の資源取得を局所Dockerで確認済み |
+| gRPC・低レベルHTTP解析 | 1 | H2ヘッダの制御文字境界 |
 | N-API・native memory | 6 | クラッシュを隔離するworkerと計測 |
-| **合計** | **37** | |
+| **合計** | **29** | |
 
-今回追加した15変種の局所検証は、`BENCHMARK_CONTROL_KEY`を設定した後に `docker compose --profile test run --build --rm -T verify node tests/<名前>.mjs` で個別に再実行できます。対象の名前は `batch6-cli`、`batch6-cli-boundaries`、`batch6-multipart`、`batch6-duplicate-cl`、`batch6-te-grammar`、`batch6-encrypted-zip`、`batch6-docx` です。前回追加した4変種は `batch6-cookie-shadow`、`batch6-tar`、`batch6-uploads` で確認できます。
+局所検証は、`BENCHMARK_CONTROL_KEY`を設定した後に `docker compose --profile test run --build --rm -T verify node tests/<名前>.mjs` で個別に再実行できます。今回追加した8変種の名前は `batch6-cli-transport`、`batch6-cli-http`、`batch6-cli-media`、`batch6-pdf`、`batch6-grpc`、`batch6-h2` です。前回の15変種は `batch6-cli`、`batch6-cli-boundaries`、`batch6-multipart`、`batch6-duplicate-cl`、`batch6-te-grammar`、`batch6-encrypted-zip`、`batch6-docx`、さらに前の4変種は `batch6-cookie-shadow`、`batch6-tar`、`batch6-uploads` で確認できます。
 
 依存エンジンの異なる欠陥をPostgreSQLだけで模倣したり、ヘッダ名だけを変えたりして実装済みとは数えません。正常系、Vの実結果、F/Nの防止、初期化を実環境で確認してから成立済みとします。
 
