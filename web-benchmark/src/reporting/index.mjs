@@ -13,6 +13,8 @@ const link=(path,title)=>path?`<a href="${escape(href(path))}" target="_blank" r
 
 export async function collectReports(directory,{sourceSummary={},generatedAt=new Date().toISOString()}={}) {
   await mkdir(directory,{recursive:true});
+  const directoryStat=await lstat(directory);
+  if(!directoryStat.isDirectory()||directoryStat.isSymbolicLink())throw Error('Invalid artifact directory');
   const root=await realpath(directory),warnings=[];
   async function file(path){
     const full=resolve(root,path),rel=relative(root,full);

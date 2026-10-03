@@ -20941,7 +20941,7 @@
     "src/runner/zap-rules/json-script-html-boundary.js": "ef82ccf405123b1642189809a9fa94adc89635d943529dcd6e9a7cb1cb3de4eb",
     "reports.cmd": "b79b1e32639e41448f6180192b5c69044c9b58db9c28055c13463553fa61fd26",
     "reports.sh": "2d292b31f53c2177c6900a6d29e08a112fa880ffda3d9af5e1fdb48c82994c29",
-    "src/reporting/index.mjs": "b45061bbcfa9f64a9812d583292a1e4f8367e34a556a1d305a90eba6792244d2",
-    "tests/runner-report-index.mjs": "93e73b5fa74ccb8ece04ddcadb5d433198922cbb3a2751907d50e1e457680d12"
+    "src/reporting/index.mjs": "a5adeeebd62cf82df6c2b38d6d7c1e52d5f8b07ea2dd466fc6ef3bc402d75971",
+    "tests/runner-report-index.mjs": "d52ff108bcbf8b6e891d0720e485fb3b2ef3db1bd6ca9942c29c898273a11668"
   }
 }

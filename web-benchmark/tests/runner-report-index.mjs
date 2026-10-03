@@ -67,3 +67,9 @@ test('symlink artifact directory is ignored and output symlink is rejected',asyn
   await symlink(outside,join(dir,'index.html'),'junction');
   await assert.rejects(generateReports(dir,{statusPath:status}),/Invalid output file/);
 });
+
+test('the artifact root itself cannot be a directory symlink',async t=>{
+  const dir=await fixture(t),outside=await fixture(t),root=join(dir,'artifacts');
+  try{await symlink(outside,root,'junction');}catch(e){if(['EPERM','EACCES','ENOTSUP'].includes(e.code)){t.skip('symlink unavailable');return;}throw e;}
+  await assert.rejects(collectReports(root),/Invalid artifact directory/);
+});
