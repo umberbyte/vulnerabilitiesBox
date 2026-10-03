@@ -10,7 +10,7 @@ CMD ["node", "src/app.mjs"]
 
 FROM runtime AS executor
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends curl git rsync imagemagick ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl git rsync imagemagick ffmpeg libxml2-utils xsltproc && rm -rf /var/lib/apt/lists/*
 USER node
 CMD ["node", "src/executor.mjs"]
 

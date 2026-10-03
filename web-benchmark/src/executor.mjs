@@ -2,11 +2,20 @@ import express from 'express';
 import {mkdir,writeFile,readFile,rm,chmod,stat} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:http';
+import {SaxesParser} from 'saxes';
 import path from 'node:path';
 const app=express(); app.use(express.json({limit:'32kb'}));
 const home='/tmp/execution-fixture';
 let cliHttpReceipts=[];
+let storedXmlName='';
+let xmlCallbacks=[];
 const cliHttpServer=createServer((req,res)=>{
+  if(req.url==='/dtd'&&req.method==='GET'){xmlCallbacks.push({path:req.url});res.writeHead(200,{'content-type':'application/xml-dtd'});res.end('<!ELEMENT root (#PCDATA)>');return;}
+  if(['/schema-public','/schema-private'].includes(req.url)&&req.method==='GET'){
+    xmlCallbacks.push({path:req.url});
+    res.writeHead(200,{'content-type':'application/xml'});
+    res.end('<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"><xs:element name="root" type="xs:string"/></xs:schema>');return;
+  }
   if(req.url==='/public'&&req.method==='GET'){res.writeHead(200,{'content-type':'text/plain'});res.end('Public HTTP fixture');return;}
   if(req.url==='/collect'&&req.method==='POST'){
     const chunks=[];let size=0;
@@ -19,10 +28,16 @@ cliHttpServer.listen(8091,'127.0.0.1');
 await mkdir(home,{recursive:true});
 app.post('/reset',async(req,res)=>{
   cliHttpReceipts=[];
+  storedXmlName='';
+  xmlCallbacks=[];
   await rm(home,{recursive:true,force:true}); await mkdir(home,{recursive:true});
   await writeFile(path.join(home,'private-canary.txt'),String(req.body.canary));
   await writeFile(path.join(home,'public.txt'),'Public search guide');
+  await writeFile(path.join(home,'members.xml'),`<members><member name="alice">Public member</member><member name="bob">${String(req.body.canary)}</member></members>`);
+  await writeFile(path.join(home,'source.xml'),'<root><public>Public XML resource</public></root>');
+  await writeFile(path.join(home,'private.xml'),`<secret>${String(req.body.canary)}</secret>`);
   for(const directory of ['public','private','trusted','uploaded'])await mkdir(path.join(home,directory));
+  await writeFile(path.join(home,'public','public.xml'),'<resource>Public XML resource</resource>');
   for(const [directory,body] of [['trusted','printf "Trusted tool\\n"'],['uploaded','cat private-canary.txt']]){
     const program=path.join(home,directory,'fixture-tool');
     await writeFile(program,'#!/bin/sh\n'+body+'\n');await chmod(program,0o755);
@@ -109,6 +124,53 @@ async function runCli(binary,args,input='',environment={PATH:'/usr/bin:/bin'}){
   });
 }
 const boundaryVariants=new Set(['B0074','B0075','B0077','B0079','B0080','B0081','B0082','B0083','B0085','B0087','B0088','B0090']);
+const safeStylesheet='<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"><xsl:output method="text"/><xsl:template match="/"><xsl:value-of select="/root/public"/></xsl:template></xsl:stylesheet>';
+const safeInclude='<root xmlns:xi="http://www.w3.org/2001/XInclude" xml:base="file:///tmp/execution-fixture/public/"><xi:include href="public.xml" parse="xml"/></root>';
+app.post('/xml-engine',async(req,res)=>{
+  const variant=req.body?.variant,input=req.body?.input,vulnerable=req.body?.vulnerable===true;
+  if(!['B0106','B0110','B0112','B0114','B0115','B0119'].includes(variant)||variant!=='B0110'&&typeof input!=='string'||typeof input==='string'&&(Buffer.byteLength(input)>1024||input.includes('\0')))return res.sendStatus(400);
+  let result;
+  if(variant==='B0106'){
+    if(!vulnerable&&input!=='1')return res.sendStatus(400);
+    const expression=`/members/member[${vulnerable?input:'1'}]/text()`;
+    result=await runCli('/usr/bin/xmllint',['--xpath',expression,path.join(home,'members.xml')]);
+  }else if(variant==='B0110'){
+    if(req.body.operation==='save'){
+      if(typeof input!=='string'||input.length<1||input.length>80||!vulnerable&&!/^[a-z]{1,24}$/.test(input))return res.sendStatus(400);
+      storedXmlName=input;return res.json({saved:true});
+    }
+    if(req.body.operation!=='run'||!storedXmlName)return res.sendStatus(400);
+    const expression=`/members/member[@name='${storedXmlName}']/text()`;
+    result=await runCli('/usr/bin/xmllint',['--xpath',expression,path.join(home,'members.xml')]);
+  }else if(variant==='B0112'){
+    if(!vulnerable&&/<!DOCTYPE/i.test(input))return res.sendStatus(400);
+    const systemUris=[...input.matchAll(/\bSYSTEM\s+["']([^"']+)["']/gi)].map(match=>match[1]);
+    if(/\bPUBLIC\b/i.test(input)||systemUris.some(uri=>uri!=='http://127.0.0.1:8091/dtd')||systemUris.length>1)return res.sendStatus(400);
+    const file=path.join(home,'parameter.xml');await writeFile(file,input);
+    result=await runCli('/usr/bin/xmllint',['--loaddtd','--noent',file]);
+    result.callback=xmlCallbacks.length>0;
+  }else if(variant==='B0114'){
+    let schemaUrl=null;
+    try{
+      const parser=new SaxesParser({xmlns:false});
+      parser.on('opentag',tag=>{if(tag.name==='root')schemaUrl=tag.attributes['xsi:noNamespaceSchemaLocation']??null;});
+      parser.write(input).close();
+    }catch{return res.sendStatus(400);}
+    if(!['http://127.0.0.1:8091/schema-public','http://127.0.0.1:8091/schema-private'].includes(schemaUrl)||!vulnerable&&schemaUrl!=='http://127.0.0.1:8091/schema-public')return res.sendStatus(400);
+    const file=path.join(home,'schema-input.xml');await writeFile(file,input);
+    result=await runCli('/usr/bin/xmllint',['--noout','--schema',schemaUrl,file]);
+    result.callback=xmlCallbacks.some(item=>item.path==='/schema-private');
+  }else if(variant==='B0119'){
+    if(!vulnerable&&input!==safeInclude)return res.sendStatus(400);
+    const file=path.join(home,'include.xml');await writeFile(file,vulnerable?input:safeInclude);
+    result=await runCli('/usr/bin/xmllint',['--xinclude','--nonet',file]);
+  }else{
+    if(!vulnerable&&input!==safeStylesheet)return res.sendStatus(400);
+    const file=path.join(home,'transform.xsl');await writeFile(file,vulnerable?input:safeStylesheet);
+    result=await runCli('/usr/bin/xsltproc',['--nonet',file,path.join(home,'source.xml')]);
+  }
+  res.status(result.code===0?200:422).json(result);
+});
 app.post('/cli-boundary',async(req,res)=>{
   const variant=String(req.body?.variant||''),value=req.body?.value,vulnerable=req.body?.vulnerable===true;
   if(!boundaryVariants.has(variant)||typeof value!=='string'||Buffer.byteLength(value)>160||value.length<1||value.includes('\0'))return res.sendStatus(400);

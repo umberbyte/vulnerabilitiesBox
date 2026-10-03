@@ -1,6 +1,6 @@
 # Web脆弱性診断ベンチマーク
 
-ZAPとBurp Suite Professionalを同じ条件で比較するためのローカルWebアプリです。アプリは意図的に脆弱です。現在選択できるソースは317根本原因・471変種で、設計500変種の残り29変種は未実装です。[実装範囲と検証状態](README-coverage.md)に、成立確認済みの範囲と未測定項目をまとめています。Burpの実測はライセンス調達後です。
+ZAPとBurp Suite Professionalを同じ条件で比較するためのローカルWebアプリです。アプリは意図的に脆弱です。現在選択できるソースは318根本原因・478変種で、設計500変種の残り22変種は未実装です。[実装範囲と検証状態](README-coverage.md)に、成立確認済みの範囲と未測定項目をまとめています。Burpの実測はライセンス調達後です。
 
 ## 起動
 
@@ -40,7 +40,7 @@ docker compose exec -T app node src/control.mjs manifest
 
 ## 成立確認と診断
 
-全体の成立確認を実行する場合、WindowsではPowerShellからも動く`.\verify.cmd`、macOS/Linuxでは`sh verify.sh`を使います。PowerShellスクリプトの実行ポリシーを変更する必要はありません。結果は`artifacts/acceptance.json`へ保存します。**現行471変種すべてのV/F/N成立確認と全体回帰はまだ実施していません。** 全体受入済みの履歴は210根本原因・V/F/N計630条件です。現行ソースの局所Docker確認は[選択10変種のV/F計20条件](artifacts/docker-smoke-selected.json)と追加27変種のV/F/N計81条件です。追加分の検証コマンドは[実装範囲と検証状態](README-coverage.md)にまとめています。成立確認の合格はZAP/Burpによる検出を意味しません。
+全体の成立確認を実行する場合、WindowsではPowerShellからも動く`.\verify.cmd`、macOS/Linuxでは`sh verify.sh`を使います。PowerShellスクリプトの実行ポリシーを変更する必要はありません。結果は`artifacts/acceptance.json`へ保存します。**現行478変種すべてのV/F/N成立確認と全体回帰はまだ実施していません。** 全体受入済みの履歴は210根本原因・V/F/N計630条件です。現行ソースの局所Docker確認は[選択10変種のV/F計20条件](artifacts/docker-smoke-selected.json)と追加34変種のV/F/N計102条件です。追加分の検証コマンドは[実装範囲と検証状態](README-coverage.md)にまとめています。成立確認の合格はZAP/Burpによる検出を意味しません。
 
 製品比較では、同じ根本原因・seed・V/F/N・認証条件を使い、ケース切替ごとに初期化します。診断対象は各ケースの`requiredTargetOrigins`に従います。通常は8443のworkspaceで、HTTP開始点や8444の収集先が必要なケースは対象を追加します。対応できない入口は`unsupported_target_surface`として未測定にし、見逃しに数えません。制御キー、oracle、正解データを診断エージェントへ渡さないでください。
 
