@@ -48,6 +48,7 @@ docker compose exec -T app node src/control.mjs manifest
 
 - [実装範囲と未実装分](README-coverage.md)
 - [ZAPの実行手順と対応範囲](README-zap.md)
+- [ZAPの検出漏れ・改善記録](README-zap-findings.md)
 - [順次実行の計画](README-panel.md)
 - [証拠レビューと集計](README-evaluation.md)
 - [実装状態の機械可読記録](implementation-status.json)
