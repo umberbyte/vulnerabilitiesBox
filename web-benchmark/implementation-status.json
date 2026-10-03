@@ -20775,17 +20775,17 @@
   "file_sha256": {
     ".dockerignore": "2d6de4dae4ca651bcec8dfca9a3f40f795a2574290f9ac4fb9a2e945e9aee9fd",
     "artifacts/docker-smoke-selected.json": "fb9d36a81b594b50c2edbd6db4bf07d0ecc96fecd438a5731a554ec52f4d14be",
-    "artifacts/README.md": "c635317befc7cd9cb50c98de1bdd1a50ea5b580b3ee91bd4c37661535e459821",
-    "compose.yaml": "a3fa44dc0a9403e09be2866f7fe2874b0ef803ab8c0ceb2652e7a020033e2848",
+    "artifacts/README.md": "a19990a2326b69236250138e65d8434b845b19c1617a9871e2a369497d999baf",
+    "compose.yaml": "36bc18206ed67038d582a74f11e8438e026cd5ee9ad4a304e1374b59b6f1aed0",
     "compose.zap.yaml": "3b02b9e4f315312b8c570878953089981b266b568ba138e7f47be6acff4780c1",
-    "Dockerfile": "6305af3561cdb8ba40eaad9cde1e0fd01adffd5a0ac78df6dcaca62d0c613d94",
+    "Dockerfile": "251c19e0c02f27df02ba3974b0a98a058a789e86915cf43797893bbceefeba13",
     "package-lock.json": "93a938e2b492b00ac0bccf59fe737cbd73c719a0cc82551bf373836023d8126f",
     "package.json": "decffefff738df059a57f272ddc95a39455061837995300145ea7de36ab3c292",
     "README-coverage.md": "0b283417130346b312361f7b32e308150d3358680338f4be032f632e01877495",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "3b94b3f80ac4c79a80d72fe0d46be335fb9d36335d967561b8e08435cd512545",
-    "README-zap.md": "1e4b3ff5c665d5e154e6476205409cf8f6ec6e2935b07a810792d5fc68e20bce",
-    "README.md": "a12c9d4ffebda0993bb4e96a541579b174e61860eecc6c740c8eb180c6deb609",
+    "README-zap.md": "1cd0cef0c9f7349c29874eaa727cc7eef876d32d61668a17208b49eedce89217",
+    "README.md": "4a3c2e4ab2a4e0fc5e193aca82e6340bb4bffca6731ab72817d7f18ca14ce4da",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20929,7 +20929,7 @@
     "src/native/fixture.c": "87cd3808f7b735fb47e065ce71cdd3555c946ec1896669a0e0cc9af0d0368ebe",
     "src/native/worker.cjs": "be9a12dcffbf6df499216f7dc14e9ccc3d1b3d0e7568026127ae201989d5cc6f",
     "tests/batch6-native.mjs": "c973753189e8d65f74859a400975c1a2b88f392ad1775ed738e4512939a88729",
-    "README-zap-findings.md": "4ee5af92b78ad7d53cc927c0966c589e32cc845d8ed4c3fc6284084aad65c9b8",
+    "README-zap-findings.md": "03ff827a1eb5107bdb2addfe633db465f7a737ddb7db366964541a9ffc93805e",
     "src/runner/script-inventory.mjs": "2a39a24e22d978df8922ec2f6ae71e53aa89c4c3b5ca6582c8e31792e7d1f9c3",
     "src/runner/install-custom-rules.mjs": "64acec4eb73758216220aad8e377af88fd98e00aeb40d8609191355505ad22c3",
     "src/runner/zap-rules/ldap-filter-differential.js": "61d08f5e45ccb025ac48882b76108f46d56df259dcbad6a53abca09ab70fad70",
@@ -20938,6 +20938,10 @@
     "tests/extended-regression.mjs": "83b994eaa13c1f08d4f7e0211c7cc7eb56bfcd5507898b636f83f20510ebbe99",
     "tests/full-regression.mjs": "995165f44a45a324b3be35b4200f3202a495eb4b05afd0fbca7f567a67fbe052",
     "src/runner/zap-rules/event-attribute-name.js": "c93dff49da1c53dec794dafb519ded472749673cb55adfd904511044cfab88b7",
-    "src/runner/zap-rules/json-script-html-boundary.js": "ef82ccf405123b1642189809a9fa94adc89635d943529dcd6e9a7cb1cb3de4eb"
+    "src/runner/zap-rules/json-script-html-boundary.js": "ef82ccf405123b1642189809a9fa94adc89635d943529dcd6e9a7cb1cb3de4eb",
+    "reports.cmd": "b79b1e32639e41448f6180192b5c69044c9b58db9c28055c13463553fa61fd26",
+    "reports.sh": "2d292b31f53c2177c6900a6d29e08a112fa880ffda3d9af5e1fdb48c82994c29",
+    "src/reporting/index.mjs": "b45061bbcfa9f64a9812d583292a1e4f8367e34a556a1d305a90eba6792244d2",
+    "tests/runner-report-index.mjs": "93e73b5fa74ccb8ece04ddcadb5d433198922cbb3a2751907d50e1e457680d12"
   }
 }

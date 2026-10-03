@@ -36,7 +36,9 @@ sh ./scan-zap.sh active 120 300 bearer admin
 
 公開manifestの `requiredTargetOrigins` がHTTPS入口以外のoriginを要求すると、このadapterは計測開始前に `unsupported_target_surface` で終了します。R0461はHTTP開始点、R0457/R0458はHTTPS 8443から別originのHTTPS 8444へ送る収集経路を要求するため、現行runnerでは未対応です。宣言がない従来契約は現在のHTTPS入口を必要originとします。公開入力・workspace・manifest hashを保存し、未到達の対象面を検出／見逃しとして採点しません。
 
-現在のソースは337根本原因・500変種です。全体成立確認済みの210根本原因・V/F/N計630条件は過去版の履歴で、現行ソース全体やZAPの検出率を示しません。このrunnerがすべてのケースに必要な操作を行えるという意味でもありません。描画境界の成立確認では実Chromiumを使いますが、現行runnerにはDOM診断や実クリックの自動化がありません。localStorageとService Worker、認証をまたぐcache再利用、正常応答のIDを使うjob取消も、単なるHTTP探索の完了と区別してください。資源制限は有限の業務上限を検査し、物理的な負荷耐性を測定しません。現在の実装範囲は[カバレッジ資料](README-coverage.md)を参照してください。
+現在のソースは337根本原因・500変種です。統合Docker検証では代表210根本原因・V/F/N計630条件を現行ソースで再確認しましたが、現行500変種全体やZAPの検出率を示しません。このrunnerがすべてのケースに必要な操作を行えるという意味でもありません。描画境界の成立確認では実Chromiumを使いますが、通常のrunnerにはDOM診断や実クリックの自動化がありません。localStorageとService Worker、認証をまたぐcache再利用、正常応答のIDを使うjob取消も、単なるHTTP探索の完了と区別してください。資源制限は有限の業務上限を検査し、物理的な負荷耐性を測定しません。現在の実装範囲は[カバレッジ資料](README-coverage.md)を参照してください。
+
+保存されたZAP生成HTML、台帳、回帰結果の入口は`artifacts/index.html`です。Windowsは`.\reports.cmd`、macOS/Linuxは`sh reports.sh`で生成します。このコマンドはオフラインの一覧作成だけを行い、スキャンしません。DOM add-onのR0041試行は実験用構成でVのみ検出確認済みであり、F/N検証と標準Docker構成への反映は未了です。
 
 追加50件のMFAでは専用signinのpassword段階とOTP完了段階を区別し、通常loginのsessionだけで保護APIへ進めません。`/session`のusername確認はOTP完了の証拠になりません。招待token、委任対象、承認した内容、支払通知なども、通常POST・応答値の引継ぎ・必要な主体切替えを固定したprotocolが必要です。現行runnerの正常保護GET確認だけでは後続の操作へ到達したとは扱いません。R0491～R0496のN-APIケースはnative_labとして通常のWeb DAST検出率と分け、ASan違反や秘密値返却の成立確認と、診断ツールの到達・検出を別に評価します。R0497～R0500はJavaScriptの数値・配列境界の代表実装です。
 

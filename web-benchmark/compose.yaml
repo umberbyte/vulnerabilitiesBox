@@ -89,6 +89,17 @@ services:
       interval: 5s
       timeout: 3s
       retries: 30
+  report:
+    profiles: [report]
+    build: {context: ., target: reporting}
+    user: "0:0"
+    network_mode: none
+    volumes: ["./artifacts:/opt/benchmark/artifacts"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 32
+    mem_limit: 256m
   evaluate:
     profiles: [evaluate]
     build: {context: ., target: runtime}

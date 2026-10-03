@@ -8,6 +8,14 @@ RUN mkdir -p /opt/benchmark/fixtures && chown -R node:node /opt/benchmark/fixtur
 USER node
 CMD ["node", "src/app.mjs"]
 
+# Offline report indexing needs only Node; no app dependencies or browser.
+FROM node:24.21.0-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS reporting
+WORKDIR /opt/benchmark
+COPY src/reporting ./src/reporting
+COPY implementation-status.json ./implementation-status.json
+USER node
+CMD ["node", "src/reporting/index.mjs"]
+
 FROM runtime AS executor
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends curl git rsync imagemagick ffmpeg libxml2-utils xsltproc python3-lxml gcc libc6-dev libasan8 && rm -rf /var/lib/apt/lists/*

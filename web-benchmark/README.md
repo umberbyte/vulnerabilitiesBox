@@ -48,6 +48,8 @@ docker compose exec -T app node src/control.mjs manifest
 
 macOS/Linuxでは`sh verify.sh`を実行します。
 
+保存された回帰結果、実験台帳、ZAP生成HTMLをまとめて探すには、Windowsで`.\reports.cmd`、macOS/Linuxで`sh reports.sh`を実行して`artifacts/index.html`を開きます。Dockerだけで利用でき、アプリやZAPを起動・変更せず、ネットワークなしで既存結果を読み取ります。完走・上限停止・失敗・未実行を別々に表示し、検出率や対策の成功は自動判定しません。実行中と記録された古い台帳は、現在動いているプロセスを示しません。
+
 製品比較では、同じ根本原因・seed・V/F/N・認証条件を使い、ケース切替ごとに初期化します。診断対象は各ケースの`requiredTargetOrigins`に従います。通常は8443のworkspaceで、HTTP開始点や8444の収集先が必要なケースは対象を追加します。対応できない入口は`unsupported_target_surface`として未測定にし、見逃しに数えません。制御キー、oracle、正解データを診断エージェントへ渡さないでください。
 
 製品・バージョン・add-on・設定hash・認証到達・診断時間・送信数・並行数を記録し、F/Nでの誤検出も確認します。アラート件数を検出数として直接使わず、根本原因ごとに通信と実影響をレビューします。既存add-on、独自add-on、Codexによる補助は別プロファイルです。
