@@ -31,7 +31,7 @@ docker compose --profile panel run --build --rm panel generate artifacts/panel-l
 
 `--roots all`は実装済みcatalogの全rootを明示的に選択します。設計資料だけにある未実装rootは対象へ含めません。catalogへ実装が追加された後に新しい計画を生成すると、その一覧へ追従します。既存の計画は生成時のcatalogと条件を保持します。
 
-公開リポジトリに管理者用計画は含めません。現在のソースは312根本原因の代表312変種で、各V/F/Nの計画は936セルです。手元のcatalogから新しいファイル名を指定して計画を生成してください。計画生成は成立確認や診断を実行しません。
+公開リポジトリに管理者用計画は含めません。現在のソースは337根本原因・500変種です。代表337変種だけを各V/F/Nで計画すると1011セルです。手元のcatalogから新しいファイル名を指定して計画を生成してください。計画生成は成立確認や診断を実行しません。
 
 ```powershell
 docker compose --profile panel run --rm panel generate artifacts/panel-current-local.json --roots all --seeds catalog-current --arms V,F,N --profiles baseline --auth anonymous --wall-seconds 30 --requests 100
