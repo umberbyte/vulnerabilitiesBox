@@ -1,12 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import express from 'express';
 import {createServer,request} from 'node:http';
 import {selected} from '../src/cases/batch4-selection.mjs';
 import {variantCases} from '../src/catalog.mjs';
 import {requests,openapi} from '../src/contracts.mjs';
 import {createVariantPanel,validateVariantPanel} from '../src/runner/variant-panel.mjs';
+import {main as generateVariantPanel} from '../src/runner/generate-variant-panel.mjs';
 import * as cache from '../src/cases/batch4-cache.mjs';
 import * as csrf from '../src/cases/batch4-csrf.mjs';
 
@@ -22,6 +26,25 @@ test('the 100 additional cases retain their designed root identity and a separat
  assert.equal(plan.cellCount,300);assert.equal(plan.catalogSnapshot.additionalVariantCount,100);
  assert.equal(validateVariantPanel(plan).planId,plan.planId);
  assert.equal(new Set(plan.cells.map(cell=>cell.cellId)).size,300);
+});
+test('an active additional-variant plan preserves its scanner conditions through validation',()=>{
+ const ids=selected.slice(0,2).map(item=>item.variant);
+ const plan=createVariantPanel({variantIds:ids,profile:'active',wallSeconds:60,requests:700,seed:'core-dast-active',createdAt:'2026-10-04T00:00:00.000Z'});
+ assert.equal(plan.cellCount,6);
+ assert.ok(plan.cells.every(cell=>cell.condition.profile==='active'&&cell.condition.wallSeconds===60&&cell.condition.requestedHttpRequests===700));
+ assert.deepEqual(validateVariantPanel(plan),plan);
+ const modified=structuredClone(plan);modified.cells[0].condition.profile='baseline';
+ assert.throws(()=>validateVariantPanel(modified),/differ/);
+});
+test('the Docker variant-plan command accepts explicit active scan settings',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'variant-plan-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const output=join(dir,'plan.json');
+ await generateVariantPanel([output,'--variants',selected[0].variant,'--profile','active','--seed','active-batch','--wall-seconds','60','--requests','700']);
+ const plan=JSON.parse(await readFile(output,'utf8'));
+ assert.equal(plan.cellCount,3);assert.equal(plan.selection.profile,'active');
+ assert.equal(plan.selection.seed,'active-batch');
+ assert.deepEqual(validateVariantPanel(plan),plan);
+ await assert.rejects(generateVariantPanel([output,'--profile','active']),{code:'EEXIST'});
 });
 test('each additional variant exposes scoped normal requests and a matching OpenAPI contract',()=>{
  for(const item of variantCases){

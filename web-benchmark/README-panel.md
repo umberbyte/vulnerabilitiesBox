@@ -31,6 +31,15 @@ docker compose --profile panel run --build --rm panel generate artifacts/panel-l
 
 `--roots all`は実装済みcatalogの全rootを明示的に選択します。設計資料だけにある未実装rootは対象へ含めません。catalogへ実装が追加された後に新しい計画を生成すると、その一覧へ追従します。既存の計画は生成時のcatalogと条件を保持します。
 
+代表変種以外を診断する場合は、追加変種用の計画を生成できます。次の例はB0004のV/F/Nを標準active設定で計画します。`--profile`は`baseline`または`active`、`--wall-seconds`と`--requests`は停止目安です。生成後の実行は同じ`run-panel.cmd`を使います。
+
+```powershell
+docker compose --profile panel run --build --rm --entrypoint node panel src/runner/generate-variant-panel.mjs artifacts/panel-b0004.json --variants B0004 --profile active --seed example-b0004 --wall-seconds 60 --requests 700
+.\run-panel.cmd artifacts/panel-b0004.json artifacts/panel-b0004-ledger.json
+```
+
+追加変種計画も保存資料の監査で計画・台帳・runを照合します。workerは`failed`や`incomplete_drain`では安全確認のためその計画を停止するため、複数変種で失敗後も続ける場合は変種ごとに計画と台帳を分け、次の実行前に公開通信と非同期処理の収束を確認してください。
+
 公開リポジトリに管理者用計画は含めません。現在のソースは337根本原因・500変種です。代表337変種だけを各V/F/Nで計画すると1011セルです。手元のcatalogから新しいファイル名を指定して計画を生成してください。計画生成は成立確認や診断を実行しません。
 
 ```powershell

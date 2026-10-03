@@ -9,11 +9,11 @@ import {artifactReader} from '../src/reporting/files.mjs';
 
 const hash=value=>createHash('sha256').update(value).digest('hex');
 async function save(path,value){const bytes=JSON.stringify(value);await writeFile(path,bytes);return hash(bytes);}
-async function fixture(t,arms=['V','F','N']){
+async function fixture(t,arms=['V','F','N'],planSchema='benchmark-operator-panel-0.1'){
   const dir=await mkdtemp(join(tmpdir(),'benchmark-audit-'));t.after(()=>rm(dir,{recursive:true,force:true}));
   const condition={profile:'active',authMode:'anonymous',subject:null,wallSeconds:90,requestedHttpRequests:1000,requestedConcurrency:2};
   const cells=arms.map(arm=>({cellId:'cell-'+arm,root:'R0041',variant:'B0041',seed:'test',replicate:1,arm,expectedWorkspace:'/w/fixture',condition:{...condition},status:'not_run'}));
-  const plan={schema:'benchmark-operator-panel-0.1',planId:'plan-test',cells:structuredClone(cells)};
+  const plan={schema:planSchema,planId:'plan-test',cells:structuredClone(cells)};
   const planHash=await save(join(dir,'plan.json'),plan);
   const ledger={schema:'benchmark-operator-panel-ledger-0.1',status:'completed',plan:{path:'artifacts/plan.json',sha256:planHash,planId:plan.planId},cells};
   for(const cell of cells){
@@ -30,6 +30,16 @@ test('matched V/F/N requires plan and run hash agreement and one configuration',
   const f=await fixture(t),audit=await auditArtifacts(f.dir);
   assert.equal(audit.summary.errors,0);assert.equal(audit.summary.completeVfnSeries,1);assert.equal(audit.summary.verifiedCells,3);
   assert.match(auditMarkdown(audit),/検出の成功を示しません/);assert.equal(audit.detectionRate,undefined);
+});
+
+test('additional-variant panel evidence is audited with the same run checks',async t=>{
+  const f=await fixture(t,['V','F','N'],'benchmark-operator-variant-panel-0.1');
+  const audit=await auditArtifacts(f.dir);
+  assert.equal(audit.summary.errors,0);
+  assert.equal(audit.summary.completeVfnSeries,1);
+  assert.equal(audit.summary.verifiedCells,3);
+  f.ledger.cells[0].variant='B0099';await f.flush();
+  assert.ok((await auditArtifacts(f.dir)).issues.some(issue=>issue.code==='cell_plan_mismatch'));
 });
 
 test('V-only experiments are incomplete comparisons, not negative findings',async t=>{

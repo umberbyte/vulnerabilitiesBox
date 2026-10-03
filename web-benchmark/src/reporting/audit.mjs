@@ -31,7 +31,7 @@ export async function auditArtifacts(directory){
     try{
       const plan=await document(declaredPath(ledger.plan?.path,'plan'));
       if(plan.sha256!==ledger.plan?.sha256)throw Error('plan_hash_mismatch');
-      if(plan.value.schema!=='benchmark-operator-panel-0.1'||plan.value.planId!==ledger.plan?.planId||!Array.isArray(plan.value.cells))throw Error('plan_metadata_mismatch');
+      if(!['benchmark-operator-panel-0.1','benchmark-operator-variant-panel-0.1'].includes(plan.value.schema)||plan.value.planId!==ledger.plan?.planId||!Array.isArray(plan.value.cells))throw Error('plan_metadata_mismatch');
       planCells=new Map(plan.value.cells.map(cell=>[cell.cellId,cell]));
       if(planCells.size!==plan.value.cells.length||plan.value.cells.length!==ledger.cells.length)throw Error('plan_cell_count_mismatch');
       result.planVerified=true;
