@@ -6,6 +6,7 @@ import {writeFile,mkdir} from 'node:fs/promises';
 import {request as httpRequest} from 'node:http';
 import {request as httpsRequest} from 'node:https';
 import WebSocket from 'ws';
+import {chromium} from 'playwright-core';
 
 const runFile=promisify(execFile);
 const docker=process.env.DOCKER_EXE||'docker';
@@ -64,6 +65,46 @@ async function csrfVariant({base},mode,attempt,rejected=403){
  assert(alice?.contact===(mode==='V'?'attacker@example.test':'normal@example.test'),'persisted contact does not match CSRF arm');
  const anonymous=await json(base+'/v4-csrf',{action:'update',contact:'anonymous@example.test'});
  assert(anonymous.status===401,'anonymous update unexpectedly succeeded');
+}
+async function csrfTextPlainBrowserVariant({base},mode){
+ const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
+ const attacker=process.env.BENCHMARK_VALIDATION_ATTACKER_ORIGIN||'https://evil.benchmark.test:8444';
+ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+ try{
+  const context=await browser.newContext({ignoreHTTPSErrors:true});
+  try{
+   const page=await context.newPage();
+   const loginResponse=await context.request.post(target+base+'/login',{data:{username:'alice',password:'Fixture-alice-2026!'}});
+   assert(loginResponse.status()===200,'secure browser-context login failed');
+   const cookies=await context.cookies(target);
+   assert(cookies.some(item=>item.name==='sid'&&item.secure&&item.sameSite==='None'),'cross-site-capable Secure SameSite=None session cookie absent');
+   const session=await (await context.request.get(target+base+'/session')).json();
+   assert(typeof session.csrf==='string'&&session.csrf.length>0,'secure browser-context CSRF token absent');
+   const normal=await context.request.post(target+base+'/v4-csrf',{data:{action:'update',contact:'normal@example.test',csrf:session.csrf}});
+   assert(normal.status()===200,'secure normal token-bearing update failed');
+   const attackerPage=attacker+'/browser-csrf-fixture';
+   const navigation=await page.goto(attackerPage);
+   assert(navigation?.status()===200&&new URL(page.url()).origin===attacker,'distinct-origin attacker page unavailable');
+   let attackRequest,requestFailure;
+   const browserDiagnostics=[];
+   page.on('console',message=>{if(message.type()==='error')browserDiagnostics.push(message.text());});
+   page.on('request',request=>{if(request.url()===target+base+'/v4-csrf')attackRequest=request;else browserDiagnostics.push('request='+request.url());});
+   page.on('requestfailed',request=>{requestFailure=request.failure()?.errorText;browserDiagnostics.push('failed='+request.url()+':'+requestFailure);});
+   const attackResponsePromise=page.waitForResponse(response=>response.url()===target+base+'/v4-csrf',{timeout:5000}).then(response=>({response}),error=>({error}));
+   const browserResult=await page.evaluate(async url=>{
+    try{await fetch(url,{method:'POST',mode:'no-cors',credentials:'include',headers:{'content-type':'text/plain'},body:JSON.stringify({action:'update',contact:'attacker@example.test'})});return 'sent';}
+    catch(error){return String(error);}
+   },target+base+'/v4-csrf');
+   assert(browserResult==='sent','browser fetch failed: '+browserResult+'; network='+requestFailure+'; '+browserDiagnostics.join(' | '));
+   assert(attackRequest,'browser did not send cross-origin text/plain request');
+   assert(new URL(page.url()).origin===attacker&&new URL(attackRequest.url()).origin===target&&attacker!==target,'browser request did not cross distinct origins');
+   const {response:attackResponse,error:responseError}=await attackResponsePromise;
+   assert(attackResponse,'browser response unavailable: '+responseError?.message);
+   assert(attackResponse.status()===(mode==='V'?200:415),'browser cross-origin request returned HTTP '+attackResponse.status());
+   const alice=(await control('oracle')).users.find(user=>user.name==='alice');
+   assert(alice?.contact===(mode==='V'?'attacker@example.test':'normal@example.test'),'browser cross-origin request changed wrong arm');
+  }finally{await context.close();}
+ }finally{await browser.close();}
 }
 const cases=[
  ['R0377','B0378',async({base,canary},mode)=>{
@@ -198,7 +239,10 @@ const cases=[
  }],
  ['R0311','B0312',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie))],
  ['R0311','B0315',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test',_method:'DELETE'},cookie))],
- ['R0311','B0317',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',JSON.stringify({action:'update',contact:'attacker@example.test'}),cookie,{headers:{'content-type':'text/plain'}}),415)],
+ ['R0311','B0317',async(context,mode)=>{
+  await csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',JSON.stringify({action:'update',contact:'attacker@example.test'}),cookie,{headers:{'content-type':'text/plain'}}),415);
+  await csrfTextPlainBrowserVariant(await reset('R0311','B0317',mode),mode);
+ }],
  ['R0311','B0318',(context,mode)=>csrfVariant(context,mode,({base,cookie,csrf})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test',csrf:(csrf[0]==='a'?'b':'a')+csrf.slice(1)},cookie))],
  ['R0311','B0327',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>{
   const form=new FormData();form.set('action','update');form.set('contact','attacker@example.test');

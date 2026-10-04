@@ -70,6 +70,12 @@ R0371に属するB0372、B0373、B0374、B0375、B0376、B0385、B0386、B0388�
 
 R0311のB0312、B0315、B0317、B0318、B0327とR0319のB0320、B0321、B0322について、ローカルDockerでV/F/N計24条件を確認しました。正規tokenを持つ更新が成功し、条件を変えた更新はVのみ受理されて実DBの連絡先を変更し、F/Nでは拒否され、匿名更新も拒否されます。最終記録は`artifacts/extended-regression-saved-csrf-full-vfn-20261004.json`と`artifacts/docker-smoke-csrf-full-vfn-20261004.json`に保存します。検証コンテナーと対象アプリの実行ソース一致、および対象アプリの実行前後の一致を確認しています。
 
-初回のB0317/VはHTTP 403で失敗しました。Vが`text/plain`のJSONを解析しても、後段でtokenを必須にしていたベンチマーク実装の不整合を修正しました。失敗時の記録は`artifacts/docker-smoke-csrf-vfn-20261004.json`と`artifacts/docker-smoke-csrf-text-diagnostic-20261004.json`に残し、最終の合格記録とは区別します。今回の確認は認証済みHTTP要求のサーバー側受理とDB変更までです。ブラウザーからのクロスサイト送信、Cookie属性との組み合わせ、ZAPによる検出は別途確認が必要です。
+初回のB0317/VはHTTP 403で失敗しました。Vが`text/plain`のJSONを解析しても、後段でtokenを必須にしていたベンチマーク実装の不整合を修正しました。失敗時の記録は`artifacts/docker-smoke-csrf-vfn-20261004.json`と`artifacts/docker-smoke-csrf-text-diagnostic-20261004.json`に残し、最終の合格記録とは区別します。この8変種のサーバー側確認を、ブラウザーでの成立やZAP検出へ一般化しません。
+
+### B0317の実ブラウザー確認
+
+ChromiumでHTTPSの`Secure; SameSite=None`セッションを発行し、`https://evil.benchmark.test:8444`の実ページから、別オリジン`https://app.benchmark.test:8443`へ`text/plain`の`no-cors` POSTを送信しました。VではHTTP 200と実DBの連絡先変更、F/NではHTTP 415と変更なしを確認しました。正規token付き操作も3条件で成功しています。個別V/F/Nの最終記録は`artifacts/extended-regression-saved-csrf-browser-confirmed-v2-20261004.json`と`artifacts/docker-smoke-csrf-browser-confirmed-v2-20261004.json`です。検証・対象の実行ソースと対象の実行前後のソースが一致しました。これは**同一サイト内の別オリジン**という条件での成立であり、異なるサイト一般の成立を意味しません。
+
+異なるサイト`https://attacker.test:8444`から送る試行は、Chromiumが第三者Cookieを付けず全条件HTTP 401でした。記録は`artifacts/docker-smoke-csrf-browser-vfn-v3-20261004.json`に残しています。また、404ページのCSPと合成ページのローカルアドレス制限による試行失敗も、それぞれ`artifacts/docker-smoke-csrf-browser-diagnostic2-20261004.json`、`artifacts/docker-smoke-csrf-browser-final-20261004.json`に残しました。これらは成立記録に算入しません。残る7変種の実ブラウザー条件とB0317のZAP検出は未確認です。
 
 2026-10-04時点の保存記録では、500変種中338変種に個別V/F/N合格記録があり、161変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。

@@ -220,6 +220,7 @@ const attacker=meter.track(express());attacker.use(meter.middleware());attacker.
 attacker.use(express.urlencoded({extended:false,limit:'32kb'}));
 registerAux(attacker,{db,redis,esc,page,getRun:()=>run});
 registerCollector(attacker,{redis,getRun:()=>run});
+attacker.get('/browser-csrf-fixture',(req,res)=>res.type('html').send('<!doctype html><title>Cross-origin CSRF fixture</title>'));
 attacker.get('/csrf',(req,res)=>{
   const target=String(req.query.target||'');if(!/^https:\/\/(app|localhost|127\.0\.0\.1):8443\/w\/[a-f0-9]+\/profile$/.test(target))return res.sendStatus(400);
   res.type('html').send(`<!doctype html><form id="attack" action="${esc(target)}" method="post"><input name="contact" value="changed@example.test"></form><script>document.getElementById('attack').submit()</script>`);
