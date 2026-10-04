@@ -9,7 +9,7 @@
     "implemented_positive_variants": 500,
     "fixed_representative_controls": 337,
     "safe_analogue_conditions": 337,
-    "validated_execution_cells": 950,
+    "validated_execution_cells": 968,
     "remaining_unimplemented_roots": 0,
     "remaining_unimplemented_positive_variants": 0,
     "checks": 13198,
@@ -24,7 +24,7 @@
     "previous_release_verified_roots": 210,
     "pending_final_acceptance_roots": 127,
     "planned_execution_cells": 1011,
-    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_291_passed_extended_variant_cells_on_current_source_plus_30_passed_selected_vfn_cells_on_current_source; one_representative_cell_failed; no_current_full_representative_retest",
+    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_309_passed_extended_variant_cells_on_current_source_plus_30_passed_selected_vfn_cells_on_current_source; one_representative_cell_failed; no_current_full_representative_retest",
     "additional_source_variants": 163
   },
   "verification": {
@@ -179,16 +179,16 @@
       "applies_to_current_source": false
     },
     "current_source_extended_variants": {
-      "variants": 97,
+      "variants": 103,
       "arms": [
         "V",
         "F",
         "N"
       ],
-      "passed_cells": 291,
-      "test_files": 27,
+      "passed_cells": 309,
+      "test_files": 28,
       "report": "artifacts/extended-regression.json",
-      "source_sha256": "3a5f6529a99ca225ec5a27b3a4bd45538f33f0e392865ef4557136e4203acf4a",
+      "source_sha256": "a3f48f8aeff3c59fb0c0bd341156dce54e6b8750df3bb88f99aa03756b389b88",
       "source_after": "matched"
     },
     "current_source_unit": {
@@ -213,11 +213,11 @@
       "passed": 296,
       "tests": 296,
       "files": 24,
-      "source_sha256": "3a5f6529a99ca225ec5a27b3a4bd45538f33f0e392865ef4557136e4203acf4a",
+      "source_sha256": "a3f48f8aeff3c59fb0c0bd341156dce54e6b8750df3bb88f99aa03756b389b88",
       "source_snapshot_recorded": true,
       "application_acceptance": false,
       "scanner_measurement": false,
-      "archive": "verification-history/tools-2026-10-04T12-44-52-291Z-ea16f43c-8ebc-4e89-be67-7ab83dcc07a7",
+      "archive": "verification-history/tools-2026-10-04T13-19-00-781Z-7365ccf3-eb5d-40f6-ad83-f267fcbd31ca",
       "environment_recorded": true,
       "environment_scope": "offline-tools-process"
     },
@@ -264,9 +264,9 @@
     "latest_individual_acceptance_inventory": {
       "report": "artifacts/coverage-inventory.md",
       "machine_report": "artifacts/coverage-inventory.json",
-      "variants_with_vfn_records": 315,
+      "variants_with_vfn_records": 321,
       "variants_with_partial_records": 0,
-      "variants_without_individual_records": 184,
+      "variants_without_individual_records": 178,
       "variants_with_failed_or_conflicting_records": 1,
       "scanner_detection_scored": false
     },
@@ -274,8 +274,8 @@
       "report": "artifacts/evidence-linkage.md",
       "machine_report": "artifacts/evidence-linkage.json",
       "audited_complete_scan_variants": 227,
-      "without_individual_vfn_records": 76,
-      "with_individual_vfn_but_source_unlinked": 150,
+      "without_individual_vfn_records": 70,
+      "with_individual_vfn_but_source_unlinked": 156,
       "verified_runtime_source_linked": 1,
       "dependency_environment_linked": 0,
       "standalone_b0002_outside_audited_ledgers": true
@@ -311,7 +311,7 @@
         "N"
       ],
       "passed_cells": 30,
-      "source_sha256": "3a5f6529a99ca225ec5a27b3a4bd45538f33f0e392865ef4557136e4203acf4a",
+      "source_sha256": "a3f48f8aeff3c59fb0c0bd341156dce54e6b8750df3bb88f99aa03756b389b88",
       "source_after": "matched",
       "application_acceptance": true,
       "scanner_measurement": false,
@@ -326,6 +326,28 @@
       "source_after": "matched",
       "application_acceptance": true,
       "scanner_measurement": false
+    },
+    "current_source_file_variant_acceptance": {
+      "report": "artifacts/extended-regression.json",
+      "test_file": "tests/batch4-priority-files-more.mjs",
+      "variants": 6,
+      "passed_cells": 18,
+      "source_sha256": "a3f48f8aeff3c59fb0c0bd341156dce54e6b8750df3bb88f99aa03756b389b88",
+      "source_after": "matched",
+      "application_acceptance": true,
+      "scanner_measurement": false,
+      "design_alignment_corrections": [
+        {
+          "variant": "B0129",
+          "earlier_probe": "Created a new public file outside uploads; did not demonstrate the designed change to an existing protected file.",
+          "final_probe": "Changes existing public guide.txt in V and preserves it in F/N."
+        },
+        {
+          "variant": "B0140",
+          "earlier_implementation": "Parsed archive entry name and extracted data outside uploads; this was a write rather than the designed host-side sandbox read.",
+          "final_implementation": "Parses a bounded USTAR entry name and reads a private container fixture only in V; F/N map the entry to an allowed public source."
+        }
+      ]
     }
   },
   "implemented": [
@@ -20918,7 +20940,7 @@
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
     "README-zap.md": "9ba9ab606321b978db88c9a967d94f40582e1b6d2412425d560cfd47a8d6e1ba",
-    "README.md": "6a23dd210b12603a0e9b5823cd9d002f34f70d2700d68a5fa38aae3814c11040",
+    "README.md": "6737aab4141790d2b4f8d051b18afd7944dcdc3608197ba2880cb2cb5c98f9bf",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20940,7 +20962,7 @@
     "src/cases/batch4-browser.mjs": "08e966cd4bb8abdbcac2727c3e016b11e3ce21867da1c446fe80176c0c7bda2d",
     "src/cases/batch4-cache.mjs": "13cd89c1b6b0d40e06aa2cfba1c155ad384362dbac056bf03a5d97aca4579755",
     "src/cases/batch4-csrf.mjs": "174ea48cdcc7c135d0e461b2acef5186740ec1b7c3bfed233c47b1519763b578",
-    "src/cases/batch4-files.mjs": "4a0a552316242f8ffc184c9405153a72a720180bab834cab4b35a93533fd3048",
+    "src/cases/batch4-files.mjs": "d2fedc8157e5641e02bfad42a44aed7af09e52c817b1bbeb0dfc0f509c3986d2",
     "src/cases/batch4-selection.mjs": "73b464916976cfe8c8e87470147a304f1ad82ddc37e75f18e81bcd7df5f9e498",
     "src/cases/batch4-sql.mjs": "cf5bf0a454181aea734a21def4ac817a0a621c658f3bf55e51987746d912fb2c",
     "src/cases/batch4-ssrf.mjs": "a7c6de0c9372a0bbcdbfa74727924f483f9ef399a61d1d2a9f8e6503b4edaa1c",
@@ -21102,6 +21124,7 @@
     "tests/runner-environment.mjs": "ce7e3c330e96d391af2a24683c84bfc2b4749b6c487ca960ca3a649e8fb47a65",
     "tests/selected-vfn-regression.mjs": "4ad15510b3158ff88107c60dacec49f0a63018ff2c5034706c91f35078b282c6",
     "tests/batch4-priority-sql-more.mjs": "62efdcfbb6e383195ab52dcda8a17bc1cbe2ab54e42dbfaaffa732aaa7bc2c5e",
-    "tests/batch4-priority-sql-update.mjs": "6fc4e67d16ac3eb3b5636c6dd23de60e2b2fac8e580027f58ae6b5b249b47455"
+    "tests/batch4-priority-sql-update.mjs": "6fc4e67d16ac3eb3b5636c6dd23de60e2b2fac8e580027f58ae6b5b249b47455",
+    "tests/batch4-priority-files-more.mjs": "d21941c46feb0591c3bc8c87672be5c764bb10f794af909ab9ecb4618e119b3a"
   }
 }

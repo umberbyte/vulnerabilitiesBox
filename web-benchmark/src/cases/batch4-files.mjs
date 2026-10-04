@@ -27,7 +27,7 @@ export async function reset({getRun}){
  await writeFile(path.join(uploadRoot,'own.txt'),'Own draft');
  await symlink(path.join(privateRoot,'report.txt'),path.join(uploadRoot,'current.txt'));
 }
-async function execute(id,name,v,canary){
+async function execute(id,name,v){
  if(id==='B0122'){
   const target=v?path.resolve(publicRoot,name):path.resolve(publicRoot,'.'+path.sep+name);
   if(!v&&!within(publicRoot,target))return {status:403};
@@ -67,11 +67,13 @@ async function execute(id,name,v,canary){
   return {matches:await Promise.all(names.map(async entry=>({name:entry,data:await readFile(path.join(directory,entry),'utf8')})))};
  }
  if(id==='B0140'){
-  // One bounded USTAR entry is assembled from the supplied archive name, then
-  // parsed and extracted through the same filesystem operation in both arms.
-  const archive=makeTar(name,canary),entry=readTar(archive),target=path.resolve(uploadRoot,entry.name);
-  if(!v&&!within(uploadRoot,target))return {status:403};
-  await writeFile(target,entry.data);return {extracted:true,pathOutsideUploads:!within(uploadRoot,target)};
+  // A bounded USTAR entry supplies a name; its content is deliberately public.
+  // Only V treats that archive metadata as a host-side read path.
+  const archive=makeTar(name,'Public archive marker'),entry=readTar(archive);
+  if(!entry)return {status:400};
+  if(!v&&entry.name!=='guide.txt')return {status:403};
+  const target=v?path.resolve(publicRoot,entry.name):path.join(publicRoot,'guide.txt');
+  return {data:await readFile(target,'utf8')};
  }
  if(id==='B0136'){
   const raw=path.resolve(publicRoot,name),normalized=path.resolve(publicRoot,name.normalize('NFKC'));
@@ -109,7 +111,7 @@ export function register(router,{getRun,vulnerable,page,esc}){
  router.get('/v4-files',selected,(req,res)=>res.type('html').send(page(title[getRun().variant],`<p><a href="${getRun().base}/v4-files/public/guide.txt">利用案内</a></p><form method="post"><input name="name" value="${esc(normal[getRun().variant])}"><button>実行</button></form>`)));
  router.post('/v4-files',selected,async(req,res)=>{
   const name=req.body?.name;if(typeof name!=='string'||Buffer.byteLength(name)>160)return res.sendStatus(400);
-  try{const result=await execute(getRun().variant,name,vulnerable(),getRun().canary);res.status(result.status||200).json(result);}
+  try{const result=await execute(getRun().variant,name,vulnerable());res.status(result.status||200).json(result);}
   catch{res.sendStatus(404);}
  });
 }
