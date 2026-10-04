@@ -9,6 +9,7 @@ import {cases,variantCases,findCase} from './catalog.mjs';
 import {requests,openapi} from './contracts.mjs';
 import {definitions as caseDefinitions,variantDefinitions,register as registerCases,reset as resetCases,databaseProof,registerCollector,registerAux,audit as caseAudit,caseControl,registerProtocolServers} from './cases/index.mjs';
 import {RequestMeter} from './measurement.mjs';
+import {runtimeSourceProof} from './reporting/source.mjs';
 
 const db=new pg.Pool({connectionString:process.env.DATABASE_URL});
 const redis=createClient({url:process.env.REDIS_URL}); redis.on('error',e=>console.error('Redis:',e.message)); await redis.connect();
@@ -17,6 +18,7 @@ const hash=s=>createHash('sha256').update(s).digest('hex');
 const token=()=>randomBytes(24).toString('hex');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const controlKey=token(); await writeFile('/tmp/benchmark-control.key',controlKey,{mode:0o600});
+const targetRuntimeSource=await runtimeSourceProof('/opt/benchmark');
 const canaryKey=token(),meter=new RequestMeter();
 let run,resetting=false,sequence=4100;
 await db.query(`CREATE TABLE IF NOT EXISTS users (name text PRIMARY KEY,password text NOT NULL,role text NOT NULL,tenant text NOT NULL,contact text NOT NULL,balance integer NOT NULL);
@@ -230,6 +232,7 @@ attacker.get('/cors',(req,res)=>{
 });
 const control=express();control.use(express.json());control.use((req,res,next)=>{if(!same(req.headers['x-benchmark-key']||'',controlKey))return res.sendStatus(403);next();});
 control.get('/health',(req,res)=>res.json({ok:!!run&&!resetting}));
+control.get('/source-proof',(req,res)=>res.json(targetRuntimeSource));
 control.get('/catalog',(req,res)=>res.json(cases));
 control.get('/variant-catalog',(req,res)=>res.json(variantCases));
 control.post('/reset',async(req,res)=>{try{res.json(await reset(req.body));}catch(error){res.status(400).json({error:error.message});}});

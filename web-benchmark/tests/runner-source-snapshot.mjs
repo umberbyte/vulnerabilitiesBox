@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {SOURCE_METADATA,sourceSnapshot,compareSources} from '../src/reporting/source.mjs';
+import {SOURCE_METADATA,sourceSnapshot,compareSources,runtimeSourceProof,compareRuntimeSourceProof} from '../src/reporting/source.mjs';
 import {runNode,tapSummary,unitTestFiles} from '../src/reporting/tool-tests.mjs';
 import {collectReports,renderReports} from '../src/reporting/index.mjs';
 
@@ -34,6 +34,18 @@ test('missing and malformed snapshots do not claim current source agreement',asy
 test('source links are rejected rather than read outside the source tree',async t=>{
   const dir=await fixture(t);try{await symlink(tmpdir(),join(dir,'src/link'),'junction');}catch(e){if(['EPERM','EACCES','ENOTSUP'].includes(e.code)){t.skip('symlink unavailable');return;}throw e;}
   await assert.rejects(sourceSnapshot(dir),/symlink/);
+});
+test('runtime proof matches only deployed application bytes and detects stale target source',async t=>{
+  const dir=await fixture(t);await writeFile(join(dir,'src/app.mjs'),'before');
+  const before=await runtimeSourceProof(dir),full=await sourceSnapshot(dir);
+  assert.deepEqual(Object.keys(before.files).sort(),['package-lock.json','package.json','src/app.mjs']);
+  for(const [path,hash] of Object.entries(before.files))assert.equal(full.files[path],hash);
+  await writeFile(join(dir,'tests/acceptance.mjs'),'changed');await writeFile(join(dir,'README.md'),'changed');
+  assert.equal(compareRuntimeSourceProof(before,await runtimeSourceProof(dir)).status,'matched');
+  await writeFile(join(dir,'src/app.mjs'),'after');
+  assert.equal(compareRuntimeSourceProof(before,await runtimeSourceProof(dir)).status,'changed');
+  const altered=structuredClone(before);altered.files['src/app.mjs']='0'.repeat(64);
+  assert.equal(compareRuntimeSourceProof(before,altered).status,'invalid');
 });
 test('unit test discovery excludes application acceptance scripts',async t=>{
   const dir=await fixture(t);for(const name of ['acceptance.mjs','batch6-native.mjs','runner-test.mjs','evaluation.mjs','measurement.mjs'])await writeFile(join(dir,'tests',name),'');

@@ -7,7 +7,7 @@ const canonical=files=>Object.fromEntries(Object.keys(files).sort().map(path=>[p
 const digest=files=>hash(JSON.stringify(canonical(files)));
 export const SOURCE_METADATA=['Dockerfile','.dockerignore','package.json','package-lock.json','compose.yaml','compose.zap.yaml','verify.cmd','verify.sh','verify.ps1','reports.cmd','reports.sh'];
 
-export async function sourceSnapshot(directory,{designPath=null}={}){
+async function collectSourceFiles(directory,{metadata,designPath=null,includeTests}){
   const root=await lstat(directory);
   if(!root.isDirectory()||root.isSymbolicLink())throw Error('Invalid source directory');
   const files=Object.create(null);let total=0;
@@ -27,10 +27,29 @@ export async function sourceSnapshot(directory,{designPath=null}={}){
       if(entry.isDirectory())await walk(next);else await add(next);
     }
   }
-  for(const path of SOURCE_METADATA)await add(path);
+  for(const path of metadata)await add(path);
   if(designPath)await add('@design/benchmark-design-v2.json',designPath);
-  await walk('src');await walk('tests');
+  await walk('src');if(includeTests)await walk('tests');
+  return canonical(files);
+}
+
+export async function sourceSnapshot(directory,{designPath=null}={}){
+  const files=await collectSourceFiles(directory,{metadata:SOURCE_METADATA,designPath,includeTests:true});
   return {schema:'benchmark-source-snapshot-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',sha256:digest(files),files:canonical(files),scope:'src/, tests/, Dockerfile, .dockerignore, package manifests, Compose files, and verification/report launchers'+(designPath?', design JSON':'')+'; documentation and generated artifacts excluded'};
+}
+
+// Runtime images contain src/ and package manifests, but not the Dockerfile,
+// Compose file, design JSON, or tests. This proof covers exactly those bytes.
+export async function runtimeSourceProof(directory){
+  const files=await collectSourceFiles(directory,{metadata:['package.json','package-lock.json'],includeTests:false});
+  return {schema:'benchmark-runtime-source-proof-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',sha256:digest(files),files,runtime:{node:process.version,platform:process.platform,architecture:process.arch},scope:'src/, package.json, package-lock.json; application and scan-controller runtime bytes only'};
+}
+
+export function compareRuntimeSourceProof(before,after){
+  const valid=value=>value?.schema==='benchmark-runtime-source-proof-0.1'&&value.algorithm==='sha256-byte-files-and-sorted-path-map'&&value.files&&typeof value.files==='object'&&!Array.isArray(value.files)&&Object.keys(value.files).length<=1000&&Object.hasOwn(value.files,'package.json')&&Object.hasOwn(value.files,'package-lock.json')&&Object.keys(value.files).some(path=>path.startsWith('src/'))&&Object.keys(value.files).every(path=>path==='package.json'||path==='package-lock.json'||path.startsWith('src/'))&&Object.values(value.files).every(v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v))&&value.sha256===digest(value.files)&&typeof value.runtime?.node==='string'&&typeof value.runtime?.platform==='string'&&typeof value.runtime?.architecture==='string';
+  if(!valid(before)||!valid(after))return {status:'invalid'};
+  if(before.sha256!==after.sha256||before.runtime.node!==after.runtime.node||before.runtime.platform!==after.runtime.platform||before.runtime.architecture!==after.runtime.architecture)return {status:'changed',beforeSha256:before.sha256,afterSha256:after.sha256};
+  return {status:'matched',sha256:before.sha256};
 }
 
 export function compareSources(recorded,current){

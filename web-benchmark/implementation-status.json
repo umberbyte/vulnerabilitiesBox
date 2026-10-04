@@ -24,7 +24,7 @@
     "previous_release_verified_roots": 210,
     "pending_final_acceptance_roots": 127,
     "planned_execution_cells": 1011,
-    "validated_execution_scope": "latest_629_passed_representative_cells_plus_234_passed_extended_variant_cells; one_representative_cell_failed; application_and_build_hashes_match_across_runs",
+    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_234_passed_extended_variant_cells_on_current_source; one_representative_cell_failed; no_current_full_representative_retest",
     "additional_source_variants": 163
   },
   "verification": {
@@ -175,7 +175,8 @@
       "checks": 13198,
       "report": "artifacts/acceptance.json",
       "source_sha256": "b48a7cc814a9d5f2fd80abe3da8deaf52f7bab00ac8f1622ed6af0030fc2a6a1",
-      "source_after": "matched"
+      "source_after": "matched",
+      "applies_to_current_source": false
     },
     "current_source_extended_variants": {
       "variants": 78,
@@ -187,11 +188,11 @@
       "passed_cells": 234,
       "test_files": 25,
       "report": "artifacts/extended-regression.json",
-      "source_sha256": "6dcd2785bf321ef57896c70054869fc831f4564ba104e5d2823a82c6adcac8bb",
+      "source_sha256": "02700719e8667e66849906c62350a564b9c9ec87ae2059340fe7932269a5590c",
       "source_after": "matched"
     },
     "current_source_unit": {
-      "passed": 292,
+      "passed": 293,
       "files": 24,
       "source_snapshot_recorded": true
     },
@@ -203,21 +204,34 @@
       "failed": 1,
       "complete": false,
       "scanner_measurement": false,
-      "source_snapshot_recorded": true
+      "source_snapshot_recorded": true,
+      "applies_to_current_source": false
     },
     "latest_offline_tools_unit": {
       "report": "artifacts/tools-check.md",
       "machine_report": "artifacts/tools-check.json",
-      "passed": 292,
-      "tests": 292,
+      "passed": 293,
+      "tests": 293,
       "files": 24,
-      "source_sha256": "6dcd2785bf321ef57896c70054869fc831f4564ba104e5d2823a82c6adcac8bb",
+      "source_sha256": "02700719e8667e66849906c62350a564b9c9ec87ae2059340fe7932269a5590c",
       "source_snapshot_recorded": true,
       "application_acceptance": false,
       "scanner_measurement": false,
-      "archive": "verification-history/tools-2026-10-04T09-20-05-039Z-a56a0b95-3d37-4ed9-8b3e-3ce5d5d2ccfe",
+      "archive": "verification-history/tools-2026-10-04T10-03-50-562Z-250a052f-23ae-4f0d-8001-cbf47cd735e4",
       "environment_recorded": true,
       "environment_scope": "offline-tools-process"
+    },
+    "latest_local_target_source_proof_smoke": {
+      "run": "artifacts/zap-2026-10-04T10-05-14-571Z-6a5a07/run.json",
+      "profile": "anonymous-baseline",
+      "status": "completed",
+      "runtime_source_sha256": "ddf2b179a100abd07d760aa2661852c4b727330bbae9a6ccf3de1e03cbf982ec",
+      "runtime_source_files": 105,
+      "controller_to_target_before": "matched",
+      "target_before_to_after": "matched",
+      "scanner_scoring": false,
+      "standalone_outside_audited_ledgers": true,
+      "environment_scope": "application_runtime_src_and_package_manifests_only"
     },
     "offline_verification_evidence_audit": {
       "report": "artifacts/verification-audit.md",
@@ -20841,13 +20855,13 @@
     "README-coverage.md": "0dd592c0b1a1927cf0dcb97025630bee8d032613a3c24f8e30512cb8df663d2d",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
-    "README-zap.md": "5fb92e401d7a300d30ca76c240af46a8cb4443e55fc6ab03b0e1b6e05955c6de",
-    "README.md": "6ca841b27291da777efd3307fda9d4a8826425ab846ef92927143d74598a086d",
+    "README-zap.md": "7a99f8b3429afd0de19620f7860da0827c9c94a795b1ef0acdfd95495b9a6f18",
+    "README.md": "bfe371b20fff9aee13766d101966256775290871361bc5e602d5db1b38116028",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
     "scan-zap.sh": "f62bd5d709047f6c9737c784e80e435afd984398559d5b556a7ebabc6e56f5df",
-    "src/app.mjs": "b0cfa51f81ce6b9f8c2a728f82ee2d57d0ac9014f2616ab7f650a2663ddf08f4",
+    "src/app.mjs": "39bf32f041a6150895cd778931f041a1c8cbeb53de7a6622b421d72b66c82c13",
     "src/cases/backend.mjs": "f6385e7d9e327656ad11001d330923b78a86116bde9d54346d031a923cbfa67c",
     "src/cases/batch-auth.mjs": "e45d89115adbe918807e6daeeac47b428fb7ab271fe2092a48d028be6c41af0f",
     "src/cases/batch-authorization.mjs": "d19a14a37581491fea7793ae907c5049ffff78bf85342d1d40d881b9ac13c179",
@@ -20904,7 +20918,7 @@
     "src/runner/panel-runner.mjs": "77a67e73b361377407b514122e546f76582095e4faa086799d23c7a4b1842b37",
     "src/runner/panel.mjs": "b5afbbf61d3a43bc51c6ea42e18b197450884d0f93b3ff1b0fb0b4f3486b491d",
     "src/runner/policy.mjs": "48262cebf4a4c93fa4a88b8817766cf65dd8c620649faa94be5e3b848fe9e1d6",
-    "src/runner/scan-zap.mjs": "c6544a3f17a8b348c05b5294c19dfcbfa69abe99d9128ef7adb0aaac60fff542",
+    "src/runner/scan-zap.mjs": "e784cf6aa62b3546f801097846c3d9eead75fdce2630c8a81816542fcce8c1ef",
     "src/runner/variant-panel.mjs": "0bac79fc304e19adcab974d85321343e5f4050651eb53cb509500d842fbb617d",
     "src/tls/local.crt": "1fec6120beb373c720d3fedf88c194117381a4807da0c45471de52c191d377a8",
     "src/tls/local.key": "438b50c081397614185fa7ed2acfe2042956fc73d0b1fe9277ae55f7df0db80e",
@@ -21006,10 +21020,10 @@
     "src/reporting/files.mjs": "7aab9027bf1a68ae0aff065a6c7623bce26a7816bfd87ed061b07f2e92f7f18b",
     "src/reporting/audit.mjs": "838710960f92fe55916ce60d6d3e43237fbe809d774ad5fc420b5f20def3466d",
     "tests/runner-artifact-audit.mjs": "12f749cdb05b4bd7829f4b8f3c8fc83c321c4761b0dc8718a16b6b44258bec10",
-    "src/reporting/source.mjs": "36fa3417de94e7839724a38306d1d0c5355c9e459ec076ad4b6c71b464b78bc1",
+    "src/reporting/source.mjs": "7e5764cae710b7eea6667eb5a3547ab7b43fde476590cfde2c3849c543435a90",
     "src/reporting/tool-tests.mjs": "8ce60922b7339700dbc6c9e4299c2f51281fb6540d12515a4b877647dce2c41a",
     "src/reporting/check-tools.mjs": "b310e1717d72ee88247738f3157c927cad7078f43c9a57795e850aad45669263",
-    "tests/runner-source-snapshot.mjs": "3c95a608723d76ab5adee487a6b09bc34b8154019f107917ac223e635ef250ba",
+    "tests/runner-source-snapshot.mjs": "6cd06c7683d895954742354fe971b76c5335d713473ba1b5ac3fb859afd58bb2",
     "src/reporting/coverage.mjs": "4ca792a4d0f792415ee592e3d6113a69b52ba3b1fe58dd91e77de2d269c197d4",
     "tests/runner-coverage-inventory.mjs": "9bbbc51c43fded601457ff41f286a749e74a8174601aa3b810241acba9f63082",
     "src/reporting/verification.mjs": "446c2c7728fda8dab31f4396341f38bdb43f3f0a038dff34a514561c7d5a86c4",

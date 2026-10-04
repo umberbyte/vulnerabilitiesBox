@@ -6,6 +6,7 @@ import {authenticationPlan,establishAuthentication,AuthenticationError} from './
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
 import {correlateErrorCache} from './history-correlator.mjs';
 import {hasEnabledBenchmarkScanScript} from './script-inventory.mjs';
+import {runtimeSourceProof,compareRuntimeSourceProof} from '../reporting/source.mjs';
 
 const settings=options(process.env);
 const control=process.env.CONTROL_URL||'http://app:8099';
@@ -16,7 +17,7 @@ if(!controlKey||!apiKey||controlKey===apiKey)throw new Error('Separate operator 
 const runId='zap-'+new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomBytes(3).toString('hex');
 const output='/opt/benchmark/artifacts/'+runId;
 await mkdir(output,{recursive:true});
-const metadata={schema:'benchmark-scanner-run-0.2',runId,tool:'ZAP',image:process.env.ZAP_IMAGE,profile:settings.auth+'-'+settings.profile,startedAt:new Date().toISOString(),status:'starting',phase:'startup',targetOrigin:'https://app:8443',budgets:{wallSeconds:settings.seconds,requestedHttpRequests:settings.requests,requestedConcurrency:2,requestCap:'observed every 500ms; stop requested at threshold; overshoot possible; not a hard cap',concurrencyCap:'spider and active-scan worker threads set to 2 separately; no total server hard cap'},authReachability:{configuredAuthentication:settings.auth==='anonymous'?'none':settings.auth,subject:settings.auth==='anonymous'?null:settings.user,credentialsReplayed:false,identityVerified:false,protectedOperationVerified:false,protectedRoutes:'not assessed'},limitations:['Smoke run only; raw alert count is not TP/FP or vulnerability coverage.','HTTP counts cover all target public traffic during the measurement window; keep browsers and other scans idle.','No browser/AJAX crawler, role switching, multi-step workflow, OAST scoring, or Burp comparison.','No root, variant, V/F/N label, oracle or control key is supplied to ZAP.','Normal login/logout mutations are excluded from scanner replay; authentication is established separately with measured public HTTP.'],errors:[],steps:[]};
+const metadata={schema:'benchmark-scanner-run-0.2',runId,tool:'ZAP',image:process.env.ZAP_IMAGE,profile:settings.auth+'-'+settings.profile,startedAt:new Date().toISOString(),status:'starting',phase:'startup',targetOrigin:'https://app:8443',budgets:{wallSeconds:settings.seconds,requestedHttpRequests:settings.requests,requestedConcurrency:2,requestCap:'observed every 500ms; stop requested at threshold; overshoot possible; not a hard cap',concurrencyCap:'spider and active-scan worker threads set to 2 separately; no total server hard cap'},authReachability:{configuredAuthentication:settings.auth==='anonymous'?'none':settings.auth,subject:settings.auth==='anonymous'?null:settings.user,credentialsReplayed:false,identityVerified:false,protectedOperationVerified:false,protectedRoutes:'not assessed'},limitations:['Smoke run only; raw alert count is not TP/FP or vulnerability coverage.','HTTP counts cover all target public traffic during the measurement window; keep browsers and other scans idle.','No browser/AJAX crawler, role switching, multi-step workflow, OAST scoring, or Burp comparison.','No root, variant, V/F/N label, oracle or control key is supplied to ZAP.','Normal login/logout mutations are excluded from scanner replay; authentication is established separately with measured public HTTP.','Target runtime source proof covers src/ and package manifests only; it does not attest database, Redis, Mongo, LDAP, executor native binaries, or container image identity.'],errors:[],steps:[]};
 if(settings.auth!=='anonymous')metadata.limitations.push('Experimental missing-header assistance: existing Cookie/Authorization mutations are preserved, but completely omitted authentication headers are supplied again; do not score omission attacks with this profile.','No automatic session or token refresh; identity and normal protected operation are checked at phase boundaries and after scanning.','Final authentication verification is measured after stop requests and may add one or two requests to the soft request budget.','Raw HTTP artifacts can contain fixture login credentials, session identifiers and JWTs; run metadata and stdout omit those secret values.');
 if(settings.profile==='active-low') {
   metadata.activeScanPolicy={...lowPolicyDescription(),activeScanInvoked:false,cleanup:{required:false,removed:false}};
@@ -219,6 +220,9 @@ try {
   metadata.startupSeconds=(Date.now()-startup)/1000;
   metadata.phase='configuration';
   manifest=await ctl('/manifest');metadata.workspace=manifest.base;scope=publicScope(manifest);
+  metadata.targetRuntimeSource={controller:await runtimeSourceProof('/opt/benchmark'),targetBefore:await ctl('/source-proof')};
+  metadata.targetRuntimeSource.controllerMatch=compareRuntimeSourceProof(metadata.targetRuntimeSource.controller,metadata.targetRuntimeSource.targetBefore);
+  if(metadata.targetRuntimeSource.controllerMatch.status!=='matched')throw new Error('Target application runtime source differs from scan controller or proof is invalid.');
   for(const value of [manifest.credentials,...(manifest.roleProfiles||[])])onSecret(value?.password);
   metadata.inputFingerprints={publicManifestSha256:fingerprint(manifest)};
   await writeFile(output+'/public-inputs.json',JSON.stringify(manifest,null,2)+'\n');
@@ -289,6 +293,9 @@ try {
   else if(settings.auth!=='anonymous')metadata.authReachability.postScanVerified=false;
   recordMeasurementStop(await ctl('/measurement/stop',{}));measurementStarted=false;
   metadata.scanFinishedAt=new Date().toISOString();
+  metadata.targetRuntimeSource.targetAfter=await ctl('/source-proof');
+  metadata.targetRuntimeSource.scanMatch=compareRuntimeSourceProof(metadata.targetRuntimeSource.targetBefore,metadata.targetRuntimeSource.targetAfter);
+  if(metadata.targetRuntimeSource.scanMatch.status!=='matched')throw new Error('Target application runtime source changed during scan or proof is invalid.');
   metadata.budgets.observedRequestBudgetExceeded=metadata.measurement.count>settings.requests;
   metadata.budgets.observedConcurrencyExceeded=metadata.measurement.peakActive>2;
   metadata.phase='report';await collect();

@@ -36,7 +36,7 @@ sh ./scan-zap.sh active 120 300 bearer admin
 
 公開manifestの `requiredTargetOrigins` がHTTPS入口以外のoriginを要求すると、このadapterは計測開始前に `unsupported_target_surface` で終了します。R0461はHTTP開始点、R0457/R0458はHTTPS 8443から別originのHTTPS 8444へ送る収集経路を要求するため、現行runnerでは未対応です。宣言がない従来契約は現在のHTTPS入口を必要originとします。公開入力・workspace・manifest hashを保存し、未到達の対象面を検出／見逃しとして採点しません。
 
-現在のソースは337根本原因・500変種です。統合Docker検証では代表210根本原因・V/F/N計630条件を現行ソースで再確認しましたが、現行500変種全体やZAPの検出率を示しません。このrunnerがすべてのケースに必要な操作を行えるという意味でもありません。描画境界の成立確認では実Chromiumを使いますが、通常のrunnerにはDOM診断や実クリックの自動化がありません。localStorageとService Worker、認証をまたぐcache再利用、正常応答のIDを使うjob取消も、単なるHTTP探索の完了と区別してください。資源制限は有限の業務上限を検査し、物理的な負荷耐性を測定しません。現在の実装範囲は[カバレッジ資料](README-coverage.md)を参照してください。
+現在のソースは337根本原因・500変種です。代表210根本原因の保存済みDocker検証はV/F/N計630条件のうち629条件が合格し、R0226/B0226のV条件が失敗しました。この代表検証は後続のソース変更前の記録です。現行500変種全体やZAPの検出率を示しません。このrunnerがすべてのケースに必要な操作を行えるという意味でもありません。描画境界の成立確認では実Chromiumを使いますが、通常のrunnerにはDOM診断や実クリックの自動化がありません。localStorageとService Worker、認証をまたぐcache再利用、正常応答のIDを使うjob取消も、単なるHTTP探索の完了と区別してください。資源制限は有限の業務上限を検査し、物理的な負荷耐性を測定しません。現在の実装範囲は[カバレッジ資料](README-coverage.md)を参照してください。
 
 保存されたZAP生成HTML、台帳、回帰結果の入口は`artifacts/index.html`です。Windowsは`.\reports.cmd`、macOS/Linuxは`sh reports.sh`で生成します。このコマンドはオフラインの一覧作成だけを行い、スキャンしません。DOM add-onのR0041試行は実験用構成でVのみ検出確認済みであり、F/N検証と標準Docker構成への反映は未了です。
 
@@ -45,6 +45,8 @@ sh ./scan-zap.sh active 120 300 bearer admin
 以下の局所的な設定比較は、限定した入力と設定に対する動作確認です。全ケースのZAP検出実績とBurpとの比較は未測定です。過去の診断生データは公開リポジトリに含めていません。
 
 ケースは既存の `src/control.mjs reset ROOT V|F|N [seed]` で選択します。実行スクリプトは起動済みアプリのイメージを再ビルドせず、選択を変更しません。ソース更新後は先に `docker compose up --build -d --wait` を実行してからケースを選択してください。アプリのコンテナーを再作成すると初期ケースに戻ります。
+
+新しいZAPの`run.json`には、private controlから取得した対象アプリの`src/`とpackage manifestsのファイルハッシュ、およびNode実行環境を走査前後に記録します。scan-controller自身の同じ範囲と照合し、不一致ならそのrunを失敗にします。これは対象アプリの実行コードの対応付けであり、DB・Redis・Mongo・LDAP・executorの実行画像やコンテナーIDまでは証明しません。過去runに欠けた指紋は補完しません。ローカルの短いbaseline/N試走で前後105ファイルの一致とZAPのHTML生成を確認しましたが、この試走は検出評価に加えません。
 
 ## 独自ルールの実験
 
