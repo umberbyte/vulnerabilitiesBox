@@ -80,4 +80,10 @@ ChromiumでHTTPSの`Secure; SameSite=None`セッションを発行し、`https:/
 
 B0317を異なるサイト`https://attacker.test:8444`から送る試行は、Chromiumが第三者Cookieを付けず全条件HTTP 401でした。記録は`artifacts/docker-smoke-csrf-browser-vfn-v3-20261004.json`に残しています。また、404ページのCSPと合成ページのローカルアドレス制限による試行失敗も、それぞれ`artifacts/docker-smoke-csrf-browser-diagnostic2-20261004.json`、`artifacts/docker-smoke-csrf-browser-final-20261004.json`に残しました。これらは成立記録に算入しません。8変種のZAP検出と、異なるサイトからの成立条件は未確認です。
 
-2026-10-04時点の保存記録では、500変種中338変種に個別V/F/N合格記録があり、161変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### CORS許可条件3変種の成立範囲
+
+B0334とB0336では、HTTPSで認証後、別オリジンの実ページから認証付き`fetch`で会員レポートを取得しました。B0334は`evil.benchmark.test:8444`、B0336は`app.benchmark.test:8444`を攻撃元とし、Vのみブラウザーが実際のprivate canaryを読め、F/NはCORSで読めませんでした。正規の同一オリジン操作も各条件で成功しています。同じセッションのAPI要求では3条件ともHTTP 200でprivate canaryを含む応答を受け、CORS許可ヘッダーはVにだけ付きます。V/F/N計6条件の最終記録は`artifacts/extended-regression-saved-cors-browser-confirmed-20261005.json`と`artifacts/docker-smoke-cors-browser-confirmed-20261005.json`です。検証・対象の実行ソースと対象の実行前後のソースが一致しています。F/Nのブラウザー応答をPlaywrightの`response`イベントで直接待つ試行はタイムアウトしたため、失敗記録`artifacts/docker-smoke-cors-browser-response-20261005.json`を残し、合格記録には算入しません。
+
+B0335は、`Origin: http://app.benchmark.test:8443`を手で付けたHTTP要求ではVだけが許可ヘッダーを返し、F/Nでは返さないことを確認しました。しかし現在のDocker構成で同originの実ページを提供できず、ブラウザーが会員データを読めることは未確認です。再実行可能な`tests/cors-b0335-diagnostic.mjs`と`artifacts/cors-b0335-server-predicate-20261005.json`を診断記録として残します。最初の混合集計は`artifacts/docker-smoke-cors-three-initial-20261005.json`と`artifacts/diagnostic-extended-cors-three-initial-20261005.json`として保全し、個別V/F/N成立の集計には算入しません。攻撃元を実在させる構成とCookie送信条件を整えてから再判定します。3変種ともZAP検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中340変種に個別V/F/N合格記録があり、159変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。

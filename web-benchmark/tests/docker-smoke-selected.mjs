@@ -130,6 +130,35 @@ function csrfWithBrowser(root,variant,attempt,rejected=403){
   await csrfBrowserVariant(await reset(root,variant,mode),mode,variant);
  }];
 }
+async function corsVariant({base,canary},mode,variant){
+ const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
+ const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
+ const endpoint=target+base+'/v4-csrf/report';
+ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+ try{
+  const context=await browser.newContext({ignoreHTTPSErrors:true});
+  try{
+   const loginResponse=await context.request.post(target+base+'/login',{data:{username:'alice',password:'Fixture-alice-2026!'}});
+   assert(loginResponse.status()===200,'secure CORS login failed');
+   const normal=await context.request.get(endpoint,{headers:{origin:target}});
+   assert(normal.status()===200&&normal.headers()['access-control-allow-origin']===target&&(await normal.json()).privateData===canary,'normal CORS report access failed');
+   const probe=await context.request.get(endpoint,{headers:{origin:attacker}});
+   assert(probe.status()===200&&(await probe.json()).privateData===canary,'authenticated CORS report fixture absent');
+   assert((probe.headers()['access-control-allow-origin']===attacker)===(mode==='V'),'CORS response header arm mismatch');
+   const page=await context.newPage();
+   const navigation=await page.goto(attacker+'/browser-csrf-fixture');
+   assert(navigation?.status()===200&&new URL(page.url()).origin===attacker,'CORS attacker origin unavailable');
+   let attackRequest;
+   page.on('request',request=>{if(request.url()===endpoint)attackRequest=request;});
+   const result=await page.evaluate(async url=>{
+    try{const response=await fetch(url,{credentials:'include'});return {status:response.status,body:await response.json()};}
+    catch(error){return {blocked:String(error)};}
+   },endpoint);
+   assert(attackRequest&&new URL(attackRequest.url()).origin===target&&new URL(page.url()).origin===attacker,'CORS browser request did not cross origins');
+   assert(mode==='V'?result.status===200&&result.body?.privateData===canary:!!result.blocked,'browser CORS read arm mismatch: '+JSON.stringify(result));
+  }finally{await context.close();}
+ }finally{await browser.close();}
+}
 const cases=[
  ['R0377','B0378',async({base,canary},mode)=>{
   const first=await (await fetch(origin+base+'/v5-cache/public;private')).json();
@@ -272,6 +301,8 @@ const cases=[
  csrfWithBrowser('R0319','B0320',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{origin:'null'}})),
  csrfWithBrowser('R0319','B0321',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie)),
  csrfWithBrowser('R0319','B0322',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{referer:'https://evil.benchmark.test:8444/next?app.benchmark.test'}})),
+ ['R0333','B0334',(context,mode)=>corsVariant(context,mode,'B0334')],
+ ['R0333','B0336',(context,mode)=>corsVariant(context,mode,'B0336')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
