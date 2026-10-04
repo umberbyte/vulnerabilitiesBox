@@ -72,6 +72,7 @@ test('Docker report entry point generates an overview without changing acceptanc
   await writeFile(designPath,JSON.stringify(design));await writeFile(statusPath,JSON.stringify({summary:{implemented_roots:2,implemented_positive_variants:3}}));await writeFile(join(dir,'acceptance.json'),JSON.stringify(input));
   const original=await readFile(join(dir,'acceptance.json'));
   await generateReports(dir,{statusPath,sourceDesign:designPath});
-  const index=JSON.parse(await readFile(join(dir,'report-index.json'),'utf8')),overview=JSON.parse(await readFile(join(dir,'evidence-overview.json'),'utf8')),html=await readFile(join(dir,'index.html'),'utf8');
+  const index=JSON.parse(await readFile(join(dir,'report-index.json'),'utf8')),overview=JSON.parse(await readFile(join(dir,'evidence-overview.json'),'utf8')),linkage=JSON.parse(await readFile(join(dir,'evidence-linkage.json'),'utf8')),html=await readFile(join(dir,'index.html'),'utf8');
+  assert.equal(linkage.summary.withCompleteScan,0);assert.equal(linkage.summary.withoutCompleteScan,3);assert.match(html,/evidence-linkage.md/);
   assert.equal(index.evidenceOverview.summary.rootsWithAllVariantsVfnRecords,0);assert.equal(overview.summary.rootsWithAnyVfnRecordVariant,1);assert.equal(overview.summary.completeVfnSeriesRecords,0);assert.deepEqual(await readFile(join(dir,'acceptance.json')),original);assert.match(html,/評価資料の領域別一覧/);assert.match(html,/evidence-overview.md/);
 });

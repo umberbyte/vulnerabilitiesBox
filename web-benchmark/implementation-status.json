@@ -20816,7 +20816,7 @@
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
     "README-zap.md": "5fb92e401d7a300d30ca76c240af46a8cb4443e55fc6ab03b0e1b6e05955c6de",
-    "README.md": "624654e631d8ba8eb1f751a360fdcaaab88fc784b32a0ac77ec7d67590d6aebc",
+    "README.md": "81eca4f2b0372fe0a8f47a7ace784fdcbc9af3b90c06813502ee4e0f3bad8e2c",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20972,7 +20972,7 @@
     "src/runner/zap-rules/json-script-html-boundary.js": "ef82ccf405123b1642189809a9fa94adc89635d943529dcd6e9a7cb1cb3de4eb",
     "reports.cmd": "b79b1e32639e41448f6180192b5c69044c9b58db9c28055c13463553fa61fd26",
     "reports.sh": "2d292b31f53c2177c6900a6d29e08a112fa880ffda3d9af5e1fdb48c82994c29",
-    "src/reporting/index.mjs": "5ce14f6e95f34938861c43d4ef6aa8dc55d8e43eff917d6949a2f649694f70a1",
+    "src/reporting/index.mjs": "e04c8a9cd9991bd6cc8b87503457b9ab77ba850017fb166c7bdc98863c0d4d1b",
     "tests/runner-report-index.mjs": "d52ff108bcbf8b6e891d0720e485fb3b2ef3db1bd6ca9942c29c898273a11668",
     "src/reporting/files.mjs": "7aab9027bf1a68ae0aff065a6c7623bce26a7816bfd87ed061b07f2e92f7f18b",
     "src/reporting/audit.mjs": "838710960f92fe55916ce60d6d3e43237fbe809d774ad5fc420b5f20def3466d",
@@ -20990,7 +20990,9 @@
     "src/reporting/regression-archive.mjs": "b346c80706dd4b369aa395d38b630755a8f3b8c77d18ff045387e2b262ad145a",
     "tests/runner-regression-archive.mjs": "105f246f4b319fcfd5927e634cf1595fd08cccaeb8ff26efd08dd65991d629af",
     "src/reporting/overview.mjs": "4584d656ae8104eb17ec2740786b2f13643c46af7f83dcd286c4a278d90477d0",
-    "tests/runner-evidence-overview.mjs": "a9400977ad0bad4d65a0396a5dcf1207a893cbfca9d7fdfdb6d4fad24616f284",
+    "src/reporting/linkage.mjs": "fd92cfb3e72c1e9e83aa600dd093148c76a85fd23d5911a5dc0e13b80bd40a6b",
+    "tests/runner-evidence-overview.mjs": "3524c18cdd0a19926b7f1bd0f9b595852affa2e26447a22ed905a3431979af4b",
+    "tests/runner-evidence-linkage.mjs": "95b25bae7a4e7487ca3c63161ff3f5c5d168f82f5d0f5a2fea9b6758c82e988c",
     "src/reporting/environment.mjs": "9a9aa5a5b9b0fae66a52773908d20142429851a71fa2bfad26aafca9696ebb4c",
     "tests/runner-environment.mjs": "ce7e3c330e96d391af2a24683c84bfc2b4749b6c487ca960ca3a649e8fb47a65"
   }
