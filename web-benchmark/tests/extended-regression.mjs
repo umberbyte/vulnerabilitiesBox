@@ -3,9 +3,9 @@ import {spawn} from 'node:child_process';
 import {designCases,passedCells} from '../src/reporting/coverage.mjs';
 import {sourceSnapshot,compareSources} from '../src/reporting/source.mjs';
 
-const files=(await readdir('tests')).filter(name=>/^batch6-.*\.mjs$/.test(name)).sort();
+const files=(await readdir('tests')).filter(name=>/^(batch4-priority-|batch6-).*\.mjs$/.test(name)).sort();
 const design=designCases(JSON.parse(await readFile('../benchmark-design-v2.json','utf8')));
-const report={schema:'benchmark-extended-regression-0.2',startedAt:new Date().toISOString(),scope:'sequential batch6 Docker V/F/N tests with individual cell IDs; legacy representative acceptance and full 500-variant acceptance are separate',source:await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}),results:[]};
+const report={schema:'benchmark-extended-regression-0.2',startedAt:new Date().toISOString(),scope:'sequential priority SQL and batch6 Docker V/F/N tests with individual cell IDs; representative acceptance and full 500-variant acceptance are separate',source:await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}),results:[]};
 for(const file of files){
   const start=Date.now();
   const result=await new Promise(resolve=>{
