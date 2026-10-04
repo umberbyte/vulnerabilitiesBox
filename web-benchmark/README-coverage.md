@@ -110,4 +110,12 @@ B0214、B0215、B0216では本人の連絡先変更・両方のメール確認�
 
 ローカルDockerで10変種のV/F/N計30条件がすべて合格しました。最終記録は`artifacts/extended-regression-saved-account-ten-20261005.json`と`artifacts/docker-smoke-account-ten-20261005.json`です。先行する6変種18条件の記録も`artifacts/extended-regression-saved-account-six-20261005.json`と`artifacts/docker-smoke-account-six-20261005.json`に残しています。検証側と対象アプリの実行ソース、および対象の実行前後のソースが一致しました。これらのZAP検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中375変種に個別V/F/N合格記録があり、124変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### 会員認証・秘密の扱い5変種の個別成立確認
+
+B0192では正しいパスワードでの専用ログインとセッション成立を確認した後、同じ接頭8文字を持つ誤パスワードを比較しました。B0296では通常の連絡先更新後、roleを混ぜた会員モデル更新を行い、管理画面への到達と実DB更新イベントを照合しました。B0212では本人回復コードの発行、会員設定内の保存表現、正規の単回利用、二回目の拒否を確認しました。B0231とB0454では正規の会員リンクをChromiumでローカルHTTPS上に開き、セッションIDまたは秘密値が実際のブラウザURLへ残るかを比較しました。
+
+5変種のV/F/N計15条件がすべて合格しました。最終記録は`artifacts/extended-regression-saved-identity-five-20261005.json`と`artifacts/docker-smoke-identity-five-20261005.json`です。検証側・対象アプリの実行ソースと対象の実行前後のソースは一致しました。初回はChromium実行ファイルの指定漏れ、二回目はHTTP接続に対するChromiumのTLSエラーでB0231/B0454が止まりました。失敗記録は`artifacts/diagnostic-extended-identity-five-initial-20261005.json`と`artifacts/diagnostic-extended-identity-five-chromium-20261005.json`、対応する`diagnostic-docker-smoke-*`に保全しています。これらのZAP検出は未確認です。
+
+B0094は設計名が「Mongo projection」ですが、現行の`src/cases/batch4-auth-profile.mjs`はPostgreSQLの会員属性を読んで出力フィールドを絞る実装です。フィールド認可の比較には使えても、MongoDBのprojectionの診断評価とは同一視できません。実装の適合性を確認するまで、B0094の個別成立数を増やす対象から外しています。
+
+2026-10-05時点の保存記録では、500変種中380変種に個別V/F/N合格記録があり、119変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。

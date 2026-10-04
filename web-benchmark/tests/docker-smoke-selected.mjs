@@ -327,6 +327,76 @@ async function accountSessionVariant({base,canary},mode,variant){
  const logs=(await control('oracle')).caseState?.batch4Account?.logs;
  assert(logs?.length===1&&logs[0].kind==='access'&&(logs[0].url.includes(body.ownToken))===(mode==='V'),'reset token access log arm mismatch');
 }
+async function remainingIdentityVariant({base,canary},mode,variant){
+ if(variant==='B0192'){
+  const page=await fetch(origin+base+'/v4-account/signin');
+  assert(page.status===200,'dedicated normal sign-in page unavailable');
+  await page.arrayBuffer();
+  const normal=await json(base+'/v4-account/signin',{username:'alice',password:'Fixture-alice-2026!'});
+  assert(normal.status===200,'genuine account sign-in failed');
+  const normalCookie=normal.headers.get('set-cookie')?.split(';')[0];
+  const session=await fetch(origin+base+'/session',{headers:{cookie:normalCookie}});
+  assert(session.status===200&&(await session.json()).username==='alice','normal sign-in session missing');
+  const shortened=await json(base+'/v4-account/signin',{username:'alice',password:'Fixture-WRONG-2026!'});
+  assert(shortened.status===(mode==='V'?200:401),'truncated password comparison arm mismatch');
+  if(mode==='V'){
+   const cookie=shortened.headers.get('set-cookie')?.split(';')[0];
+   const forgedSession=await fetch(origin+base+'/session',{headers:{cookie}});
+   assert((await forgedSession.json()).username==='alice','truncated password did not create member session');
+  }
+  return;
+ }
+ if(['B0231','B0454'].includes(variant)){
+  const cookie=await login(base);
+  const normal=await fetch(origin+base+'/v4-account',{headers:{cookie}});
+  assert(normal.status===200,'normal account page unavailable');await normal.arrayBuffer();
+  const response=await json(base+'/v4-account',{operation:'link'},cookie);
+  assert(response.status===200,'normal account link generation failed');
+  const {link}=await response.json(),secret=variant==='B0231'?cookie.slice(4):canary;
+  assert(typeof link==='string'&&link.startsWith(base+'/v4-account/landing'),'account link missing');
+  assert(link.includes(secret)===(mode==='V'),'generated link secret arm mismatch');
+  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+  try{
+   const context=await browser.newContext({ignoreHTTPSErrors:true});
+   const page=await context.newPage();
+   await page.goto((process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app:8443')+link);
+   assert(page.url().includes(secret)===(mode==='V'),'browser address-history secret arm mismatch');
+   assert((await page.locator('body').textContent()).length>0,'normal account landing unavailable');
+  }finally{await browser.close();}
+  return;
+ }
+ if(variant==='B0296'){
+  const cookie=await login(base);
+  const page=await fetch(origin+base+'/b3-profile',{headers:{cookie}});
+  assert(page.status===200,'normal member profile unavailable');
+  const normal=await json(base+'/b3-profile',{contact:'normal@example.test'},cookie);
+  assert(normal.status===200,'normal contact save failed');
+  const updated=await json(base+'/b3-profile',{contact:'normal@example.test',role:'admin'},cookie);
+  assert(updated.status===200,'profile model update failed');
+  const management=await fetch(origin+base+'/b3-management',{headers:{cookie}});
+  assert(management.status===(mode==='V'?200:403),'mass-assignment management arm mismatch');
+  if(mode==='V')assert((await management.json()).report===canary,'admin report absent after mass assignment');
+  const events=(await control('oracle')).caseState?.protocolBatch?.events||[];
+  assert(events.filter(item=>item.kind==='profile-save').length===2,'profile save events missing');
+  assert(events.some(item=>item.kind==='profile-save'&&item.data?.role===(mode==='V'?'admin':'user')),'persisted profile role event absent');
+  return;
+ }
+ const cookie=await login(base);
+ const page=await fetch(origin+base+'/b3-codes',{headers:{cookie}});
+ assert(page.status===200,'normal recovery code page unavailable');await page.arrayBuffer();
+ const issue=await json(base+'/b3-codes',{},cookie);
+ assert(issue.status===200,'normal recovery code issuance failed');
+ const {code}=await issue.json();assert(typeof code==='string'&&code.length>16,'recovery code absent');
+ const settings=await fetch(origin+base+'/b3-settings',{headers:{cookie}});
+ assert(settings.status===200,'normal member settings unavailable');
+ assert(JSON.stringify(await settings.json()).includes(code)===(mode==='V'),'recoverable code storage arm mismatch');
+ const reset=await json(base+'/b3-reset',{token:code,password:'Changed-alice-2026!'},cookie);
+ assert(reset.status===200,'genuine recovery code could not reset password');
+ const again=await json(base+'/b3-reset',{token:code,password:'Changed-again-2026!'},cookie);
+ assert(again.status===400,'recovery code was accepted twice');
+ const alice=(await control('oracle')).users.find(user=>user.name==='alice');
+ assert(alice?.password==='Changed-alice-2026!','recovery password state mismatch');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -598,6 +668,11 @@ const cases=[
  ['R0228','B0302',(context,mode)=>accountSessionVariant(context,mode,'B0302')],
  ['R0208','B0209',(context,mode)=>accountSessionVariant(context,mode,'B0209')],
  ['R0208','B0345',(context,mode)=>accountSessionVariant(context,mode,'B0345')],
+ ['R0184','B0192',(context,mode)=>remainingIdentityVariant(context,mode,'B0192')],
+ ['R0208','B0231',(context,mode)=>remainingIdentityVariant(context,mode,'B0231')],
+ ['R0208','B0454',(context,mode)=>remainingIdentityVariant(context,mode,'B0454')],
+ ['R0095','B0296',(context,mode)=>remainingIdentityVariant(context,mode,'B0296')],
+ ['R0212','B0212',(context,mode)=>remainingIdentityVariant(context,mode,'B0212')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
