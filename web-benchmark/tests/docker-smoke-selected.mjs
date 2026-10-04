@@ -25,7 +25,7 @@ async function control(...args){
   if(!controlKey)throw Error('BENCHMARK_CONTROL_KEY is required with CONTROL_URL');
   const [action,root,mode,seed,variant]=args;
   const response=await fetch(controlUrl+(action==='reset'?'/reset':'/oracle'),{method:action==='reset'?'POST':'GET',headers:{'x-benchmark-key':controlKey,'content-type':'application/json'},...(action==='reset'?{body:JSON.stringify({root,mode,seed,variant})}:{})});
-  if(!response.ok)throw Error('Control request failed: '+response.status);
+  if(!response.ok)throw Error('Control request failed: '+response.status+' '+(await response.text()).slice(0,300));
   return response.json();
  }
  const {stdout}=await runFile(docker,['exec',container,'node','src/control.mjs',...args],{timeout:15000,maxBuffer:1024*1024});
@@ -129,6 +129,28 @@ function csrfWithBrowser(root,variant,attempt,rejected=403){
   await csrfVariant(context,mode,attempt,rejected);
   await csrfBrowserVariant(await reset(root,variant,mode),mode,variant);
  }];
+}
+async function publicFileVariant({base,canary},mode,variant,name){
+ const guide=await fetch(origin+base+'/v5-files?name=guide.txt');
+ assert(guide.status===200&&await guide.text()==='Public file guide','normal public guide unavailable');
+ const endpoint=origin+base+'/v5-files?name='+encodeURIComponent(name);
+ if(variant==='B0459'){
+  const before=await fetch(endpoint);
+  assert(before.status===404,'temporary file exists before processing');
+  await before.arrayBuffer();
+  const operation=await json(base+'/v5-files',{action:'process'});
+  assert(operation.status===200,'normal file processing failed');
+  await operation.arrayBuffer();
+ }
+ const response=await fetch(endpoint);
+ assert(response.status===(mode==='V'?200:404),'secret file visibility arm mismatch: HTTP '+response.status);
+ if(mode==='V')assert((await response.text()).includes(canary),'published file does not contain actual private canary');
+ else await response.arrayBuffer();
+ const state=(await control('oracle')).caseState?.batch5Files;
+ assert(state?.variant===variant&&state.publicSecretFile===(mode==='V'),'filesystem audit disagrees with public response');
+ const unrelated=await fetch(origin+base+'/v5-files?name='+encodeURIComponent('other-secret.txt'));
+ assert(unrelated.status===404,'unlisted filename was accepted');
+ await unrelated.arrayBuffer();
 }
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
@@ -303,6 +325,11 @@ const cases=[
  csrfWithBrowser('R0319','B0322',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{referer:'https://evil.benchmark.test:8444/next?app.benchmark.test'}})),
  ['R0333','B0334',(context,mode)=>corsVariant(context,mode,'B0334')],
  ['R0333','B0336',(context,mode)=>corsVariant(context,mode,'B0336')],
+ ['R0455','B0459',(context,mode)=>publicFileVariant(context,mode,'B0459','temporary.txt')],
+ ['R0455','B0460',(context,mode)=>publicFileVariant(context,mode,'B0460','backup.sql')],
+ ['R0455','B0467',(context,mode)=>publicFileVariant(context,mode,'B0467','app.js.map')],
+ ['R0455','B0468',(context,mode)=>publicFileVariant(context,mode,'B0468','.git/log')],
+ ['R0455','B0469',(context,mode)=>publicFileVariant(context,mode,'B0469','.env')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

@@ -49,7 +49,7 @@ async function reset(spec) {
     await writeFile('/opt/benchmark/fixtures/private/report.txt',next.canary);
     const response=await fetch(executor+'/reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({canary:next.canary})});
     if(!response.ok)throw new Error('executor reset failed');
-    run=next;await resetCases({db,redis,getRun:()=>run,token,createPool:options=>new pg.Pool(options),databaseUrl:process.env.DATABASE_URL});return manifest();
+    run=next;await resetCases({db,redis,getRun:()=>run,vulnerable,token,createPool:options=>new pg.Pool(options),databaseUrl:process.env.DATABASE_URL});return manifest();
   } finally {resetting=false;}
 }
 function manifest() {

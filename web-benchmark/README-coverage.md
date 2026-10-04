@@ -86,4 +86,10 @@ B0334とB0336では、HTTPSで認証後、別オリジンの実ページから�
 
 B0335は、`Origin: http://app.benchmark.test:8443`を手で付けたHTTP要求ではVだけが許可ヘッダーを返し、F/Nでは返さないことを確認しました。しかし現在のDocker構成で同originの実ページを提供できず、ブラウザーが会員データを読めることは未確認です。再実行可能な`tests/cors-b0335-diagnostic.mjs`と`artifacts/cors-b0335-server-predicate-20261005.json`を診断記録として残します。最初の混合集計は`artifacts/docker-smoke-cors-three-initial-20261005.json`と`artifacts/diagnostic-extended-cors-three-initial-20261005.json`として保全し、個別V/F/N成立の集計には算入しません。攻撃元を実在させる構成とCookie送信条件を整えてから再判定します。3変種ともZAP検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中340変種に個別V/F/N合格記録があり、159変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### 公開ファイル配置5変種の実ファイル確認
+
+B0459、B0460、B0467、B0468、B0469について、ローカルDockerのtmpfsに実ファイルを配置し、V/F/N計15条件を確認しました。各条件で公開ガイドは読め、秘密を含む一時ファイル、バックアップ、ソースマップ、VCSメタデータ、設定ファイルはVのみHTTP 200で実際のprivate canaryを返し、F/NではHTTP 404でした。B0459は正常な処理操作の前には一時ファイルが存在しないことも確認しました。private oracleの実ファイル監査と公開応答の結果は一致しています。最終記録は`artifacts/extended-regression-saved-file-exposure-five-confirmed-20261005.json`と`artifacts/docker-smoke-file-exposure-five-confirmed-20261005.json`で、検証・対象の実行ソースと対象の実行前後のソースが一致しました。
+
+初回はB0459の3条件だけ通り、残る変種は環境リセット時にHTTP 400で止まりました。応答本文に`vulnerable is not a function`とあり、アプリが実ファイル配置処理へ必要な関数を渡していない実装不整合を修正しました。失敗記録は`artifacts/docker-smoke-file-exposure-five-20261005.json`と`artifacts/docker-smoke-file-exposure-five-diagnostic-20261005.json`に保全し、成立件数に算入しません。この5変種のZAP検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中345変種に個別V/F/N合格記録があり、154変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
