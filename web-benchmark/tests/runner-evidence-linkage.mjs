@@ -11,10 +11,11 @@ const series=(variant,root,seed='one')=>({variant,root,seed,replicate:1,profile:
 test('linkage separates missing truth from unlinked source without claiming detection',()=>{
   const audit={schema:'benchmark-artifact-audit-0.1',ledgers:[{path:'one-ledger.json',planVerified:true,series:[series('B0001','R0001'),series('B0002','R0001'),series('B0002','R0001','two')]}]};
   const result=evidenceLinkage(coverage,audit);
-  assert.deepEqual(result.summary,{variants:3,withCompleteScan:2,withoutCompleteScan:1,completeScanWithoutIndividualVfn:1,completeScanWithIndividualVfnButSourceUnlinked:1,verifiedSourceLinked:0,dependencyEnvironmentLinked:0,issues:0});
+  assert.deepEqual(result.summary,{variants:3,withCompleteScan:2,withoutCompleteScan:1,completeScanWithoutIndividualVfn:1,completeScanWithIndividualVfnButSourceUnlinked:1,scanRuntimeSourceNotRecorded:1,scanRuntimeSourceProofUnavailable:0,acceptanceScanRuntimeSourceUnmatched:0,verifiedSourceLinked:0,dependencyEnvironmentLinked:0,issues:0});
   assert.equal(result.variants.find(row=>row.variant==='B0002').completeScanSeries.length,2);
   assert.equal(result.variants.find(row=>row.variant==='B0003').state,'no_complete_scan');
-  assert.match(linkageMarkdown(result),/ソース・環境の対応付けを確認/);
+  assert.equal(result.variants.find(row=>row.variant==='B0001').sourceLinkBlocker,'scan_runtime_source_not_recorded');
+  assert.match(linkageMarkdown(result),/走査時ソース指紋なし。新規測定で記録/);
 });
 test('only a complete series with byte-matched individual V/F/N source is linked',()=>{
   const files={'package-lock.json':'a'.repeat(64),'package.json':'b'.repeat(64),'src/app.mjs':'c'.repeat(64)};
@@ -27,7 +28,12 @@ test('only a complete series with byte-matched individual V/F/N source is linked
   assert.equal(linked.variants[0].sourceLink.files,3);
   assert.match(linkageMarkdown(linked),/実行ソース一致・依存環境とアラートを確認/);
   const stale=structuredClone(audit);stale.runtimeSources[sha].files['src/app.mjs']='e'.repeat(64);
-  assert.equal(evidenceLinkage(input,stale).summary.verifiedSourceLinked,0);
+  const mismatched=evidenceLinkage(input,stale);
+  assert.equal(mismatched.summary.verifiedSourceLinked,0);
+  assert.equal(mismatched.summary.acceptanceScanRuntimeSourceUnmatched,1);
+  assert.equal(mismatched.variants[0].sourceLinkBlocker,'acceptance_scan_runtime_source_unmatched');
+  const missingProof=structuredClone(audit);delete missingProof.runtimeSources[sha];
+  assert.equal(evidenceLinkage(input,missingProof).summary.scanRuntimeSourceProofUnavailable,1);
   input.rows[0].evidence=input.rows[0].evidence.filter(item=>item.arm!=='N');
   assert.equal(evidenceLinkage(input,audit).summary.verifiedSourceLinked,0);
 });
