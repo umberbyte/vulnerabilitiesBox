@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {coverageInventory,coverageMarkdown,designCases,passedCells} from '../src/reporting/coverage.mjs';
 
 const design={variants:[{id:'B0001',root_id:'R0001',title:'検索',comparison_track:'core_dast'},{id:'B0002',root_id:'R0001',title:'検索の変種',comparison_track:'core_dast'},{id:'B0491',root_id:'R0491',title:'native',comparison_track:'native_lab'}]};
@@ -16,6 +17,19 @@ test('repeated records are deduplicated and partial V/F does not become V/F/N',(
 test('old aggregate results do not fabricate individual case evidence',()=>{
   const result=coverageInventory(design,[{path:'extended.json',data:{schema:'benchmark-extended-regression-0.1',summary:{reportedCells:168}}}]);
   assert.equal(result.summary.aggregateReports,1);assert.equal(result.summary.variantsWithoutIndividualRecords,3);assert.equal(result.summary.uniquePassedVariantArmRecords,0);
+});
+test('recorded acceptance source must be valid and stable before its cells count',()=>{
+  const source={schema:'benchmark-source-snapshot-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',files:{},sha256:createHash('sha256').update('{}').digest('hex')};
+  const data={schema:'benchmark-acceptance-0.2',seed:'fixture-seed',source,sourceAfter:{status:'matched',recordedSha256:source.sha256,currentSha256:source.sha256},results:['V','F','N'].map(arm=>cell('B0001',arm))};
+  const matched=coverageInventory(design,[{path:'new.json',data}]);
+  assert.equal(matched.summary.variantsWithVfnRecords,1);
+  assert.equal(matched.sources[0].sourceSha256,source.sha256);
+  assert.equal(matched.sources[0].seed,'fixture-seed');
+  for(const bad of [{...data,sourceAfter:{status:'changed'}},{...data,sourceAfter:undefined},{...data,source:{...source,sha256:'0'.repeat(64)}}]){
+    const inventory=coverageInventory(design,[{path:'new.json',data:bad}]);
+    assert.equal(inventory.summary.variantsWithVfnRecords,0);
+    assert.deepEqual(inventory.issues,[{source:'new.json',code:'source_snapshot_unstable_or_invalid'}]);
+  }
 });
 test('unknown, relabelled, duplicate, and summary-mismatched cells are excluded',()=>{
   for(const cells of [[cell('B9999','V')],[{...cell('B0001','V'),root:'R0002'}],[cell('B0001','V'),cell('B0001','V')]])assert.equal(coverageInventory(design,[report('a',cells)]).summary.issues,1);

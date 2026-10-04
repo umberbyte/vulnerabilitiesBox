@@ -1,4 +1,5 @@
 import {artifactReader} from './files.mjs';
+import {compareSources} from './source.mjs';
 
 export function designCases(design){
   if(!Array.isArray(design.variants)||design.variants.length>1000)throw Error('Invalid design variants');
@@ -32,6 +33,10 @@ export function coverageInventory(design,reports){
     if(data.schema==='benchmark-extended-regression-0.1'){
       aggregateEvidence.push({path,scope:'file-level aggregate only; individual variant and arm evidence was not retained',summary:data.summary});continue;
     }
+    if(data.schema==='benchmark-acceptance-0.2'&&data.source){
+      const stable=compareSources(data.source,data.source).status==='matched'&&data.sourceAfter?.status==='matched'&&data.sourceAfter.recordedSha256===data.source.sha256&&data.sourceAfter.currentSha256===data.source.sha256;
+      if(!stable){warn(path,'source_snapshot_unstable_or_invalid');continue;}
+    }
     let cells,allowed=['V','F','N'];
     if(data.schema==='benchmark-acceptance-0.2')cells=data.results;
     else if(data.schema==='benchmark-docker-smoke-selected-0.1'){cells=data.results;allowed=['V','F'];}
@@ -52,7 +57,7 @@ export function coverageInventory(design,reports){
     }
     if(invalid){warn(path,'invalid_or_duplicate_case');continue;}
     if(data.summary?.cells!==undefined&&data.summary.cells!==cells.length){warn(path,'summary_cell_count_mismatch');continue;}
-    sources.push({path,startedAt:data.started||data.startedAt,cells:accepted.length,sourceSnapshotRecorded:Boolean(data.source)});
+    sources.push({path,startedAt:data.started||data.startedAt,cells:accepted.length,sourceSnapshotRecorded:Boolean(data.source),...(data.source?.sha256?{sourceSha256:data.source.sha256}:{}),...(data.seed?{seed:data.seed}:{})});
     for(const {cell,passed}of accepted){
       const row=byVariant.get(cell.variant),arms=passed?row.passedArms:row.failedArms;
       if(!arms.includes(cell.mode))arms.push(cell.mode);
