@@ -1036,6 +1036,28 @@ async function httpBoundaryVariant({base},mode,variant){
  assert(events.some(item=>item.kind==='wire-request'&&item.data?.target==='/public'),'normal public backend event absent');
  assert(events.some(item=>item.kind===action&&item.actor==='alice')===(mode==='V'),'forbidden backend action arm mismatch');
 }
+async function localFetchVariant({base,canary},mode,variant){
+ const page=await fetch(origin+base+'/v4-fetch');
+ assert(page.status===200,'normal local-fetch page unavailable');await page.arrayBuffer();
+ const payload=value=>variant==='B0120'?{relationship:`<Relationships><Relationship Target="${value}"/></Relationships>`}:variant==='B0175'?{schema:{$ref:value}}:{url:value,...(variant==='B0180'?{fallback:'http://public.fixture.test/'}:{})};
+ const normal=await json(base+'/v4-fetch',payload('http://public.fixture.test/'));
+ assert(normal.status===200,'registered public fetch failed');
+ const publicBody=await normal.json();
+ assert(publicBody.target==='public'&&publicBody.body==='Public guide','normal local public response mismatch');
+ const privateUrl=variant==='B0165'?'http://[::1]/':variant==='B0166'?'http://[::ffff:127.0.0.1]/':variant==='B0177'?'http://public.fixture.test@internal.fixture.test/':'http://internal.fixture.test/';
+ const candidate=variant==='B0180'?{url:'http://public.fixture.test/missing',fallback:privateUrl}:payload(privateUrl);
+ const attempt=await json(base+'/v4-fetch',candidate);
+ assert(attempt.status===(mode==='V'?200:403),'local internal fetch admission arm mismatch');
+ const result=await attempt.json();
+ if(mode==='V')assert(result.target==='private'&&result.body===canary,'internal fixture response absent');
+ const records=(await control('oracle')).caseState?.batch4Fetch?.records;
+ const normalPath=variant==='B0174'?'/.well-known/openid-configuration':'/';
+ assert(Array.isArray(records)&&records.some(item=>item.target==='public'&&item.path===normalPath),'normal public network request not audited');
+ assert(records.some(item=>item.target==='private')===(mode==='V'),'internal network request audit arm mismatch');
+ if(variant==='B0173')assert(records.some(item=>item.registeredCallback===privateUrl)===(mode==='V'),'webhook registration side effect arm mismatch');
+ if(variant==='B0174'&&mode==='V')assert(records.some(item=>item.target==='private'&&item.path==='/.well-known/openid-configuration'),'issuer metadata path audit absent');
+ if(variant==='B0180')assert(records.some(item=>item.target==='public'&&item.path==='/missing'),'fallback initial missing response absent');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -1377,6 +1399,15 @@ const cases=[
  ['R0364','B0364',(context,mode)=>httpBoundaryVariant(context,mode,'B0364')],
  ['R0365','B0365',(context,mode)=>httpBoundaryVariant(context,mode,'B0365')],
  ['R0366','B0366',(context,mode)=>httpBoundaryVariant(context,mode,'B0366')],
+ ['R0117','B0120',(context,mode)=>localFetchVariant(context,mode,'B0120')],
+ ['R0117','B0161',(context,mode)=>localFetchVariant(context,mode,'B0161')],
+ ['R0164','B0165',(context,mode)=>localFetchVariant(context,mode,'B0165')],
+ ['R0164','B0166',(context,mode)=>localFetchVariant(context,mode,'B0166')],
+ ['R0117','B0173',(context,mode)=>localFetchVariant(context,mode,'B0173')],
+ ['R0117','B0174',(context,mode)=>localFetchVariant(context,mode,'B0174')],
+ ['R0117','B0175',(context,mode)=>localFetchVariant(context,mode,'B0175')],
+ ['R0162','B0177',(context,mode)=>localFetchVariant(context,mode,'B0177')],
+ ['R0167','B0180',(context,mode)=>localFetchVariant(context,mode,'B0180')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

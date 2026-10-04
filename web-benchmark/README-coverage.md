@@ -172,4 +172,8 @@ B0150の重複multipart file、B0359の重複query、B0360のquery/body指定差
 
 B0351のCL/TE優先順位、B0356のbody境界、B0357のmethod override、B0358のpath正規化、B0364のHost、B0365の`X-Original-URL`、B0366のabsolute-form request-targetを、ローカルのfrontend/backend二段構成で確認しました。各条件で公開経路の正常応答と実socket上のtraceを確認したうえで、Vだけが内部管理操作または記録削除へ到達したかを対象アプリの監査イベントで照合しました。7変種のV/F/N計21条件は`artifacts/extended-regression-saved-http-boundary-seven-20261005.json`と`artifacts/docker-smoke-http-boundary-seven-20261005.json`に記録しました。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。これらは制限されたfixtureであり、汎用HTTP parserの脆弱性やZAP検出を示すものではありません。
 
-2026-10-05時点の保存記録では、500変種中432変種に個別V/F/N合格記録があり、67変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### ローカル取得・SSRF 9変種の個別確認
+
+B0120、B0161、B0165、B0166、B0173、B0174、B0175、B0177、B0180について、登録済み公開先への正常取得と、内部loopback先への接続を比較しました。Vではprivate canaryを含む応答と内部接続の監査記録があり、F/Nでは内部接続を拒否して監査記録にも残らないことを確認しています。B0173は通知先の登録記録、B0174はissuerメタデータの取得経路、B0180は公開先の404から代替先への遷移も照合しました。通信先はベンチマーク内のloopback fixtureに限定しています。9変種のV/F/N計27条件は`artifacts/extended-regression-saved-local-fetch-nine-20261005.json`と`artifacts/docker-smoke-local-fetch-nine-20261005.json`に保存しました。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。ZAPによる検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中441変種に個別V/F/N合格記録があり、58変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
