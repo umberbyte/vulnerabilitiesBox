@@ -52,7 +52,7 @@ try{
 
   await stage('extended-variants',['tests/extended-regression.mjs']);
   const extended=JSON.parse(await readFile('artifacts/extended-regression.json','utf8'));
-  if(extended.summary.files!==25||extended.summary.passed!==25||extended.summary.failed!==0||extended.summary.reportedCells!==225)throw Error('Extended variant summary is incomplete');
+  if(extended.summary.files!==25||extended.summary.passed!==25||extended.summary.failed!==0||extended.summary.reportedCells!==234)throw Error('Extended variant summary is incomplete');
   report.stages.at(-1).summary=extended.summary;
 
   await stage('selected-smoke',['tests/docker-smoke-selected.mjs'],{BENCHMARK_VALIDATION_ORIGIN:'http://app:8080',BENCHMARK_SMOKE_REPORT:'artifacts/docker-smoke-selected-run.json'});
@@ -65,9 +65,9 @@ report.finishedAt=new Date().toISOString();
 report.summary={stages:report.stages.length,passed:report.stages.filter(item=>item.status==='passed').length,failed:report.stages.filter(item=>item.status==='failed').length,complete:!failure};
 if(failure)report.error=failure.message;
 await writeFile('artifacts/full-regression.json',JSON.stringify(report,null,2)+'\n');
-const labels={'unit':'単体テスト','representative-acceptance':'代表210根本原因のV/F/N','extended-variants':'追加75変種のV/F/N','selected-smoke':'選択10変種のV/F'};
+const labels={'unit':'単体テスト','representative-acceptance':'代表210根本原因のV/F/N','extended-variants':'追加78変種のV/F/N','selected-smoke':'選択10変種のV/F'};
 const counts={'unit':item=>`${item.summary.passed}/${item.summary.tests} テスト`,'representative-acceptance':item=>`${item.summary.passed}/${item.summary.cells} 条件、${item.summary.checks} チェック`,'extended-variants':item=>`${item.summary.reportedCells} 条件、${item.summary.passed}/${item.summary.files} テストファイル`,'selected-smoke':item=>`${item.summary.passed}/${item.summary.cells} 条件`};
 const rows=report.stages.map(item=>`| ${labels[item.name]} | ${item.status==='passed'?'合格':'失敗'} | ${item.summary?counts[item.name](item):'—'} |`).join('\n');
-await writeFile('artifacts/full-regression.md',`# Docker回帰テスト結果\n\n実行: ${report.startedAt} – ${report.finishedAt}\n\n| 検証 | 結果 | 合格数 |\n|---|---|---|\n${rows}\n\nソース実装は337根本原因・500変種です。この実行は代表210根本原因のV/F/N、追加75変種の専用V/F/N、選択10変種のV/F、および単体テストを検証します。500変種すべてのV/F/N成立確認とZAP/Burp検出率測定は含みません。\n${failure?'\n失敗: '+failure.message+'\n':''}`);
+await writeFile('artifacts/full-regression.md',`# Docker回帰テスト結果\n\n実行: ${report.startedAt} – ${report.finishedAt}\n\n| 検証 | 結果 | 合格数 |\n|---|---|---|\n${rows}\n\nソース実装は337根本原因・500変種です。この実行は代表210根本原因のV/F/N、追加78変種の専用V/F/N、選択10変種のV/F、および単体テストを検証します。500変種すべてのV/F/N成立確認とZAP/Burp検出率測定は含みません。\n${failure?'\n失敗: '+failure.message+'\n':''}`);
 console.log(JSON.stringify(report.summary));
 if(failure)process.exitCode=1;

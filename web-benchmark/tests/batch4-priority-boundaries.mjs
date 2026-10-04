@@ -14,9 +14,12 @@ async function ctl(path,body){
 }
 const cases=[
   {root:'R0061',variant:'B0061',kind:'engine',normal:{template:'Guide: {{2+2}}'},attack:{template:'Message: {{secret}}'}},
+  {root:'R0064',variant:'B0064',kind:'engine',normal:{template:'{{name}}',environmentOptions:{}},attack:{template:'{{secret}}',environmentOptions:{exposeEnvironment:true}}},
   {root:'R0065',variant:'B0065',kind:'engine',normal:{evalText:'7'},attack:{evalText:'mark()'}},
   {root:'R0121',variant:'B0122',kind:'file',attack:{name:'/opt/benchmark/fixtures/v4-files/private/report.txt'}},
+  {root:'R0121',variant:'B0134',kind:'file-search',attack:{name:'../private/*.txt'}},
   {root:'R0123',variant:'B0136',kind:'file',attack:{name:'．．/private/report.txt'}},
+  {root:'R0126',variant:'B0139',kind:'file-write',attack:{name:'current.txt'}},
   {root:'R0331',variant:'B0339',kind:'cors'}
 ];
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
@@ -40,15 +43,21 @@ try{
         assert.equal((await attack.text()).includes(before.canary),mode==='V',`${item.variant} ${mode} engine marker`);
         const after=await ctl('/oracle');
         assert.ok(after.caseState?.enginesBatch?.records?.length>=2,`${item.variant} normal and boundary operations recorded`);
-      }else if(item.kind==='file'){
+      }else if(item.kind.startsWith('file')){
         const endpoint=base+'/v4-files';
-        const normal=await context.request.post(endpoint,{data:{name:'guide.txt'}});
+        const normalName=item.kind==='file-search'?'*.txt':item.kind==='file-write'?'new.txt':'guide.txt';
+        const normal=await context.request.post(endpoint,{data:{name:normalName}});
         assert.equal(normal.status(),200,`${item.variant} normal file`);
-        assert.equal((await normal.text()).includes('Public user guide'),true,`${item.variant} public file intact`);
+        if(item.kind==='file-write')assert.equal((await normal.json()).written,true,`${item.variant} normal draft write`);
+        else assert.equal((await normal.text()).includes('Public user guide'),true,`${item.variant} public file intact`);
         const attack=await context.request.post(endpoint,{data:item.attack});
-        assert.equal((await attack.text()).includes(before.canary),mode==='V',`${item.variant} ${mode} private file exposure`);
+        if(item.kind==='file-write'){
+          assert.equal(attack.status(),mode==='V'?200:403,`${item.variant} ${mode} symlink overwrite status`);
+          const after=await ctl('/oracle');
+          assert.equal(after.caseState?.batch4Files?.privateReportIntact,mode!=='V',`${item.variant} ${mode} private file integrity`);
+        }else assert.equal((await attack.text()).includes(before.canary),mode==='V',`${item.variant} ${mode} private file exposure`);
         if(mode==='N'){
-          const benign=await context.request.post(endpoint,{data:{name:'guide.txt'}});
+          const benign=await context.request.post(endpoint,{data:{name:item.kind==='file-write'?'another.txt':normalName}});
           assert.equal(benign.status(),200,`${item.variant} hard-negative public file`);
         }
       }else{
