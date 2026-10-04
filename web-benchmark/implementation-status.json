@@ -9,7 +9,7 @@
     "implemented_positive_variants": 500,
     "fixed_representative_controls": 337,
     "safe_analogue_conditions": 337,
-    "validated_execution_cells": 920,
+    "validated_execution_cells": 929,
     "remaining_unimplemented_roots": 0,
     "remaining_unimplemented_positive_variants": 0,
     "checks": 13198,
@@ -24,7 +24,7 @@
     "previous_release_verified_roots": 210,
     "pending_final_acceptance_roots": 127,
     "planned_execution_cells": 1011,
-    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_261_passed_extended_variant_cells_on_current_source_plus_30_passed_selected_vfn_cells_on_prior_source; one_representative_cell_failed; no_current_full_representative_retest",
+    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_270_passed_extended_variant_cells_on_current_source_plus_30_passed_selected_vfn_cells_on_current_source; one_representative_cell_failed; no_current_full_representative_retest",
     "additional_source_variants": 163
   },
   "verification": {
@@ -179,16 +179,16 @@
       "applies_to_current_source": false
     },
     "current_source_extended_variants": {
-      "variants": 87,
+      "variants": 90,
       "arms": [
         "V",
         "F",
         "N"
       ],
-      "passed_cells": 261,
-      "test_files": 26,
+      "passed_cells": 270,
+      "test_files": 27,
       "report": "artifacts/extended-regression.json",
-      "source_sha256": "c2ba84baf701f9d67475c2798644d967226509405ef94735c81b7d609f65efab",
+      "source_sha256": "17b0d0ee6794d79464a418376c8cbf534b2b7e0cecb7ff296ce4ccee55b2d58b",
       "source_after": "matched"
     },
     "current_source_unit": {
@@ -213,11 +213,11 @@
       "passed": 296,
       "tests": 296,
       "files": 24,
-      "source_sha256": "c2ba84baf701f9d67475c2798644d967226509405ef94735c81b7d609f65efab",
+      "source_sha256": "17b0d0ee6794d79464a418376c8cbf534b2b7e0cecb7ff296ce4ccee55b2d58b",
       "source_snapshot_recorded": true,
       "application_acceptance": false,
       "scanner_measurement": false,
-      "archive": "verification-history/tools-2026-10-04T11-46-05-846Z-68a87dc7-b369-4f10-b519-3d6c4ee73a0c",
+      "archive": "verification-history/tools-2026-10-04T12-17-34-711Z-e3018474-68c2-41db-9ac3-b874ebde1e73",
       "environment_recorded": true,
       "environment_scope": "offline-tools-process"
     },
@@ -264,9 +264,9 @@
     "latest_individual_acceptance_inventory": {
       "report": "artifacts/coverage-inventory.md",
       "machine_report": "artifacts/coverage-inventory.json",
-      "variants_with_vfn_records": 305,
+      "variants_with_vfn_records": 308,
       "variants_with_partial_records": 0,
-      "variants_without_individual_records": 194,
+      "variants_without_individual_records": 191,
       "variants_with_failed_or_conflicting_records": 1,
       "scanner_detection_scored": false
     },
@@ -274,24 +274,32 @@
       "report": "artifacts/evidence-linkage.md",
       "machine_report": "artifacts/evidence-linkage.json",
       "audited_complete_scan_variants": 227,
-      "without_individual_vfn_records": 86,
-      "with_individual_vfn_but_source_unlinked": 140,
+      "without_individual_vfn_records": 83,
+      "with_individual_vfn_but_source_unlinked": 143,
       "verified_runtime_source_linked": 1,
       "dependency_environment_linked": 0,
       "standalone_b0002_outside_audited_ledgers": true
     },
     "current_source_sql_variant_attempt": {
-      "variants": 9,
-      "passed_cells": 27,
+      "variants": 12,
+      "passed_cells": 36,
       "final_report": "artifacts/extended-regression.json",
-      "initial_failure": {
-        "variant": "B0014",
-        "arm": "V",
-        "reason": "The first test probe contained two AS clauses and produced a SQL syntax error; test input corrected before final acceptance.",
-        "classified_as": "test_probe_error_not_application_acceptance_failure"
-      },
       "application_acceptance": true,
-      "scanner_measurement": false
+      "scanner_measurement": false,
+      "initial_failures": [
+        {
+          "variant": "B0014",
+          "arm": "V",
+          "reason": "The first test probe contained two AS clauses and produced a SQL syntax error; test input corrected before final acceptance.",
+          "classified_as": "test_probe_error_not_application_acceptance_failure"
+        },
+        {
+          "variant": "B0016",
+          "arm": "V",
+          "reason": "The initial private oracle omitted the role column, so the test could not evaluate persisted role change. The private case audit now returns Alice role; all three arms passed after correction.",
+          "classified_as": "oracle_evidence_gap_not_application_acceptance_failure"
+        }
+      ]
     },
     "selected_vfn_acceptance": {
       "report": "artifacts/extended-regression-saved-selected-vfn-20261004.json",
@@ -303,11 +311,11 @@
         "N"
       ],
       "passed_cells": 30,
-      "source_sha256": "99252df8cc9e48d992f668eb682871f246a5e8428ef2902d7bd2e5bb0b7e94e7",
+      "source_sha256": "17b0d0ee6794d79464a418376c8cbf534b2b7e0cecb7ff296ce4ccee55b2d58b",
       "source_after": "matched",
       "application_acceptance": true,
       "scanner_measurement": false,
-      "applies_to_current_source": false
+      "applies_to_current_source": true
     }
   },
   "implemented": [
@@ -20900,7 +20908,7 @@
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
     "README-zap.md": "9ba9ab606321b978db88c9a967d94f40582e1b6d2412425d560cfd47a8d6e1ba",
-    "README.md": "ebfd6424514f7e4ab83c981e4680a4cc618c8b971cc1952ac5343755c1e99c2c",
+    "README.md": "570c510482309292c168ca33991ff20f8d8177ee350738769a1e39b64a9d5b9c",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20924,7 +20932,7 @@
     "src/cases/batch4-csrf.mjs": "174ea48cdcc7c135d0e461b2acef5186740ec1b7c3bfed233c47b1519763b578",
     "src/cases/batch4-files.mjs": "4a0a552316242f8ffc184c9405153a72a720180bab834cab4b35a93533fd3048",
     "src/cases/batch4-selection.mjs": "73b464916976cfe8c8e87470147a304f1ad82ddc37e75f18e81bcd7df5f9e498",
-    "src/cases/batch4-sql.mjs": "f391a1c668377dd381de5a7960f05c2cf3be8c1e401988b48f5ab539770b3f63",
+    "src/cases/batch4-sql.mjs": "cf5bf0a454181aea734a21def4ac817a0a621c658f3bf55e51987746d912fb2c",
     "src/cases/batch4-ssrf.mjs": "a7c6de0c9372a0bbcdbfa74727924f483f9ef399a61d1d2a9f8e6503b4edaa1c",
     "src/cases/batch4-variants.mjs": "de43cf7e5bfa31a32dd7ad8d45e5fe6c6006aee517da9e0430e6ec43cb8e3319",
     "src/cases/batch5-auth.mjs": "21551fb8a036e5cb8bea9bf8edce3751005ed4ca123c9bef7b66ec799ed35717",
@@ -21083,6 +21091,7 @@
     "src/reporting/environment.mjs": "9a9aa5a5b9b0fae66a52773908d20142429851a71fa2bfad26aafca9696ebb4c",
     "tests/runner-environment.mjs": "ce7e3c330e96d391af2a24683c84bfc2b4749b6c487ca960ca3a649e8fb47a65",
     "tests/selected-vfn-regression.mjs": "4ad15510b3158ff88107c60dacec49f0a63018ff2c5034706c91f35078b282c6",
-    "tests/batch4-priority-sql-more.mjs": "0c56bf5aeef5a4932594f0475ea6c1515fd080e627039c9d21624621829f3488"
+    "tests/batch4-priority-sql-more.mjs": "62efdcfbb6e383195ab52dcda8a17bc1cbe2ab54e42dbfaaffa732aaa7bc2c5e",
+    "tests/batch4-priority-sql-update.mjs": "6fc4e67d16ac3eb3b5636c6dd23de60e2b2fac8e580027f58ae6b5b249b47455"
   }
 }

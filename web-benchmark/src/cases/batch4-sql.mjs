@@ -83,4 +83,10 @@ export function register(router,{db,page,esc,requireLogin,getRun,vulnerable}){
   catch{return reject(res);}
  });
 }
-export async function audit({getRun}){return active.has(getRun().variant)?{batch4Sql:{variant:getRun().variant}}:{};}
+export async function audit({db,getRun}){
+ if(!active.has(getRun().variant))return {};
+ const variant=getRun().variant;
+ const result={variant};
+ if(variant==='B0016')result.aliceRole=(await db.query('SELECT role FROM users WHERE name=$1',['alice'])).rows[0]?.role??null;
+ return {batch4Sql:result};
+}

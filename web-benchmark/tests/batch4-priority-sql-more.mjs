@@ -23,6 +23,8 @@ const cases=[
   {root:'R0001',variant:'B0009',normal:'label',attack:"label')='Apple' OR secret=true --"},
   {root:'R0001',variant:'B0010',normal:'apple',attack:"apple') OR secret=true --"},
   {root:'R0003',variant:'B0014',normal:'title',attack:'title, (SELECT title FROM items WHERE secret=true LIMIT 1)'},
+  {root:'R0003',variant:'B0017',normal:'text',attack:'text, (SELECT title FROM items WHERE secret=true LIMIT 1)'},
+  {root:'R0003',variant:'B0018',normal:'"C"',attack:'"C"; SELECT title FROM items WHERE secret=true'},
   {root:'R0005',variant:'B0019',normal:'title',attack:'title FROM items WHERE secret=true --'},
   {root:'R0006',variant:'B0020',normal:'@>',attack:`@> '{"label":"Apple"}'::jsonb OR secret=true --`}
 ];
