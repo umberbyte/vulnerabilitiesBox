@@ -9,7 +9,7 @@
     "implemented_positive_variants": 500,
     "fixed_representative_controls": 337,
     "safe_analogue_conditions": 337,
-    "validated_execution_cells": 839,
+    "validated_execution_cells": 854,
     "remaining_unimplemented_roots": 0,
     "remaining_unimplemented_positive_variants": 0,
     "checks": 13198,
@@ -24,7 +24,7 @@
     "previous_release_verified_roots": 210,
     "pending_final_acceptance_roots": 127,
     "planned_execution_cells": 1011,
-    "validated_execution_scope": "latest_629_passed_representative_cells_plus_210_passed_extended_variant_cells; one_representative_cell_failed; application_and_build_hashes_match_across_runs",
+    "validated_execution_scope": "latest_629_passed_representative_cells_plus_225_passed_extended_variant_cells; one_representative_cell_failed; application_and_build_hashes_match_across_runs",
     "additional_source_variants": 163
   },
   "verification": {
@@ -178,16 +178,16 @@
       "source_after": "matched"
     },
     "current_source_extended_variants": {
-      "variants": 70,
+      "variants": 75,
       "arms": [
         "V",
         "F",
         "N"
       ],
-      "passed_cells": 210,
-      "test_files": 24,
+      "passed_cells": 225,
+      "test_files": 25,
       "report": "artifacts/extended-regression.json",
-      "source_sha256": "3f2b78934c5258602b6126a1445ba3d8b0b86765b16fde875a44fe4dd88cb9dc",
+      "source_sha256": "31c0afd7e78133c2b5c7d8a1fa71b15965351caf83d8199839ebc65ed461cbe4",
       "source_after": "matched"
     },
     "current_source_unit": {
@@ -211,11 +211,11 @@
       "passed": 292,
       "tests": 292,
       "files": 24,
-      "source_sha256": "3f2b78934c5258602b6126a1445ba3d8b0b86765b16fde875a44fe4dd88cb9dc",
+      "source_sha256": "31c0afd7e78133c2b5c7d8a1fa71b15965351caf83d8199839ebc65ed461cbe4",
       "source_snapshot_recorded": true,
       "application_acceptance": false,
       "scanner_measurement": false,
-      "archive": "verification-history/tools-2026-10-04T08-47-24-731Z-97f31c90-d01c-49d1-a56a-6d5bfc1ae567",
+      "archive": "verification-history/tools-2026-10-04T08-56-41-880Z-685567ed-f19f-45cf-907a-c04cc0b187f4",
       "environment_recorded": true,
       "environment_scope": "offline-tools-process"
     },
@@ -237,9 +237,9 @@
     "latest_individual_acceptance_inventory": {
       "report": "artifacts/coverage-inventory.md",
       "machine_report": "artifacts/coverage-inventory.json",
-      "variants_with_vfn_records": 279,
-      "variants_with_partial_records": 10,
-      "variants_without_individual_records": 210,
+      "variants_with_vfn_records": 284,
+      "variants_with_partial_records": 9,
+      "variants_without_individual_records": 206,
       "variants_with_failed_or_conflicting_records": 1,
       "scanner_detection_scored": false
     },
@@ -247,8 +247,8 @@
       "report": "artifacts/evidence-linkage.md",
       "machine_report": "artifacts/evidence-linkage.json",
       "audited_complete_scan_variants": 227,
-      "without_individual_vfn_records": 107,
-      "with_individual_vfn_but_source_unlinked": 120,
+      "without_individual_vfn_records": 102,
+      "with_individual_vfn_but_source_unlinked": 125,
       "standalone_b0002_outside_audited_ledgers": true
     }
   },
@@ -20842,7 +20842,7 @@
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
     "README-zap.md": "5fb92e401d7a300d30ca76c240af46a8cb4443e55fc6ab03b0e1b6e05955c6de",
-    "README.md": "b6fb875f44cce389a9101ab8953e7cc5dfedba9c71b507b213c72b863a5b3c53",
+    "README.md": "fddd34048577ad1527d1de20bbf8f631dde5a6062e2673b55f3223110d6553d5",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20921,6 +20921,7 @@
     "tests/batch3-engines.mjs": "b7f8a31b01bfc9c0c3da1a2764bfb016f053c060541b20421730b0fabc0374d0",
     "tests/batch3-lifecycle.mjs": "29e0b3973b99be406eae410f18a52b8f7ef866e762a7091871b54cf43afe0e54",
     "tests/batch3-protocols.mjs": "d8ef380fe913fabe0f156fb919679d1071804747bb3f4cbaff8f01c0bf570fa3",
+    "tests/batch4-priority-boundaries.mjs": "9647c18b029cec59656bff1c9cf835937fe007e1f96cc5c65a39540515bec642",
     "tests/batch4-priority-browser.mjs": "c42aaf17b4e840ea147d6d7c729f96f9b562f8164a416df06d79b724fb491478",
     "tests/batch4-priority-sql.mjs": "7bee3a598152670faa3d07784a96a3871c342cd5f37df5579b889d556909118a",
     "tests/batch4-variants.mjs": "a265cd1acc47095391b7777c9fe90430a90e3e603f6100308a37b0d9461dd804",
@@ -20988,14 +20989,14 @@
     "src/native/fixture.c": "87cd3808f7b735fb47e065ce71cdd3555c946ec1896669a0e0cc9af0d0368ebe",
     "src/native/worker.cjs": "be9a12dcffbf6df499216f7dc14e9ccc3d1b3d0e7568026127ae201989d5cc6f",
     "tests/batch6-native.mjs": "c973753189e8d65f74859a400975c1a2b88f392ad1775ed738e4512939a88729",
-    "README-zap-findings.md": "fc30ae79a4fb6895fe4150ca4151c3e5f2181ff4c13bcb1662986edd034eb355",
+    "README-zap-findings.md": "00e5f09c6bf2a7688926bd987fd6c3f2386a25f0c1c185e0bc98ebce2645263f",
     "src/runner/script-inventory.mjs": "2a39a24e22d978df8922ec2f6ae71e53aa89c4c3b5ca6582c8e31792e7d1f9c3",
     "src/runner/install-custom-rules.mjs": "64acec4eb73758216220aad8e377af88fd98e00aeb40d8609191355505ad22c3",
     "src/runner/zap-rules/ldap-filter-differential.js": "61d08f5e45ccb025ac48882b76108f46d56df259dcbad6a53abca09ab70fad70",
     "tests/runner-script-inventory.mjs": "fb236c198698979c24281d7d0d982208b5ba1927ebdc9a139ecdbaafc3ed0f5a",
     "src/runner/zap-rules/mongo-operator-differential.js": "78970fd97fae24b562b7036200932804bbb1b68c8013d47424292d4776db5246",
-    "tests/extended-regression.mjs": "ed06ead1741d38e57982c9b07a9fac7d2358466e730f13722051f285742ae0f6",
-    "tests/full-regression.mjs": "b64dca6f9c37dc1d018a0e187718d5db26bca0a9bc1d4adb86c0a646f6fe5acc",
+    "tests/extended-regression.mjs": "2c6d01614cde63f3b4398a41a1931cde361e8f0293087b161ccb17bfa10db9a0",
+    "tests/full-regression.mjs": "44f4d44c1d014f71d5ed7ef2d260211c99195e9597fe20f4af6299042fffe317",
     "src/runner/zap-rules/event-attribute-name.js": "c93dff49da1c53dec794dafb519ded472749673cb55adfd904511044cfab88b7",
     "src/runner/zap-rules/json-script-html-boundary.js": "ef82ccf405123b1642189809a9fa94adc89635d943529dcd6e9a7cb1cb3de4eb",
     "reports.cmd": "b79b1e32639e41448f6180192b5c69044c9b58db9c28055c13463553fa61fd26",
