@@ -66,7 +66,7 @@ async function csrfVariant({base},mode,attempt,rejected=403){
  const anonymous=await json(base+'/v4-csrf',{action:'update',contact:'anonymous@example.test'});
  assert(anonymous.status===401,'anonymous update unexpectedly succeeded');
 }
-async function csrfTextPlainBrowserVariant({base},mode){
+async function csrfBrowserVariant({base},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=process.env.BENCHMARK_VALIDATION_ATTACKER_ORIGIN||'https://evil.benchmark.test:8444';
  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
@@ -80,9 +80,10 @@ async function csrfTextPlainBrowserVariant({base},mode){
    assert(cookies.some(item=>item.name==='sid'&&item.secure&&item.sameSite==='None'),'cross-site-capable Secure SameSite=None session cookie absent');
    const session=await (await context.request.get(target+base+'/session')).json();
    assert(typeof session.csrf==='string'&&session.csrf.length>0,'secure browser-context CSRF token absent');
+   if(variant==='B0318')assert(session.csrf.length===48,'fixture CSRF token length changed');
    const normal=await context.request.post(target+base+'/v4-csrf',{data:{action:'update',contact:'normal@example.test',csrf:session.csrf}});
    assert(normal.status()===200,'secure normal token-bearing update failed');
-   const attackerPage=attacker+'/browser-csrf-fixture';
+   const attackerPage=attacker+'/browser-csrf-fixture'+(variant==='B0322'?'?next=app.benchmark.test':'');
    const navigation=await page.goto(attackerPage);
    assert(navigation?.status()===200&&new URL(page.url()).origin===attacker,'distinct-origin attacker page unavailable');
    let attackRequest,requestFailure;
@@ -91,20 +92,43 @@ async function csrfTextPlainBrowserVariant({base},mode){
    page.on('request',request=>{if(request.url()===target+base+'/v4-csrf')attackRequest=request;else browserDiagnostics.push('request='+request.url());});
    page.on('requestfailed',request=>{requestFailure=request.failure()?.errorText;browserDiagnostics.push('failed='+request.url()+':'+requestFailure);});
    const attackResponsePromise=page.waitForResponse(response=>response.url()===target+base+'/v4-csrf',{timeout:5000}).then(response=>({response}),error=>({error}));
-   const browserResult=await page.evaluate(async url=>{
-    try{await fetch(url,{method:'POST',mode:'no-cors',credentials:'include',headers:{'content-type':'text/plain'},body:JSON.stringify({action:'update',contact:'attacker@example.test'})});return 'sent';}
-    catch(error){return String(error);}
-   },target+base+'/v4-csrf');
-   assert(browserResult==='sent','browser fetch failed: '+browserResult+'; network='+requestFailure+'; '+browserDiagnostics.join(' | '));
-   assert(attackRequest,'browser did not send cross-origin text/plain request');
-   assert(new URL(page.url()).origin===attacker&&new URL(attackRequest.url()).origin===target&&attacker!==target,'browser request did not cross distinct origins');
+   if(variant==='B0320'){
+    await page.evaluate(url=>{
+     const frame=document.createElement('iframe');
+     frame.setAttribute('sandbox','allow-scripts allow-forms allow-same-site-none-cookies');
+     frame.srcdoc=`<!doctype html><form method="post" action="${url}"><input name="action" value="update"><input name="contact" value="attacker@example.test"></form><script>document.forms[0].submit()</script>`;
+     document.body.append(frame);
+    },target+base+'/v4-csrf');
+   }else{
+    const browserResult=await page.evaluate(async({url,variant})=>{
+     const fields={action:'update',contact:'attacker@example.test'};
+     if(variant==='B0315')fields._method='DELETE';
+     if(variant==='B0318')fields.csrf='0'.repeat(48);
+     let body,headers={};
+     if(variant==='B0317'){body=JSON.stringify(fields);headers={'content-type':'text/plain'};}
+     else if(variant==='B0327'){body=new FormData();for(const [key,value] of Object.entries(fields))body.set(key,value);}
+     else{body=new URLSearchParams(fields);headers={'content-type':'application/x-www-form-urlencoded'};}
+     try{await fetch(url,{method:'POST',mode:'no-cors',credentials:'include',headers,body,
+      ...(variant==='B0321'?{referrerPolicy:'no-referrer'}:variant==='B0322'?{referrerPolicy:'unsafe-url'}:{})});return 'sent';}
+     catch(error){return String(error);}
+    },{url:target+base+'/v4-csrf',variant});
+    assert(browserResult==='sent','browser fetch failed: '+browserResult+'; network='+requestFailure+'; '+browserDiagnostics.join(' | '));
+   }
    const {response:attackResponse,error:responseError}=await attackResponsePromise;
    assert(attackResponse,'browser response unavailable: '+responseError?.message);
-   assert(attackResponse.status()===(mode==='V'?200:415),'browser cross-origin request returned HTTP '+attackResponse.status());
+   assert(attackRequest,'browser did not send cross-origin CSRF request');
+   assert(new URL(page.url()).origin===attacker&&new URL(attackRequest.url()).origin===target&&attacker!==target,'browser request did not cross distinct origins');
+   assert(attackResponse.status()===(mode==='V'?200:variant==='B0317'?415:403),'browser cross-origin request returned HTTP '+attackResponse.status());
    const alice=(await control('oracle')).users.find(user=>user.name==='alice');
    assert(alice?.contact===(mode==='V'?'attacker@example.test':'normal@example.test'),'browser cross-origin request changed wrong arm');
   }finally{await context.close();}
  }finally{await browser.close();}
+}
+function csrfWithBrowser(root,variant,attempt,rejected=403){
+ return [root,variant,async(context,mode)=>{
+  await csrfVariant(context,mode,attempt,rejected);
+  await csrfBrowserVariant(await reset(root,variant,mode),mode,variant);
+ }];
 }
 const cases=[
  ['R0377','B0378',async({base,canary},mode)=>{
@@ -237,20 +261,17 @@ const cases=[
   assert(privateResponse.status===200&&JSON.parse(privateResponse.text).text===canary,'secure private fixture absent');
   assert(publicResponse.text===(mode==='V'?canary:'Public transport page'),'scheme cache isolation arm mismatch');
  }],
- ['R0311','B0312',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie))],
- ['R0311','B0315',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test',_method:'DELETE'},cookie))],
- ['R0311','B0317',async(context,mode)=>{
-  await csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',JSON.stringify({action:'update',contact:'attacker@example.test'}),cookie,{headers:{'content-type':'text/plain'}}),415);
-  await csrfTextPlainBrowserVariant(await reset('R0311','B0317',mode),mode);
- }],
- ['R0311','B0318',(context,mode)=>csrfVariant(context,mode,({base,cookie,csrf})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test',csrf:(csrf[0]==='a'?'b':'a')+csrf.slice(1)},cookie))],
- ['R0311','B0327',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>{
+ csrfWithBrowser('R0311','B0312',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie)),
+ csrfWithBrowser('R0311','B0315',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test',_method:'DELETE'},cookie)),
+ csrfWithBrowser('R0311','B0317',({base,cookie})=>json(base+'/v4-csrf',JSON.stringify({action:'update',contact:'attacker@example.test'}),cookie,{headers:{'content-type':'text/plain'}}),415),
+ csrfWithBrowser('R0311','B0318',({base,cookie,csrf})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test',csrf:(csrf[0]==='a'?'b':'a')+csrf.slice(1)},cookie)),
+ csrfWithBrowser('R0311','B0327',({base,cookie})=>{
   const form=new FormData();form.set('action','update');form.set('contact','attacker@example.test');
   return fetch(origin+base+'/v4-csrf',{method:'POST',headers:{cookie},body:form});
- })],
- ['R0319','B0320',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{origin:'null'}}))],
- ['R0319','B0321',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie))],
- ['R0319','B0322',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{referer:'https://evil.benchmark.test:8444/next?app.benchmark.test'}}))],
+ }),
+ csrfWithBrowser('R0319','B0320',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{origin:'null'}})),
+ csrfWithBrowser('R0319','B0321',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie)),
+ csrfWithBrowser('R0319','B0322',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{referer:'https://evil.benchmark.test:8444/next?app.benchmark.test'}})),
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
