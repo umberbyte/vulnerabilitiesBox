@@ -24,7 +24,14 @@ const cases=[
   {root:'R0034',variant:'B0036',payload:image},
   {root:'R0021',variant:'B0037',payload:image,stored:true,login:true},
   {root:'R0034',variant:'B0038',payload:image,stored:true},
-  {root:'R0021',variant:'B0040',payload:image}
+  {root:'R0021',variant:'B0039',payload:image},
+  {root:'R0021',variant:'B0040',payload:image},
+  {root:'R0041',variant:'B0042',payload:image},
+  {root:'R0041',variant:'B0045',payload:image},
+  {root:'R0050',variant:'B0051',payload:marker},
+  {root:'R0050',variant:'B0052',payload:marker},
+  {root:'R0061',variant:'B0069',payload:'{{secret}}',stored:true,template:true},
+  {root:'R0061',variant:'B0070',payload:'{{secret}}',stored:true,login:true,template:true}
 ];
 
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
@@ -56,10 +63,13 @@ try{
       assert.equal(attack.status(),200,`${item.variant} payload page`);
       if(item.action)await item.action(page);
       await page.waitForTimeout(250);
-      assert.equal(await page.evaluate(()=>window.__benchmarkExecuted===1),mode==='V',`${item.variant} ${mode} browser execution`);
+      if(item.template)assert.equal((await page.locator('#entry').textContent()).includes(before.canary),mode==='V',`${item.variant} ${mode} server template canary`);
+      else assert.equal(await page.evaluate(()=>window.__benchmarkExecuted===1),mode==='V',`${item.variant} ${mode} browser execution`);
       if(mode==='N'){
+        if(item.stored)assert.equal((await context.request.post(base+'/v4-browser',{data:{text:'Hello'}})).status(),200,`${item.variant} hard-negative normal store`);
         const benign=await page.goto(base+'/v4-browser'+(item.stored?'':'?text=Hello'));
         assert.equal(benign.status(),200,`${item.variant} hard-negative normal page`);
+        if(item.template)assert.equal((await page.locator('#entry').textContent()).includes(before.canary),false,`${item.variant} hard-negative template text`);
       }
       console.log(JSON.stringify({root:item.root,variant:item.variant,mode,result:'passed'}));
     }finally{await context.close();}

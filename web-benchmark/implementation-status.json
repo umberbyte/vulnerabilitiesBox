@@ -9,7 +9,7 @@
     "implemented_positive_variants": 500,
     "fixed_representative_controls": 337,
     "safe_analogue_conditions": 337,
-    "validated_execution_cells": 929,
+    "validated_execution_cells": 950,
     "remaining_unimplemented_roots": 0,
     "remaining_unimplemented_positive_variants": 0,
     "checks": 13198,
@@ -24,7 +24,7 @@
     "previous_release_verified_roots": 210,
     "pending_final_acceptance_roots": 127,
     "planned_execution_cells": 1011,
-    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_270_passed_extended_variant_cells_on_current_source_plus_30_passed_selected_vfn_cells_on_current_source; one_representative_cell_failed; no_current_full_representative_retest",
+    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_291_passed_extended_variant_cells_on_current_source_plus_30_passed_selected_vfn_cells_on_current_source; one_representative_cell_failed; no_current_full_representative_retest",
     "additional_source_variants": 163
   },
   "verification": {
@@ -179,16 +179,16 @@
       "applies_to_current_source": false
     },
     "current_source_extended_variants": {
-      "variants": 90,
+      "variants": 97,
       "arms": [
         "V",
         "F",
         "N"
       ],
-      "passed_cells": 270,
+      "passed_cells": 291,
       "test_files": 27,
       "report": "artifacts/extended-regression.json",
-      "source_sha256": "17b0d0ee6794d79464a418376c8cbf534b2b7e0cecb7ff296ce4ccee55b2d58b",
+      "source_sha256": "3a5f6529a99ca225ec5a27b3a4bd45538f33f0e392865ef4557136e4203acf4a",
       "source_after": "matched"
     },
     "current_source_unit": {
@@ -213,11 +213,11 @@
       "passed": 296,
       "tests": 296,
       "files": 24,
-      "source_sha256": "17b0d0ee6794d79464a418376c8cbf534b2b7e0cecb7ff296ce4ccee55b2d58b",
+      "source_sha256": "3a5f6529a99ca225ec5a27b3a4bd45538f33f0e392865ef4557136e4203acf4a",
       "source_snapshot_recorded": true,
       "application_acceptance": false,
       "scanner_measurement": false,
-      "archive": "verification-history/tools-2026-10-04T12-17-34-711Z-e3018474-68c2-41db-9ac3-b874ebde1e73",
+      "archive": "verification-history/tools-2026-10-04T12-44-52-291Z-ea16f43c-8ebc-4e89-be67-7ab83dcc07a7",
       "environment_recorded": true,
       "environment_scope": "offline-tools-process"
     },
@@ -264,9 +264,9 @@
     "latest_individual_acceptance_inventory": {
       "report": "artifacts/coverage-inventory.md",
       "machine_report": "artifacts/coverage-inventory.json",
-      "variants_with_vfn_records": 308,
+      "variants_with_vfn_records": 315,
       "variants_with_partial_records": 0,
-      "variants_without_individual_records": 191,
+      "variants_without_individual_records": 184,
       "variants_with_failed_or_conflicting_records": 1,
       "scanner_detection_scored": false
     },
@@ -274,8 +274,8 @@
       "report": "artifacts/evidence-linkage.md",
       "machine_report": "artifacts/evidence-linkage.json",
       "audited_complete_scan_variants": 227,
-      "without_individual_vfn_records": 83,
-      "with_individual_vfn_but_source_unlinked": 143,
+      "without_individual_vfn_records": 76,
+      "with_individual_vfn_but_source_unlinked": 150,
       "verified_runtime_source_linked": 1,
       "dependency_environment_linked": 0,
       "standalone_b0002_outside_audited_ledgers": true
@@ -311,11 +311,21 @@
         "N"
       ],
       "passed_cells": 30,
-      "source_sha256": "17b0d0ee6794d79464a418376c8cbf534b2b7e0cecb7ff296ce4ccee55b2d58b",
+      "source_sha256": "3a5f6529a99ca225ec5a27b3a4bd45538f33f0e392865ef4557136e4203acf4a",
       "source_after": "matched",
       "application_acceptance": true,
       "scanner_measurement": false,
       "applies_to_current_source": true
+    },
+    "current_source_browser_variant_acceptance": {
+      "report": "artifacts/extended-regression.json",
+      "test_file": "tests/batch4-priority-browser.mjs",
+      "variants": 17,
+      "passed_cells": 51,
+      "source_sha256": "3a5f6529a99ca225ec5a27b3a4bd45538f33f0e392865ef4557136e4203acf4a",
+      "source_after": "matched",
+      "application_acceptance": true,
+      "scanner_measurement": false
     }
   },
   "implemented": [
@@ -20908,7 +20918,7 @@
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
     "README-zap.md": "9ba9ab606321b978db88c9a967d94f40582e1b6d2412425d560cfd47a8d6e1ba",
-    "README.md": "570c510482309292c168ca33991ff20f8d8177ee350738769a1e39b64a9d5b9c",
+    "README.md": "6a23dd210b12603a0e9b5823cd9d002f34f70d2700d68a5fa38aae3814c11040",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20988,7 +20998,7 @@
     "tests/batch3-lifecycle.mjs": "29e0b3973b99be406eae410f18a52b8f7ef866e762a7091871b54cf43afe0e54",
     "tests/batch3-protocols.mjs": "d8ef380fe913fabe0f156fb919679d1071804747bb3f4cbaff8f01c0bf570fa3",
     "tests/batch4-priority-boundaries.mjs": "9479e6feaebf43a98ae61d9e5dff803ccdc3792d5d897ccbcdc7d6216408996e",
-    "tests/batch4-priority-browser.mjs": "c42aaf17b4e840ea147d6d7c729f96f9b562f8164a416df06d79b724fb491478",
+    "tests/batch4-priority-browser.mjs": "4d48a2a2e722429fa5d9fcc5a18bf7c5ea697edb5a722150fc4dc4d79a01f80a",
     "tests/batch4-priority-sql.mjs": "7bee3a598152670faa3d07784a96a3871c342cd5f37df5579b889d556909118a",
     "tests/batch4-variants.mjs": "a265cd1acc47095391b7777c9fe90430a90e3e603f6100308a37b0d9461dd804",
     "tests/batch5-cases.mjs": "19e3248bc6a25a23788422451e43a9381ed0e26a5f382bd3eef63012700f99f5",
