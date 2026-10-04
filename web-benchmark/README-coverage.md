@@ -92,4 +92,10 @@ B0459、B0460、B0467、B0468、B0469について、ローカルDockerのtmpfs�
 
 初回はB0459の3条件だけ通り、残る変種は環境リセット時にHTTP 400で止まりました。応答本文に`vulnerable is not a function`とあり、アプリが実ファイル配置処理へ必要な関数を渡していない実装不整合を修正しました。失敗記録は`artifacts/docker-smoke-file-exposure-five-20261005.json`と`artifacts/docker-smoke-file-exposure-five-diagnostic-20261005.json`に保全し、成立件数に算入しません。この5変種のZAP検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中345変種に個別V/F/N合格記録があり、154変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### ブラウザーとライフサイクル5変種の個別確認
+
+B0471、B0483、B0485、B0489、B0490について、ローカルDockerでV/F/N計15条件を確認しました。B0471は実Chromiumで正常なJavaScriptを保ちつつ、`text/plain`のclassic scriptがVのみ実行されました。B0483は実loopback認可サービスの切断時にVのみ一般会員の特権操作が実DBへ記録され、正常な管理者操作は全条件で成功しました。B0485は正規tokenでの変更と誤tokenの拒否を確認し、検証サービス切断時にはVだけが誤tokenによる実DBの連絡先変更を許しました。B0489は正誤両方の認証結果を保ったまま、Vだけが実ログへpasswordを保存しました。B0490は隔離worker内の例外によってVだけ後続jobが失われ、Webアプリ本体が応答を続けることを確認しました。
+
+最終記録は`artifacts/extended-regression-saved-lifecycle-five-initial-20261005.json`と`artifacts/docker-smoke-lifecycle-five-initial-20261005.json`です。検証・対象の実行ソースと対象の実行前後のソースが一致しました。B0489はaudit領域、B0490は隔離worker内の条件であり、一般のWeb DAST検出へそのまま換算しません。この5変種のZAP検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中350変種に個別V/F/N合格記録があり、149変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。

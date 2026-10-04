@@ -330,6 +330,74 @@ const cases=[
  ['R0455','B0467',(context,mode)=>publicFileVariant(context,mode,'B0467','app.js.map')],
  ['R0455','B0468',(context,mode)=>publicFileVariant(context,mode,'B0468','.git/log')],
  ['R0455','B0469',(context,mode)=>publicFileVariant(context,mode,'B0469','.env')],
+ ['R0471','B0471',async({base},mode)=>{
+  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
+  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+  try{
+   const context=await browser.newContext({ignoreHTTPSErrors:true});
+   try{
+    const loginResponse=await context.request.post(target+base+'/login',{data:{username:'alice',password:'Fixture-alice-2026!'}});
+    assert(loginResponse.status()===200,'secure browser login failed');
+    const page=await context.newPage();await page.goto(target+base+'/r3-0471');
+    assert(await page.evaluate(()=>window.benchmarkNormalExecuted===true),'normal JavaScript did not execute');
+    assert((await page.evaluate(()=>window.benchmarkPlainExecuted===true))===(mode==='V'),'text/plain execution arm mismatch');
+    const plain=await context.request.get(target+base+'/r3-0471/plain');
+    assert(plain.status()===200&&(await plain.text()).includes('benchmarkPlainExecuted'),'plain-text fixture unreadable');
+    assert((plain.headers()['x-content-type-options']==='nosniff')===(mode!=='V'),'nosniff header arm mismatch');
+   }finally{await context.close();}
+  }finally{await browser.close();}
+ }],
+ ['R0483','B0483',async({base,canary},mode)=>{
+  const cookie=await login(base);
+  const denied=await json(base+'/r3-0483',{provider:'primary'},cookie);
+  assert(denied.status===403,'available authority did not deny ordinary member');
+  const outage=await json(base+'/r3-0483',{provider:'unavailable'},cookie);
+  assert(outage.status===(mode==='V'?200:503),'authority outage arm mismatch');
+  if(mode==='V')assert((await outage.json()).privateReport===canary,'privileged report fixture absent');
+  const state=(await control('oracle')).caseState?.lifecycleBatch;
+  assert(state?.records.at(-1)?.failure===true&&state.events.length===(mode==='V'?1:0),'provider failure or persisted action audit mismatch');
+  const admin=await login(base,'admin');
+  const allowed=await json(base+'/r3-0483',{provider:'primary'},admin);
+  assert(allowed.status===200&&(await allowed.json()).privateReport===canary,'normal administrator authorization failed');
+ }],
+ ['R0485','B0485',async({base},mode)=>{
+  const cookie=await login(base);
+  const session=await(await fetch(origin+base+'/session',{headers:{cookie}})).json();
+  assert(typeof session.csrf==='string'&&session.csrf.length>0,'normal CSRF token absent');
+  const normal=await json(base+'/r3-0485',{provider:'primary',csrf:session.csrf,contact:'normal@example.test'},cookie);
+  assert(normal.status===200,'normal token verification failed');
+  const wrong=await json(base+'/r3-0485',{provider:'primary',csrf:'wrong',contact:'attacker@example.test'},cookie);
+  assert(wrong.status===403,'online verifier accepted wrong token');
+  const outage=await json(base+'/r3-0485',{provider:'unavailable',csrf:'wrong',contact:'attacker@example.test'},cookie);
+  assert(outage.status===(mode==='V'?200:503),'token verifier outage arm mismatch');
+  const oracle=await control('oracle');
+  assert(oracle.users.find(user=>user.name==='alice')?.contact===(mode==='V'?'attacker@example.test':'normal@example.test'),'persisted contact arm mismatch');
+  assert(oracle.caseState?.lifecycleBatch?.records.at(-1)?.failure===true,'real verifier failure not audited');
+ }],
+ ['R0489','B0489',async({base},mode)=>{
+  const form=await fetch(origin+base+'/r3-member-signin');
+  assert(form.status===200,'normal member signin form absent');
+  const wrong=await json(base+'/r3-member-signin',{username:'alice',password:'Wrong-password-2026!'});
+  assert(wrong.status===401,'wrong password was accepted');
+  const correct=await json(base+'/r3-member-signin',{username:'alice',password:'Fixture-alice-2026!'});
+  assert(correct.status===200&&correct.headers.get('set-cookie')?.includes('sid='),'correct password did not create session');
+  const logs=(await control('oracle')).caseState?.lifecycleBatch?.logs;
+  assert(typeof logs==='string'&&logs.trim().split('\n').length===2,'actual signin log count mismatch');
+  assert((logs.includes('Wrong-password-2026!')&&logs.includes('Fixture-alice-2026!'))===(mode==='V'),'secret logging arm mismatch');
+  if(mode!=='V')assert(logs.includes('[redacted]'),'fixed log did not redact passwords');
+ }],
+ ['R0490','B0490',async({base},mode)=>{
+  const cookie=await login(base);
+  const normal=await json(base+'/r3-0490',{fail:false},cookie);
+  assert(normal.status===200&&(await normal.json()).exitCode===0,'normal isolated worker job failed');
+  const failure=await json(base+'/r3-0490',{fail:true},cookie);
+  assert(failure.status===(mode==='V'?503:200),'worker failure arm mismatch');
+  const body=await failure.json();
+  assert(body.exitCode===(mode==='V'?1:0)&&body.timedOut===false,'worker exit or timeout arm mismatch');
+  assert(mode==='V'?!body.output:body.output.includes('failed')&&body.output.includes('completed'),'next isolated job outcome mismatch');
+  const page=await fetch(origin+base+'/r3-0490',{headers:{cookie}});
+  assert(page.status===200,'main web application did not remain healthy');
+ }],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
