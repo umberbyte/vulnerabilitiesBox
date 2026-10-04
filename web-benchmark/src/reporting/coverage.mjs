@@ -72,7 +72,7 @@ export function coverageInventory(design,reports){
 
 export async function collectCoverage(directory,design){
   const reader=await artifactReader(directory),reports=[],unreadable=[];
-  const saved=(await reader.entries()).filter(entry=>entry.isFile()&&/^extended-regression-(?:saved|source-link)-[A-Za-z0-9-]+\.json$/.test(entry.name)).map(entry=>entry.name).sort();
+  const saved=(await reader.entries()).filter(entry=>entry.isFile()&&/^(?:acceptance-saved|extended-regression-(?:saved|source-link))-[A-Za-z0-9-]+\.json$/.test(entry.name)).map(entry=>entry.name).sort();
   if(saved.length>100)throw Error('Too many saved extended-regression reports');
   for(const path of ['acceptance.json','extended-regression.json',...saved,'docker-smoke-selected-run.json']){
     try{reports.push({path,data:await reader.json(path)});}catch(e){if(e.code!=='ENOENT')unreadable.push({source:path,code:'unreadable_report'});}

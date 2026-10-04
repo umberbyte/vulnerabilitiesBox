@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {coverageInventory,coverageMarkdown,designCases,passedCells} from '../src/reporting/coverage.mjs';
+import {mkdir,mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {join} from 'node:path';
+import {collectCoverage,coverageInventory,coverageMarkdown,designCases,passedCells} from '../src/reporting/coverage.mjs';
 
 const design={variants:[{id:'B0001',root_id:'R0001',title:'検索',comparison_track:'core_dast'},{id:'B0002',root_id:'R0001',title:'検索の変種',comparison_track:'core_dast'},{id:'B0491',root_id:'R0491',title:'native',comparison_track:'native_lab'}]};
 const cell=(variant,mode,passed=true)=>({root:variant==='B0491'?'R0491':'R0001',variant,mode,passed});
@@ -38,6 +40,19 @@ test('unknown, relabelled, duplicate, and summary-mismatched cells are excluded'
 test('failed and passed records for the same condition stay visible',()=>{
   const result=coverageInventory(design,[report('a',[cell('B0001','V')]),report('b',[cell('B0001','V',false)])]);
   assert.equal(result.summary.variantsWithConflictingOrFailedRecords,1);assert.deepEqual(result.rows[0].failedArms,['V']);
+});
+test('saved focused acceptance is included without erasing an earlier failure',async()=>{
+  await mkdir('artifacts',{recursive:true});
+  const directory=await mkdtemp(join(process.cwd(),'artifacts','coverage-test-'));
+  try{
+    await writeFile(join(directory,'acceptance.json'),JSON.stringify(report('acceptance.json',[cell('B0001','V',false)]).data));
+    await writeFile(join(directory,'acceptance-saved-r0001-20261004.json'),JSON.stringify(report('saved',['V','F','N'].map(arm=>cell('B0001',arm))).data));
+    const result=await collectCoverage(directory,design);
+    assert.deepEqual(result.rows[0].passedArms,['F','N','V']);
+    assert.deepEqual(result.rows[0].failedArms,['V']);
+    assert.equal(result.rows[0].status,'mixed_or_failed_records');
+    assert.equal(result.sources.length,2);
+  }finally{await rm(directory,{recursive:true,force:true});}
 });
 test('structured extended reports can contribute exact individual outcomes',()=>{
   const result=coverageInventory(design,[{path:'extended.json',data:{schema:'benchmark-extended-regression-0.2',results:[{status:'passed',cellResults:[cell('B0002','V'),cell('B0002','F'),cell('B0002','N')]}]}}]);

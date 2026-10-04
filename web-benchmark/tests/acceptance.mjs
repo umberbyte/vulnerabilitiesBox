@@ -26,6 +26,8 @@ const key=process.env.BENCHMARK_CONTROL_KEY;
 if(!key)throw new Error('Use verify.ps1 or verify.sh to supply the private control key.');
 const requestedRoots=process.env.BENCHMARK_TEST_ROOT?.split(',').map(value=>value.trim());
 if(requestedRoots&&(requestedRoots.some(root=>!cases.some(item=>item.root===root))||new Set(requestedRoots).size!==requestedRoots.length))throw new Error('Acceptance root selection contains an unknown or duplicate root.');
+const outputName=process.env.BENCHMARK_ACCEPTANCE_OUTPUT||'acceptance.json';
+if(!/^(?:acceptance|acceptance-saved-[A-Za-z0-9-]+)\.json$/.test(outputName))throw new Error('Acceptance output must be a filename under artifacts.');
 const selectedCases=cases.filter(item=>!requestedRoots||requestedRoots.includes(item.root));
 async function ctl(endpoint,data) {
   const result=await fetch(control+endpoint,{method:data?'POST':'GET',headers:{'x-benchmark-key':key,'content-type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});
@@ -193,6 +195,6 @@ try {
   await browser.close();report.finished=new Date().toISOString();report.summary={cells:report.results.length,passed:report.results.filter(r=>r.passed).length,failed,checks:report.results.reduce((n,r)=>n+r.checks.length,0)};
   try{report.sourceAfter=compareSources(source,await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}));}
   catch(error){report.sourceAfter={status:'unavailable',reason:error.message};}
-  await mkdir('artifacts',{recursive:true});await writeFile('artifacts/acceptance.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report.summary));
+  await mkdir('artifacts',{recursive:true});await writeFile('artifacts/'+outputName,JSON.stringify(report,null,2));console.log(JSON.stringify(report.summary));
 }
 if(failed||report.sourceAfter.status!=='matched')process.exitCode=1;
