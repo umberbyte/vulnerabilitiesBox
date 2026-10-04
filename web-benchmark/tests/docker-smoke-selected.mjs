@@ -698,6 +698,110 @@ async function browserBoundaryVariant({base},mode,variant){
   }finally{await page.close();}
  }finally{await browser.close();}
 }
+async function authWorkflowVariant({base,canary},mode,variant){
+ const page=await fetch(origin+base+'/v5-auth');
+ assert(page.status===200,'normal authentication workflow page unavailable');await page.arrayBuffer();
+ const send=(body,cookie)=>json(base+'/v5-auth',body,cookie);
+ if(variant==='B0186'){
+  const ordinary=await send({operation:'register',email:'bob@example.test',owner:'bob'});
+  assert(ordinary.status===200,'ordinary email registration failed');
+  const ordinaryRecovery=await send({operation:'recover',email:'bob@example.test'});
+  assert(ordinaryRecovery.status===200&&(await ordinaryRecovery.json()).resetOwner==='bob','ordinary email recovery failed');
+  const collision=await send({operation:'register',email:'alice@example.test',owner:'bob'});
+  assert(collision.status===(mode==='V'?200:409),'case-folded email collision arm mismatch');
+  const recovery=await send({operation:'recover',email:'Alice@Example.test'});
+  assert(recovery.status===200&&(await recovery.json()).resetOwner===(mode==='V'?'bob':'alice'),'colliding recovery owner arm mismatch');
+  return;
+ }
+ if(variant==='B0217'){
+  const issue=await send({operation:'issue',username:'alice'});
+  assert(issue.status===200,'normal MFA recovery issuance failed');
+  const attempt=await send({operation:'disable',username:'alice',publicEmail:'alice@example.test'});
+  assert(attempt.status===(mode==='V'?200:403),'MFA recovery shortcut arm mismatch');
+  const before=(await control('oracle')).caseState?.batch5Auth;
+  assert((before?.mfaDisabled==='true')===(mode==='V'),'MFA disabled state before genuine recovery mismatch');
+  assert(controlUrl&&controlKey,'private local mailbox control unavailable');
+  const mail=await fetch(controlUrl+'/mail/alice',{headers:{'x-benchmark-key':controlKey}});
+  assert(mail.status===200,'private local mailbox unavailable');
+  const letters=await mail.json(),code=letters.at(-1)?.mfaRecoveryCode;
+  assert(typeof code==='string'&&code.length>16,'genuine recovery code absent');
+  const normal=await send({operation:'disable',username:'alice',recoveryCode:code,publicEmail:'alice@example.test'});
+  assert(normal.status===200,'genuine MFA recovery failed');
+  return;
+ }
+ const alice=await login(base);
+ if(variant==='B0222'){
+  const attempt=await send({operation:'elevate',adminPassword:'Fixture-admin-2026!'},alice);
+  assert(attempt.status===200,'normal privileged elevation failed');
+  const newCookie=attempt.headers.get('set-cookie')?.split(';')[0];
+  assert((!!newCookie)===(mode!=='V'),'session rotation arm mismatch');
+  const oldSession=await fetch(origin+base+'/session',{headers:{cookie:alice}});
+  assert(oldSession.status===200&&(await oldSession.json()).username===(mode==='V'?'admin':null),'pre-elevation session privilege arm mismatch');
+  if(mode!=='V'){
+   const current=await fetch(origin+base+'/session',{headers:{cookie:newCookie}});
+   assert(current.status===200&&(await current.json()).username==='admin','rotated administrator session unavailable');
+  }
+  return;
+ }
+ if(variant==='B0223'){
+  const own=await send({operation:'issue'},alice);
+  assert(own.status===200,'normal member session issue failed');
+  const ownId=(await own.json()).sessionId;
+  const ownResource=await fetch(origin+base+'/v5-auth/resource?sid='+encodeURIComponent(ownId));
+  assert(ownResource.status===200&&(await ownResource.json()).privateData===canary,'own issued session resource unavailable');
+  const bob=await login(base,'bob');
+  const other=await send({operation:'issue'},bob);
+  assert(other.status===200,'second member session issue failed');
+  const otherId=(await other.json()).sessionId;
+  const otherResource=await fetch(origin+base+'/v5-auth/resource?sid='+encodeURIComponent(otherId));
+  assert(otherResource.status===200&&(await otherResource.json()).owner==='bob','second member normal session unavailable');
+  const guessed=/^[0-9]+$/.test(ownId)?String(Number(ownId)+1):'5502';
+  const probe=await fetch(origin+base+'/v5-auth/resource?sid='+guessed);
+  assert(probe.status===(mode==='V'?200:403),'sequential member session guess arm mismatch');
+  if(mode==='V')assert((await probe.json()).owner==='bob'&&guessed===otherId,'predicted session did not select the other member');
+  return;
+ }
+ if(variant==='B0252'){
+  const issued=await send({operation:'issue'},alice);
+  assert(issued.status===200,'normal OAuth state issue failed');
+  const state=(await issued.json()).state;
+  const bob=await login(base,'bob');
+  const cross=await send({operation:'callback',state},bob);
+  assert(cross.status===(mode==='V'?200:403),'cross-session OAuth state arm mismatch');
+  if(mode==='V')assert((await cross.json()).privateData===canary,'cross-session OAuth callback did not reach fixture');
+  const second=await send({operation:'issue'},alice);
+  assert(second.status===200,'second normal OAuth state issue failed');
+  const normal=await send({operation:'callback',state:(await second.json()).state},alice);
+  assert(normal.status===200&&(await normal.json()).connected===true,'same-session OAuth callback failed');
+  return;
+ }
+ if(variant==='B0259'){
+  const verifier='normal-verifier-2026';
+  const issued=await send({operation:'authorize',verifier},alice);
+  assert(issued.status===200,'normal PKCE authorization failed');
+  const code=(await issued.json()).code;
+  const cross=await send({operation:'exchange',code,verifier:'unrelated-verifier-2026'},alice);
+  assert(cross.status===(mode==='V'?200:403),'PKCE verifier downgrade arm mismatch');
+  if(mode==='V')assert((await cross.json()).privateData===canary,'wrong-verifier exchange did not reach fixture');
+  const second=await send({operation:'authorize',verifier},alice);
+  assert(second.status===200,'second normal PKCE authorization failed');
+  const normal=await send({operation:'exchange',code:(await second.json()).code,verifier},alice);
+  assert(normal.status===200&&(await normal.json()).accessGranted===true,'matched PKCE exchange failed');
+  return;
+ }
+ const session=await(await fetch(origin+base+'/session',{headers:{cookie:alice}})).json();
+ assert(typeof session.csrf==='string'&&session.csrf.length>0,'normal CSRF token absent');
+ const normal=await send({operation:'change',contact:'normal@example.test',csrf:session.csrf},alice);
+ assert(normal.status===200,'normal token-bearing contact change failed');
+ const start=await fetch(origin+base+'/v5-auth/start',{headers:{cookie:alice},redirect:'manual'});
+ assert(start.status===302,'normal redirect entry unavailable');
+ const destination=start.headers.get('location');
+ assert(destination?.endsWith('/v5-auth/change?contact=alice.updated@example.test'),'redirect destination changed');
+ const redirected=await fetch(origin+destination,{headers:{cookie:alice},redirect:'manual'});
+ assert(redirected.status===(mode==='V'?200:403),'redirected CSRF-free contact change arm mismatch');
+ const saved=(await control('oracle')).users.find(user=>user.name==='alice')?.contact;
+ assert(saved===(mode==='V'?'alice.updated@example.test':'normal@example.test'),'redirected contact persistence arm mismatch');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -1012,6 +1116,13 @@ const cases=[
  ['R0054','B0056',(context,mode)=>browserBoundaryVariant(context,mode,'B0056')],
  ['R0041','B0059',(context,mode)=>browserBoundaryVariant(context,mode,'B0059')],
  ['R0062','B0062',(context,mode)=>browserBoundaryVariant(context,mode,'B0062')],
+ ['R0185','B0186',(context,mode)=>authWorkflowVariant(context,mode,'B0186')],
+ ['R0210','B0217',(context,mode)=>authWorkflowVariant(context,mode,'B0217')],
+ ['R0221','B0222',(context,mode)=>authWorkflowVariant(context,mode,'B0222')],
+ ['R0201','B0223',(context,mode)=>authWorkflowVariant(context,mode,'B0223')],
+ ['R0251','B0252',(context,mode)=>authWorkflowVariant(context,mode,'B0252')],
+ ['R0258','B0259',(context,mode)=>authWorkflowVariant(context,mode,'B0259')],
+ ['R0316','B0328',(context,mode)=>authWorkflowVariant(context,mode,'B0328')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

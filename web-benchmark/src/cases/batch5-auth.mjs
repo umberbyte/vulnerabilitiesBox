@@ -49,7 +49,7 @@ export function register(router,{db,redis,getRun,vulnerable,requireLogin,newSess
     await db.query('INSERT INTO v5_email_accounts(email,owner) VALUES($1,$2) ON CONFLICT(email) DO NOTHING',[email,owner]);return res.json({registered:true});
    }
    if(op!=='recover')return res.sendStatus(400);
-   const row=(await db.query(v?'SELECT owner FROM v5_email_accounts WHERE lower(email)=lower($1) ORDER BY email DESC LIMIT 1':'SELECT owner FROM v5_email_accounts WHERE email=$1',[email])).rows[0];
+   const row=(await db.query(v?'SELECT owner FROM v5_email_accounts WHERE lower(email)=lower($1) ORDER BY email COLLATE "C" DESC LIMIT 1':'SELECT owner FROM v5_email_accounts WHERE email=$1',[email])).rows[0];
    return row?res.json({resetOwner:row.owner}):res.sendStatus(404);
   }
   if(id==='B0217'){

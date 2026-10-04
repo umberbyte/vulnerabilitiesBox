@@ -152,4 +152,10 @@ B0348ではChromium上で正規iframeの通知を受けた後、同じoriginの�
 
 B0049では登録済みmoduleと許可外の`data:` moduleの読込結果、B0054では通常設定とprototype経由の権限設定、B0056ではprototype経由のHTML設定と実DOMへの反映をChromiumで比較しました。B0059では通常文字列とHTMLをTrusted Types下で表示し、B0062では相対CSSと固定CSSの解決結果を実際の計算済み色で照合しました。5変種のV/F/N計15条件は`artifacts/extended-regression-saved-browser-five-20261005.json`と`artifacts/docker-smoke-browser-five-20261005.json`に記録しました。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。これはブラウザー上の成立確認であり、ZAP検出の測定ではありません。
 
-2026-10-05時点の保存記録では、500変種中405変種に個別V/F/N合格記録があり、94変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### 認証・ワークフロー7変種の個別確認
+
+B0186のメール大小文字衝突、B0217のMFA回復、B0222の権限昇格後のsession、B0223の予測可能な会員sessionを正規操作と対比しました。B0252の別sessionによるOAuth state再利用、B0259のPKCE verifier不一致、B0328のリダイレクト後CSRFなし更新も、正規の発行・交換・更新が成立することを確認したうえで比較しました。V/F/N計21条件の結果は`artifacts/extended-regression-saved-auth-seven-20261005.json`と`artifacts/docker-smoke-auth-seven-20261005.json`に記録しました。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。
+
+B0186の初回V条件では、DBの文字列照合順序により衝突後の回復先が意図した別会員になりませんでした。失敗記録は`artifacts/diagnostic-extended-auth-seven-initial-20261005.json`と`artifacts/diagnostic-docker-smoke-auth-seven-initial-20261005.json`に保全し、ローカルfixtureの選択順を明示して再確認しました。ZAPによる検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中412変種に個別V/F/N合格記録があり、87変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
