@@ -20960,7 +20960,7 @@
     "src/native/fixture.c": "87cd3808f7b735fb47e065ce71cdd3555c946ec1896669a0e0cc9af0d0368ebe",
     "src/native/worker.cjs": "be9a12dcffbf6df499216f7dc14e9ccc3d1b3d0e7568026127ae201989d5cc6f",
     "tests/batch6-native.mjs": "c973753189e8d65f74859a400975c1a2b88f392ad1775ed738e4512939a88729",
-    "README-zap-findings.md": "855c5e77e2ab526535c33d4f6ea9c1d1968f53f58a038c620ccdc580d3f89baa",
+    "README-zap-findings.md": "5c3b70c2bdf7e710874b46dc8e848ddd394aee9b9d830fb1e71cf90259b168e0",
     "src/runner/script-inventory.mjs": "2a39a24e22d978df8922ec2f6ae71e53aa89c4c3b5ca6582c8e31792e7d1f9c3",
     "src/runner/install-custom-rules.mjs": "64acec4eb73758216220aad8e377af88fd98e00aeb40d8609191355505ad22c3",
     "src/runner/zap-rules/ldap-filter-differential.js": "61d08f5e45ccb025ac48882b76108f46d56df259dcbad6a53abca09ab70fad70",
