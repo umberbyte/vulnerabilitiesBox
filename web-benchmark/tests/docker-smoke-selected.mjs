@@ -626,6 +626,30 @@ async function artifactVariant({base},mode,variant){
  const installed=state?.settings?.find(item=>item.key==='installed')?.value;
  assert(installed?.artifact===(mode==='V'?candidateId:approvedId)&&/^[0-9a-f]{64}$/.test(installed.digest),'persisted installed artifact arm mismatch');
 }
+async function browserMessageVariant({base},mode){
+ const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
+ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+ try{
+  const page=await browser.newPage({ignoreHTTPSErrors:true});
+  try{
+   const response=await page.goto(target+base+'/v5-browser');
+   assert(response?.status()===200,'normal postMessage page unavailable');
+   await page.waitForFunction(()=>document.getElementById('result')?.textContent!=='待機中',null,{timeout:4000});
+   const normal=await page.locator('#result').textContent();
+   assert(normal==='通知を受理','trusted iframe message did not arrive');
+   const spoof=await page.evaluate(()=>new Promise(resolve=>{
+    const result=document.getElementById('result');result.textContent='待機中';
+    const forged=document.createElement('iframe');
+    forged.srcdoc='<script>parent.postMessage({action:"approve"},parent.location.origin)</script>';
+    document.body.append(forged);
+    const observer=new MutationObserver(()=>{if(result.textContent!=='待機中'){observer.disconnect();resolve(result.textContent);}});
+    observer.observe(result,{childList:true,characterData:true,subtree:true});
+    setTimeout(()=>{observer.disconnect();resolve(result.textContent);},600);
+   }));
+   assert(spoof===(mode==='V'?'通知を受理':'待機中'),'same-origin different-window message source arm mismatch');
+  }finally{await page.close();}
+ }finally{await browser.close();}
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -667,6 +691,22 @@ const cases=[
   const second=await (await fetch(origin+base+'/v5-cache/public%252Fprivate')).json();
   assert(first.text===canary,'decoded private fixture absent');
   assert(second.text===(mode==='V'?canary:'Public page'),'decode cache arm mismatch');
+ }],
+ ['R0380','B0381',async({base},mode)=>{
+  const local=base+'/v5-cache/landing',outside='https://evil.benchmark.test:8444/landing';
+  const landing=await fetch(origin+local);
+  assert(landing.status===200,'normal local redirect destination unavailable');await landing.arrayBuffer();
+  const candidate=await fetch(origin+base+'/v5-cache?destination='+encodeURIComponent(outside),{redirect:'manual'});
+  assert(candidate.status===(mode==='V'?302:403),'redirect cache candidate admission arm mismatch');
+  if(mode==='V')assert(candidate.headers.get('location')===outside&&candidate.headers.get('x-benchmark-cache')==='MISS','external redirect was not stored in shared cache');
+  await candidate.arrayBuffer();
+  const normal=await fetch(origin+base+'/v5-cache',{redirect:'manual'});
+  assert(normal.status===302,'normal local redirect unavailable');
+  assert(normal.headers.get('location')===(mode==='V'?outside:local),'normal redirect cache pollution arm mismatch');
+  assert(mode==='V'?normal.headers.get('x-benchmark-cache')==='HIT':normal.headers.get('cache-control')?.includes('no-store'),'redirect cache policy arm mismatch');
+  await normal.arrayBuffer();
+  const state=(await control('oracle')).caseState?.batch5Cache;
+  assert(state?.variant==='B0381'&&state.entryCount===(mode==='V'?1:0),'Redis redirect cache state arm mismatch');
  }],
  ['R0150','B0361',async({base,canary},mode)=>{
   const cookie=await login(base);
@@ -918,6 +958,7 @@ const cases=[
  ['R0475','B0475',(context,mode)=>artifactVariant(context,mode,'B0475')],
  ['R0476','B0476',(context,mode)=>artifactVariant(context,mode,'B0476')],
  ['R0479','B0479',(context,mode)=>artifactVariant(context,mode,'B0479')],
+ ['R0348','B0348',browserMessageVariant],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

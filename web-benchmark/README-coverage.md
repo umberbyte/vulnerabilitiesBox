@@ -142,4 +142,10 @@ B0466では、管理者のループバック経由操作と一般会員の拒否
 
 B0474では許可済み依存moduleと別package、B0475では一致するlockと不一致version、B0476では署名済み更新と未署名候補、B0479では登録済みpluginと管理機能を要求する候補を比較しました。V/F/N計12条件で、HTTP応答に加えて実際のmodule読み込み結果、監査イベント、保存された導入状態を照合しました。記録は`artifacts/extended-regression-saved-artifact-four-20261005.json`と`artifacts/docker-smoke-artifact-four-20261005.json`です。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。これらはローカルの固定module fixtureであり、外部package registryからの取得やZAPによる検出を確認したものではありません。
 
-2026-10-05時点の保存記録では、500変種中398変種に個別V/F/N合格記録があり、101変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### ブラウザー通知とリダイレクトキャッシュの個別確認
+
+B0348ではChromium上で正規iframeの通知を受けた後、同じoriginの別frameから同じ通知を送信し、Vだけが受理してF/Nは`event.source`で拒否することを確認しました。B0381では許可外の案内先を要求した後、通常の案内先を要求し、Vだけに共有Redisキャッシュを通じた案内先の汚染が残ることを確認しました。2変種のV/F/N計6条件は`artifacts/extended-regression-saved-browser-cache-two-20261005.json`と`artifacts/docker-smoke-browser-cache-two-20261005.json`に記録しました。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。
+
+最初のB0348確認は検証用ChromiumがHTTP入口をTLSへ切り替えたため画面を開けず、次の確認では別frameの送信先origin指定が誤っていました。両失敗は`artifacts/diagnostic-extended-browser-cache-two-initial-20261005.json`、`artifacts/diagnostic-docker-smoke-browser-cache-two-initial-20261005.json`、`artifacts/diagnostic-extended-browser-cache-two-https-initial-20261005.json`、`artifacts/diagnostic-docker-smoke-browser-cache-two-https-initial-20261005.json`に保全し、個別合格に算入していません。ZAPによる検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中400変種に個別V/F/N合格記録があり、99変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
