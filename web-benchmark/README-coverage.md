@@ -104,4 +104,10 @@ B0274、B0276、B0277、B0278、B0286、B0289では、本人文書の通常操�
 
 ローカルDockerで15変種のV/F/N計45条件がすべて合格しました。最終記録は`artifacts/extended-regression-saved-authorization-fifteen-20261005.json`と`artifacts/docker-smoke-authorization-fifteen-20261005.json`です。検証側と対象アプリの実行ソース、および対象の実行前後のソースが一致しました。初回はB0297～B0299の照合で、一般oracleのユーザー一覧にroleが含まれると誤認したため9条件が失敗しました。専用監査値へ照合先を修正し、初回の失敗記録は`artifacts/diagnostic-extended-authorization-fifteen-initial-20261005.json`と`artifacts/diagnostic-docker-smoke-authorization-fifteen-initial-20261005.json`に保全しました。これらのZAP検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中365変種に個別V/F/N合格記録があり、134変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### 会員状態10変種の個別成立確認
+
+B0214、B0215、B0216では本人の連絡先変更・両方のメール確認を通常操作として成立させ、再認証・旧パスワード・旧メール確認を欠く要求を比較しました。B0205、B0213、B0257では正規発行したトークンの初回利用と二回目の利用を比べ、実DBの使用済み状態を照合しました。B0229では管理者が会員を停止した後の既存セッション、B0302では管理者roleを降格した後の既存セッションによる保護操作を比べました。B0209とB0345では、発行された本人回復トークンが診断ログ・アクセスログへ記録されるかを専用監査値で確認しました。
+
+ローカルDockerで10変種のV/F/N計30条件がすべて合格しました。最終記録は`artifacts/extended-regression-saved-account-ten-20261005.json`と`artifacts/docker-smoke-account-ten-20261005.json`です。先行する6変種18条件の記録も`artifacts/extended-regression-saved-account-six-20261005.json`と`artifacts/docker-smoke-account-six-20261005.json`に残しています。検証側と対象アプリの実行ソース、および対象の実行前後のソースが一致しました。これらのZAP検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中375変種に個別V/F/N合格記録があり、124変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。

@@ -236,6 +236,97 @@ async function profileAuthorizationVariant({base,canary},mode,variant){
  const operations=(await control('oracle')).operations;
  assert(operations.length===(mode==='V'?2:1)&&operations.some(item=>item.username==='admin')&&operations.some(item=>item.username==='alice')===(mode==='V'),'persisted management operation arm mismatch');
 }
+async function accountStateVariant({base},mode,variant){
+ const cookie=await login(base);
+ const page=await fetch(origin+base+'/v4-account',{headers:{cookie}});
+ assert(page.status===200,'normal account page unavailable');
+ await page.arrayBuffer();
+ if(['B0214','B0215','B0216'].includes(variant)){
+  const contact='updated@example.test';
+  if(variant==='B0215'){
+   const issued=await json(base+'/v4-account',{operation:'request',contact},cookie);
+   assert(issued.status===200,'normal email change request failed');
+   const tokens=await issued.json();
+   assert(typeof tokens.newEmailToken==='string','new email confirmation token absent');
+   const unauthorized=await json(base+'/v4-account',{operation:'confirm',newEmailToken:tokens.newEmailToken},cookie);
+   assert(unauthorized.status===(mode==='V'?200:403),'single-sided email confirmation arm mismatch');
+   const afterAttack=(await control('oracle')).caseState?.batch4Account;
+   assert(afterAttack?.alice.contact===(mode==='V'?contact:'alice@example.test'),'email confirmation changed wrong DB state');
+   if(mode!=='V'){
+    const authorized=await json(base+'/v4-account',{operation:'confirm',newEmailToken:tokens.newEmailToken,oldEmailToken:tokens.oldEmailToken},cookie);
+    assert(authorized.status===200,'dual email confirmation failed');
+   }
+  }else{
+   const unauthorized=await json(base+'/v4-account',{operation:'change',contact},cookie);
+   assert(unauthorized.status===(mode==='V'?200:403),'missing reauthentication or old password arm mismatch');
+   const afterAttack=(await control('oracle')).caseState?.batch4Account;
+   assert(afterAttack?.alice.contact===(mode==='V'?contact:'alice@example.test'),'contact change changed wrong DB state');
+   const authorized=await json(base+'/v4-account',{operation:'change',contact,oldPassword:'Fixture-alice-2026!',reauthenticated:true},cookie);
+   assert(authorized.status===200,'authenticated contact change failed');
+  }
+  const final=(await control('oracle')).caseState?.batch4Account;
+  assert(final?.alice.contact===contact,'normal contact change did not persist');
+  return;
+ }
+ const issue=await json(base+'/v4-account',{operation:'issue'},cookie);
+ assert(issue.status===200,'normal token issuance failed');
+ const {token}=await issue.json();assert(typeof token==='string'&&token.length>16,'issued token missing');
+ const first=await json(base+'/v4-account',{operation:'consume',token},cookie);
+ assert(first.status===200,'first token consumption failed');
+ const initialAudit=(await control('oracle')).caseState?.batch4Account;
+ assert(initialAudit?.tokens?.length===1&&initialAudit.tokens[0].used===(mode!=='V'),'first consumption persistence mismatch');
+ const second=await json(base+'/v4-account',{operation:'consume',token},cookie);
+ assert(second.status===(mode==='V'?200:403),'second token consumption arm mismatch');
+ const finalAudit=(await control('oracle')).caseState?.batch4Account;
+ assert(finalAudit?.tokens?.length===1&&finalAudit.tokens[0].used===(mode!=='V'),'token reuse persistence mismatch');
+ if(variant==='B0205'){
+  const alice=(await control('oracle')).users.find(user=>user.name==='alice');
+  assert(alice?.password==='Changed-alice-2026!','password change did not persist');
+ }
+}
+async function accountSessionVariant({base,canary},mode,variant){
+ const alice=await login(base);
+ const page=await fetch(origin+base+'/v4-account',{headers:{cookie:alice}});
+ assert(page.status===200,'normal account page unavailable');
+ await page.arrayBuffer();
+ if(variant==='B0229'){
+  const normal=await json(base+'/v4-account',{operation:'status'},alice);
+  assert(normal.status===200&&(await normal.json()).privateData===canary,'active member status unavailable');
+  const admin=await login(base,'admin');
+  const disable=await json(base+'/v4-account',{operation:'disable',username:'alice'},admin);
+  assert(disable.status===200,'admin account disable failed');
+  const after=await json(base+'/v4-account',{operation:'status'},alice);
+  assert(after.status===(mode==='V'?200:403),'disabled member session arm mismatch');
+  if(mode==='V')assert((await after.json()).privateData===canary,'disabled member private data absent');
+  return;
+ }
+ if(variant==='B0302'){
+  const admin=await login(base,'admin');
+  const normal=await json(base+'/v4-account',{operation:'staff'},admin);
+  assert(normal.status===200&&(await normal.json()).staffReport===canary,'normal admin operation failed');
+  const downgrade=await json(base+'/v4-account',{operation:'downgrade'},admin);
+  assert(downgrade.status===200,'admin role downgrade failed');
+  const stale=await json(base+'/v4-account',{operation:'staff'},admin);
+  assert(stale.status===(mode==='V'?200:403),'role cache after downgrade arm mismatch');
+  if(mode==='V')assert((await stale.json()).staffReport===canary,'stale role report absent');
+  return;
+ }
+ const issued=await json(base+'/v4-account',{operation:'issue'},alice);
+ assert(issued.status===200,'normal account recovery issue failed');
+ const body=await issued.json();assert(typeof body.ownToken==='string'&&body.ownToken.length>16,'recovery token absent');
+ if(variant==='B0209'){
+  const logs=(await control('oracle')).caseState?.batch4Account?.logs;
+  assert(logs?.length===1&&logs[0].kind==='diagnostic'&&(logs[0].token===body.ownToken)===(mode==='V'),'recovery diagnostic log arm mismatch');
+  if(mode!=='V')assert(logs[0].token==='[redacted]','safe diagnostic log is not redacted');
+  return;
+ }
+ assert(typeof body.resetUrl==='string','normal reset URL absent');
+ const landing=await fetch(origin+body.resetUrl,{headers:{cookie:alice}});
+ assert(landing.status===200,'normal reset landing unavailable');
+ await landing.arrayBuffer();
+ const logs=(await control('oracle')).caseState?.batch4Account?.logs;
+ assert(logs?.length===1&&logs[0].kind==='access'&&(logs[0].url.includes(body.ownToken))===(mode==='V'),'reset token access log arm mismatch');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -497,6 +588,16 @@ const cases=[
  ['R0291','B0292',(context,mode)=>profileAuthorizationVariant(context,mode,'B0292')],
  ['R0291','B0293',(context,mode)=>profileAuthorizationVariant(context,mode,'B0293')],
  ['R0291','B0294',(context,mode)=>profileAuthorizationVariant(context,mode,'B0294')],
+ ['R0046','B0214',(context,mode)=>accountStateVariant(context,mode,'B0214')],
+ ['R0046','B0215',(context,mode)=>accountStateVariant(context,mode,'B0215')],
+ ['R0046','B0216',(context,mode)=>accountStateVariant(context,mode,'B0216')],
+ ['R0198','B0205',(context,mode)=>accountStateVariant(context,mode,'B0205')],
+ ['R0198','B0213',(context,mode)=>accountStateVariant(context,mode,'B0213')],
+ ['R0198','B0257',(context,mode)=>accountStateVariant(context,mode,'B0257')],
+ ['R0228','B0229',(context,mode)=>accountSessionVariant(context,mode,'B0229')],
+ ['R0228','B0302',(context,mode)=>accountSessionVariant(context,mode,'B0302')],
+ ['R0208','B0209',(context,mode)=>accountSessionVariant(context,mode,'B0209')],
+ ['R0208','B0345',(context,mode)=>accountSessionVariant(context,mode,'B0345')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
