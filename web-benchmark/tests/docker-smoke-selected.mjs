@@ -192,6 +192,20 @@ async function profileAuthorizationVariant({base,canary},mode,variant){
  const page=await fetch(origin+base+'/v4-profile',{headers:{cookie:alice}});
  assert(page.status===200,'normal member profile unavailable');
  await page.arrayBuffer();
+ if(variant==='B0094'){
+  const normal=await json(base+'/v4-profile',{fields:'name,contact'},alice);
+  assert(normal.status===200,'normal profile field selection failed');
+  const normalMember=(await normal.json()).member;
+  assert(normalMember?.name==='alice'&&typeof normalMember.contact==='string'&&!Object.hasOwn(normalMember,'role')&&!Object.hasOwn(normalMember,'password'),'normal profile fields mismatch');
+  const probe=await json(base+'/v4-profile',{fields:'name,contact,role,password'},alice);
+  assert(probe.status===200,'profile field probe failed');
+  const member=(await probe.json()).member;
+  const user=(await control('oracle')).users.find(item=>item.name==='alice');
+  assert(member?.name==='alice'&&member.contact===user.contact,'profile probe changed normal fields');
+  assert((Object.hasOwn(member,'role')&&Object.hasOwn(member,'password'))===(mode==='V'),'sensitive profile field selection arm mismatch');
+  if(mode==='V')assert(member.role==='user'&&member.password===user.password,'profile fields do not match persisted user attributes');
+  return;
+ }
  if(['B0288','B0295','B0304'].includes(variant)){
   const request=variant==='B0288'?{objectId:101}:variant==='B0295'?{query:'{ member { name secret } }'}:{format:'csv'};
   const response=await json(base+'/v4-profile',request,alice);
@@ -1060,7 +1074,7 @@ async function localFetchVariant({base,canary},mode,variant){
 }
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
- const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
+ const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':variant==='B0335'?'http://app.benchmark.test:8443':'https://app.benchmark.test:8444';
  const endpoint=target+base+'/v4-csrf/report';
  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
  try{
@@ -1074,8 +1088,12 @@ async function corsVariant({base,canary},mode,variant){
    assert(probe.status()===200&&(await probe.json()).privateData===canary,'authenticated CORS report fixture absent');
    assert((probe.headers()['access-control-allow-origin']===attacker)===(mode==='V'),'CORS response header arm mismatch');
    const page=await context.newPage();
+   if(variant==='B0335')await page.route(attacker+'/browser-csrf-fixture',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>Local HTTP origin fixture</title>'}));
    const navigation=await page.goto(attacker+'/browser-csrf-fixture');
    assert(navigation?.status()===200&&new URL(page.url()).origin===attacker,'CORS attacker origin unavailable');
+   const browserEvidence=[];
+   page.on('console',message=>browserEvidence.push({kind:'console',text:message.text()}));
+   page.on('requestfailed',request=>browserEvidence.push({kind:'requestfailed',url:request.url(),failure:request.failure()}));
    let attackRequest;
    page.on('request',request=>{if(request.url()===endpoint)attackRequest=request;});
    const result=await page.evaluate(async url=>{
@@ -1083,7 +1101,7 @@ async function corsVariant({base,canary},mode,variant){
     catch(error){return {blocked:String(error)};}
    },endpoint);
    assert(attackRequest&&new URL(attackRequest.url()).origin===target&&new URL(page.url()).origin===attacker,'CORS browser request did not cross origins');
-   assert(mode==='V'?result.status===200&&result.body?.privateData===canary:!!result.blocked,'browser CORS read arm mismatch: '+JSON.stringify(result));
+   assert(mode==='V'?result.status===200&&result.body?.privateData===canary:!!result.blocked,'browser CORS read arm mismatch: '+JSON.stringify({result,browserEvidence}));
   }finally{await context.close();}
  }finally{await browser.close();}
 }
@@ -1246,6 +1264,7 @@ const cases=[
  csrfWithBrowser('R0319','B0321',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie)),
  csrfWithBrowser('R0319','B0322',({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{referer:'https://evil.benchmark.test:8444/next?app.benchmark.test'}})),
  ['R0333','B0334',(context,mode)=>corsVariant(context,mode,'B0334')],
+ ['R0333','B0335',(context,mode)=>corsVariant(context,mode,'B0335')],
  ['R0333','B0336',(context,mode)=>corsVariant(context,mode,'B0336')],
  ['R0455','B0459',(context,mode)=>publicFileVariant(context,mode,'B0459','temporary.txt')],
  ['R0455','B0460',(context,mode)=>publicFileVariant(context,mode,'B0460','backup.sql')],
@@ -1326,6 +1345,7 @@ const cases=[
  ['R0271','B0278',(context,mode)=>objectAuthorizationVariant(context,mode,'B0278')],
  ['R0271','B0286',(context,mode)=>objectAuthorizationVariant(context,mode,'B0286')],
  ['R0271','B0289',(context,mode)=>objectAuthorizationVariant(context,mode,'B0289')],
+ ['R0094','B0094',(context,mode)=>profileAuthorizationVariant(context,mode,'B0094')],
  ['R0094','B0288',(context,mode)=>profileAuthorizationVariant(context,mode,'B0288')],
  ['R0094','B0295',(context,mode)=>profileAuthorizationVariant(context,mode,'B0295')],
  ['R0094','B0304',(context,mode)=>profileAuthorizationVariant(context,mode,'B0304')],

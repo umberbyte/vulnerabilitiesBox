@@ -176,4 +176,12 @@ B0351のCL/TE優先順位、B0356のbody境界、B0357のmethod override、B0358
 
 B0120、B0161、B0165、B0166、B0173、B0174、B0175、B0177、B0180について、登録済み公開先への正常取得と、内部loopback先への接続を比較しました。Vではprivate canaryを含む応答と内部接続の監査記録があり、F/Nでは内部接続を拒否して監査記録にも残らないことを確認しています。B0173は通知先の登録記録、B0174はissuerメタデータの取得経路、B0180は公開先の404から代替先への遷移も照合しました。通信先はベンチマーク内のloopback fixtureに限定しています。9変種のV/F/N計27条件は`artifacts/extended-regression-saved-local-fetch-nine-20261005.json`と`artifacts/docker-smoke-local-fetch-nine-20261005.json`に保存しました。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。ZAPによる検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中441変種に個別V/F/N合格記録があり、58変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### 既存確認器による残件の個別再実行
+
+コアDASTの31根本原因をまとめて再実行し、代表変種のV/F/N計93条件がすべて合格しました。このうちB0451は既に個別記録があり、新たに個別記録が揃ったのは30変種です。監査・並行処理・負荷境界の26根本原因もV/F/N計78条件がすべて合格しました。記録は`artifacts/acceptance-saved-core-31-roots-20261005.json`と`artifacts/acceptance-saved-audit-concurrency-26-roots-20261005.json`です。いずれも検証側と対象アプリの実行ソース、対象アプリの実行前後の照合が一致しました。成立確認をZAPの検出結果へ読み替えません。
+
+B0094は通常の会員属性取得と、role・passwordの選択結果を実際の会員行と照合しました。V/F/N計3条件の合格記録は`artifacts/extended-regression-saved-profile-field-20261005.json`と`artifacts/docker-smoke-profile-field-20261005.json`です。ソース照合も一致しています。
+
+B0335はVでHTTP originに対してCORS許可ヘッダーを返し、F/Nでは返さないサーバー応答を確認しました。しかしChromium 154のブラウザー実行では、非セキュアなHTTP originからローカルアドレスへの要求がCORS評価前に遮断され、Vで秘密bodyを読めませんでした。失敗理由と元応答は`artifacts/diagnostic-docker-smoke-final-two-second-20261005.json`および`artifacts/diagnostic-extended-final-two-second-20261005.json`に保存しています。Playwrightで実応答をブラウザーへ注入する試行はF/NでもCORS遮断を再現しなかったため、成立証拠には採用しません。現行のローカルDocker・Chromium条件でB0335のV成立は未確認であり、ブラウザー側の追加保護を含めて評価条件を再設計する必要があります。
+
+2026-10-05時点の保存記録では、500変種中498変種に個別V/F/N合格記録があり、B0335の1変種は個別V/F/N合格記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
