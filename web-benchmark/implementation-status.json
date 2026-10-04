@@ -233,6 +233,18 @@
       "standalone_outside_audited_ledgers": true,
       "environment_scope": "application_runtime_src_and_package_manifests_only"
     },
+    "latest_local_source_link_pilot": {
+      "review": "artifacts/source-link-20261004-B0011-review.md",
+      "variant": "B0011",
+      "individual_acceptance_report": "artifacts/extended-regression.json",
+      "audited_ledger": "artifacts/source-link-20261004-B0011-ledger.json",
+      "completed_scan_cells": 3,
+      "runtime_source_files_matched_to_acceptance": 105,
+      "runtime_source_sha256": "ddf2b179a100abd07d760aa2661852c4b727330bbae9a6ccf3de1e03cbf982ec",
+      "dependency_environment_linked": false,
+      "scanner_alerts_adjudicated": false,
+      "counted_in_aggregate_evidence_linkage": false
+    },
     "offline_verification_evidence_audit": {
       "report": "artifacts/verification-audit.md",
       "scope": "Saved verification logs, hashes, summaries, completion and source records; no application or scanner execution",
@@ -20855,7 +20867,7 @@
     "README-coverage.md": "0dd592c0b1a1927cf0dcb97025630bee8d032613a3c24f8e30512cb8df663d2d",
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
-    "README-zap.md": "7a99f8b3429afd0de19620f7860da0827c9c94a795b1ef0acdfd95495b9a6f18",
+    "README-zap.md": "d88351543d0f1b3a96f786111ce33f4ff6fdcf84251b10c251f06e0a22f502ea",
     "README.md": "bfe371b20fff9aee13766d101966256775290871361bc5e602d5db1b38116028",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",

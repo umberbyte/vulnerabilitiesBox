@@ -48,6 +48,8 @@ sh ./scan-zap.sh active 120 300 bearer admin
 
 新しいZAPの`run.json`には、private controlから取得した対象アプリの`src/`とpackage manifestsのファイルハッシュ、およびNode実行環境を走査前後に記録します。scan-controller自身の同じ範囲と照合し、不一致ならそのrunを失敗にします。これは対象アプリの実行コードの対応付けであり、DB・Redis・Mongo・LDAP・executorの実行画像やコンテナーIDまでは証明しません。過去runに欠けた指紋は補完しません。ローカルの短いbaseline/N試走で前後105ファイルの一致とZAPのHTML生成を確認しましたが、この試走は検出評価に加えません。
 
+B0011は個別V/F/N成立確認のソース記録と、同じ変種の新しいZAP V/F/N完走系列の実行ソース105ファイルが一致しました。[局所レビュー](artifacts/source-link-20261004-B0011-review.md)に原本と範囲を残しています。依存サービスの環境、seed、ZAPアラートの正誤は一致・判定しておらず、全体の検出率にも算入しません。
+
 ## 独自ルールの実験
 
 R0091のMongo演算子オブジェクト向けに、公開の正常JSONで`filter`を文字列から`$ne`/`$eq`オブジェクトへ変え、結果集合の差を再確認する独自スクリプトも追加しました。標準activeのV/F/Nは関連アラート0/0/0、独自ルールのみの局所走査は1/0/0です。[ZAP生成HTMLと計測条件](artifacts/zap-mongo-20261003.md)を参照してください。別アプリへの汎化は未評価です。
