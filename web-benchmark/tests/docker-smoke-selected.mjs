@@ -13,7 +13,9 @@ const controlUrl=process.env.CONTROL_URL;
 const controlKey=process.env.BENCHMARK_CONTROL_KEY;
 const reportPath=process.env.BENCHMARK_SMOKE_REPORT||'artifacts/docker-smoke-selected.json';
 const seed='batch5-docker-smoke';
-const report={schema:'benchmark-docker-smoke-selected-0.1',scope:'selected V/F boundaries only; no N, no scanner, no full regression',startedAt:new Date().toISOString(),origin,results:[]};
+const arms=(process.env.BENCHMARK_SMOKE_ARMS||'V,F').split(',');
+if(!arms.length||new Set(arms).size!==arms.length||arms.some(arm=>!['V','F','N'].includes(arm)))throw Error('Invalid smoke arms');
+const report={schema:'benchmark-docker-smoke-selected-0.1',scope:`selected ${arms.join('/')} boundaries; no scanner or full regression`,startedAt:new Date().toISOString(),origin,results:[]};
 const assert=(condition,label)=>{if(!condition)throw Error(label);};
 async function control(...args){
  if(controlUrl){
@@ -108,7 +110,7 @@ const cases=[
   assert(mode==='V'?response.status===200:[308,426].includes(response.status),'HTTP credential arm mismatch');
  }],
 ];
-for(const [root,variant,check] of cases)for(const mode of ['V','F']){
+for(const [root,variant,check] of cases)for(const mode of arms){
  const start=Date.now();
  try{const context=await reset(root,variant,mode);await check(context,mode);report.results.push({root,variant,mode,status:'passed',elapsedMs:Date.now()-start});}
  catch(error){report.results.push({root,variant,mode,status:'failed',reason:error.message,elapsedMs:Date.now()-start});}

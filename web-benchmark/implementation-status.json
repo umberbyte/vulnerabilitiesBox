@@ -9,7 +9,7 @@
     "implemented_positive_variants": 500,
     "fixed_representative_controls": 337,
     "safe_analogue_conditions": 337,
-    "validated_execution_cells": 863,
+    "validated_execution_cells": 893,
     "remaining_unimplemented_roots": 0,
     "remaining_unimplemented_positive_variants": 0,
     "checks": 13198,
@@ -24,7 +24,7 @@
     "previous_release_verified_roots": 210,
     "pending_final_acceptance_roots": 127,
     "planned_execution_cells": 1011,
-    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_234_passed_extended_variant_cells_on_current_source; one_representative_cell_failed; no_current_full_representative_retest",
+    "validated_execution_scope": "saved_629_passed_representative_cells_on_prior_source_plus_234_passed_extended_variant_cells_on_current_source_plus_30_passed_selected_vfn_cells_on_current_source; one_representative_cell_failed; no_current_full_representative_retest",
     "additional_source_variants": 163
   },
   "verification": {
@@ -188,7 +188,7 @@
       "passed_cells": 234,
       "test_files": 25,
       "report": "artifacts/extended-regression.json",
-      "source_sha256": "b1d4227317026cbcbf596a99718a210cb650e544c53d0c9a8219f2554eaa1aa5",
+      "source_sha256": "99252df8cc9e48d992f668eb682871f246a5e8428ef2902d7bd2e5bb0b7e94e7",
       "source_after": "matched"
     },
     "current_source_unit": {
@@ -213,11 +213,11 @@
       "passed": 296,
       "tests": 296,
       "files": 24,
-      "source_sha256": "b1d4227317026cbcbf596a99718a210cb650e544c53d0c9a8219f2554eaa1aa5",
+      "source_sha256": "99252df8cc9e48d992f668eb682871f246a5e8428ef2902d7bd2e5bb0b7e94e7",
       "source_snapshot_recorded": true,
       "application_acceptance": false,
       "scanner_measurement": false,
-      "archive": "verification-history/tools-2026-10-04T10-56-49-978Z-a868ae81-0aa9-4920-8bc9-9f081cec3a26",
+      "archive": "verification-history/tools-2026-10-04T11-16-39-474Z-105d663d-6e1e-4fe9-af28-e27db332a895",
       "environment_recorded": true,
       "environment_scope": "offline-tools-process"
     },
@@ -264,8 +264,8 @@
     "latest_individual_acceptance_inventory": {
       "report": "artifacts/coverage-inventory.md",
       "machine_report": "artifacts/coverage-inventory.json",
-      "variants_with_vfn_records": 287,
-      "variants_with_partial_records": 9,
+      "variants_with_vfn_records": 296,
+      "variants_with_partial_records": 0,
       "variants_without_individual_records": 203,
       "variants_with_failed_or_conflicting_records": 1,
       "scanner_detection_scored": false
@@ -274,11 +274,26 @@
       "report": "artifacts/evidence-linkage.md",
       "machine_report": "artifacts/evidence-linkage.json",
       "audited_complete_scan_variants": 227,
-      "without_individual_vfn_records": 99,
-      "with_individual_vfn_but_source_unlinked": 127,
+      "without_individual_vfn_records": 94,
+      "with_individual_vfn_but_source_unlinked": 132,
       "verified_runtime_source_linked": 1,
       "dependency_environment_linked": 0,
       "standalone_b0002_outside_audited_ledgers": true
+    },
+    "current_source_selected_vfn": {
+      "report": "artifacts/extended-regression-saved-selected-vfn-20261004.json",
+      "raw_report": "artifacts/docker-smoke-selected-vfn.json",
+      "variants": 10,
+      "arms": [
+        "V",
+        "F",
+        "N"
+      ],
+      "passed_cells": 30,
+      "source_sha256": "99252df8cc9e48d992f668eb682871f246a5e8428ef2902d7bd2e5bb0b7e94e7",
+      "source_after": "matched",
+      "application_acceptance": true,
+      "scanner_measurement": false
     }
   },
   "implemented": [
@@ -20871,7 +20886,7 @@
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
     "README-zap.md": "9ba9ab606321b978db88c9a967d94f40582e1b6d2412425d560cfd47a8d6e1ba",
-    "README.md": "be8505e4e0b913529d30e874e64adfe75092e8cbf611d57f06ec25979afeb70f",
+    "README.md": "035d454a4193c1b8fbe0887fc0ed7ac86b4c8262aa83cf066c28e372ce586fc4",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
@@ -20958,7 +20973,7 @@
     "tests/configuration-cases.mjs": "f6ccab5502d4b1e06b72ff4c7a5290692c7b1700f4875a7ce3ac9223c9b826dd",
     "tests/content-boundaries.mjs": "3d9075fb9606d85af7a0a8dca39efba8d57cf107824757d607e7bc75fd234b60",
     "tests/data-handling.mjs": "fab9725afb7dd50658f79c2602f7fdfb12b7f39729f85542b2ef6fdb1a159911",
-    "tests/docker-smoke-selected.mjs": "e956131c498ba4374d0133ca390c43607dca3a7719801a836c6a130b5a206eba",
+    "tests/docker-smoke-selected.mjs": "73149e83a2605784b9dc526a8a52926de0262935334035eb07daa2431c13a844",
     "tests/evaluation-burp.mjs": "6c5e5a538f21c138976cc935d40efc08ea43e6b53c142272d34b9a8158054712",
     "tests/evaluation.mjs": "a8ec2e0171a518ee1ebb221c3dac0660dbd19d4a3a8a63ef355b6d052751125d",
     "tests/measurement.mjs": "126fd5470b0c74ca5050481c738988e5e14447ac1b7b1d4b3708be6e93a5f3d1",
@@ -21052,6 +21067,7 @@
     "tests/runner-evidence-overview.mjs": "3524c18cdd0a19926b7f1bd0f9b595852affa2e26447a22ed905a3431979af4b",
     "tests/runner-evidence-linkage.mjs": "7a57a2113ec4f9493c8237b13b30a2108fe8ecc470a43e78d17d97acf5bc56ea",
     "src/reporting/environment.mjs": "9a9aa5a5b9b0fae66a52773908d20142429851a71fa2bfad26aafca9696ebb4c",
-    "tests/runner-environment.mjs": "ce7e3c330e96d391af2a24683c84bfc2b4749b6c487ca960ca3a649e8fb47a65"
+    "tests/runner-environment.mjs": "ce7e3c330e96d391af2a24683c84bfc2b4749b6c487ca960ca3a649e8fb47a65",
+    "tests/selected-vfn-regression.mjs": "4ad15510b3158ff88107c60dacec49f0a63018ff2c5034706c91f35078b282c6"
   }
 }
