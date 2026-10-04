@@ -48,7 +48,7 @@ sh ./scan-zap.sh active 120 300 bearer admin
 
 新しいZAPの`run.json`には、private controlから取得した対象アプリの`src/`とpackage manifestsのファイルハッシュ、およびNode実行環境を走査前後に記録します。scan-controller自身の同じ範囲と照合し、不一致ならそのrunを失敗にします。これは対象アプリの実行コードの対応付けであり、DB・Redis・Mongo・LDAP・executorの実行画像やコンテナーIDまでは証明しません。過去runに欠けた指紋は補完しません。ローカルの短いbaseline/N試走で前後105ファイルの一致とZAPのHTML生成を確認しましたが、この試走は検出評価に加えません。
 
-B0011は個別V/F/N成立確認のソース記録と、同じ変種の新しいZAP V/F/N完走系列の実行ソース105ファイルが一致しました。[局所レビュー](artifacts/source-link-20261004-B0011-review.md)に原本と範囲を残しています。依存サービスの環境、seed、ZAPアラートの正誤は一致・判定しておらず、全体の検出率にも算入しません。
+B0011は個別V/F/N成立確認の保存済みソース記録と、同じ変種の新しいZAP V/F/N完走系列の実行ソース105ファイルが一致しました。[局所レビュー](artifacts/source-link-20261004-B0011-review.md)に原本と範囲を残しています。オフラインの[evidence-linkage](artifacts/evidence-linkage.md)は実行ソース一致を1変種として計上しますが、依存サービスの環境、seed、ZAPアラートの正誤は一致・判定していません。検出率には算入しません。
 
 ## 独自ルールの実験
 

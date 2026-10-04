@@ -32,6 +32,28 @@ test('matched V/F/N requires plan and run hash agreement and one configuration',
   assert.match(auditMarkdown(audit),/検出の成功を示しません/);assert.equal(audit.detectionRate,undefined);
 });
 
+test('runtime source proof is checked for each arm and must be stable across a series',async t=>{
+  const f=await fixture(t),files={'package-lock.json':'a'.repeat(64),'package.json':'b'.repeat(64),'src/app.mjs':'c'.repeat(64)};
+  const sha256=hash(JSON.stringify(Object.fromEntries(Object.entries(files).sort(([a],[b])=>a.localeCompare(b)))));
+  const proof={schema:'benchmark-runtime-source-proof-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',sha256,files,runtime:{node:'v24',platform:'linux',architecture:'x64'}};
+  for(const arm of ['V','F','N']){
+    const path=join(f.dir,'zap-'+arm,'run.json'),run=JSON.parse(await readFile(path));
+    run.targetRuntimeSource={controller:proof,targetBefore:proof,targetAfter:proof,controllerMatch:{status:'matched',sha256},scanMatch:{status:'matched',sha256}};
+    f.ledger.cells.find(cell=>cell.arm===arm).run.sha256=await save(path,run);
+  }
+  await f.flush();
+  const result=await auditArtifacts(f.dir);
+  assert.equal(result.summary.errors,0);assert.equal(result.summary.completeVfnSeries,1);
+  assert.equal(result.ledgers[0].series[0].runtimeSourceSha256,sha256);
+  assert.deepEqual(result.runtimeSources[sha256].files,files);
+  const path=join(f.dir,'zap-F','run.json'),run=JSON.parse(await readFile(path));
+  run.targetRuntimeSource.targetAfter={...proof,sha256:'0'.repeat(64)};
+  f.ledger.cells.find(cell=>cell.arm==='F').run.sha256=await save(path,run);await f.flush();
+  const tampered=await auditArtifacts(f.dir);
+  assert.ok(tampered.issues.some(issue=>issue.code==='invalid_runtime_source_proof'));
+  assert.equal(tampered.summary.completeVfnSeries,0);
+});
+
 test('additional-variant panel evidence is audited with the same run checks',async t=>{
   const f=await fixture(t,['V','F','N'],'benchmark-operator-variant-panel-0.1');
   const audit=await auditArtifacts(f.dir);

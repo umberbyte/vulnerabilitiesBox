@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {artifactReader} from './files.mjs';
+import {compareRuntimeSourceProof} from './source.mjs';
 
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
@@ -16,7 +17,7 @@ const metadataFields=['status','profile','requests','scannerConfigurationSha256'
 
 // An offline evidence audit. Passing it establishes metadata consistency only.
 export async function auditArtifacts(directory){
-  const reader=await artifactReader(directory),entries=await reader.entries(),issues=[],ledgers=[],references=new Map(),cache=new Map();
+  const reader=await artifactReader(directory),entries=await reader.entries(),issues=[],ledgers=[],references=new Map(),cache=new Map(),runtimeSources=Object.create(null);
   let errorCount=0;
   const issue=(level,code,path,cellId)=>{if(level==='error')errorCount++;issues.push({level,code,path,...(typeof cellId==='string'?{cellId}: {})});};
   async function document(path){if(!cache.has(path)){const bytes=await reader.read(path);cache.set(path,{sha256:hash(bytes),value:JSON.parse(bytes.toString('utf8'))});}return cache.get(path);}
@@ -69,17 +70,27 @@ export async function auditArtifacts(directory){
             const summary={status:value.status,profile:value.profile,requests:value.measurement?.count,scannerConfigurationSha256:value.scannerConfigurationSha256};
             for(const key of metadataFields)if(cell.run.summary?.[key]!==undefined&&cell.run.summary[key]!==summary[key])throw Error('run_summary_mismatch');
             group.configurationHashes.push(value.scannerConfigurationSha256);
+            if(value.targetRuntimeSource!==undefined){
+              const proof=value.targetRuntimeSource,controller=compareRuntimeSourceProof(proof.controller,proof.targetBefore),scan=compareRuntimeSourceProof(proof.targetBefore,proof.targetAfter);
+              if(controller.status!=='matched'||scan.status!=='matched'||proof.controllerMatch?.status!=='matched'||proof.scanMatch?.status!=='matched'||proof.controllerMatch.sha256!==controller.sha256||proof.scanMatch.sha256!==scan.sha256)throw Error('invalid_runtime_source_proof');
+              arm.runtimeSourceSha256=scan.sha256;
+              runtimeSources[scan.sha256]={files:proof.targetBefore.files,runtime:proof.targetBefore.runtime};
+            }
           }
           arm.verified=result.planVerified&&errorCount===errorsBefore;
           if(arm.verified)result.verifiedRuns++;
-        }catch(error){issue('error',/^(run_hash_mismatch|run_metadata_mismatch|cell_run_status_mismatch|workspace_mismatch|missing_workspace|incomplete_completed_run|missing_configuration_hash|profile_mismatch|budget_mismatch|run_summary_mismatch)$/.test(error.message)?error.message:'run_unavailable',path,cell.cellId);}
+        }catch(error){issue('error',/^(run_hash_mismatch|run_metadata_mismatch|cell_run_status_mismatch|workspace_mismatch|missing_workspace|incomplete_completed_run|missing_configuration_hash|profile_mismatch|budget_mismatch|run_summary_mismatch|invalid_runtime_source_proof)$/.test(error.message)?error.message:'run_unavailable',path,cell.cellId);}
       }else if(cell.status==='completed')issue('error','completed_cell_without_run',path,cell.cellId);
     }
     for(const group of series.values()){
       const configs=new Set(group.configurationHashes);
       group.configurationHashes=[...configs];
-      group.completeVfn=group.arms.length===3&&new Set(group.arms.map(a=>a.arm)).size===3&&group.arms.every(a=>['V','F','N'].includes(a.arm)&&a.status==='completed'&&a.verified)&&configs.size===1;
+      const sourceHashes=new Set(group.arms.map(arm=>arm.runtimeSourceSha256).filter(Boolean));
+      const partialSourceProof=sourceHashes.size>0&&(sourceHashes.size!==1||group.arms.some(arm=>!arm.runtimeSourceSha256));
+      group.runtimeSourceSha256=sourceHashes.size===1&&!partialSourceProof?[...sourceHashes][0]:null;
+      group.completeVfn=group.arms.length===3&&new Set(group.arms.map(a=>a.arm)).size===3&&group.arms.every(a=>['V','F','N'].includes(a.arm)&&a.status==='completed'&&a.verified)&&configs.size===1&&!partialSourceProof;
       if(configs.size>1)issue('warning','configuration_changed_within_series',path);
+      if(partialSourceProof)issue('warning','runtime_source_proof_changed_within_series',path);
       if(!group.completeVfn)issue('info','incomplete_vfn_series',path);
       result.series.push(group);
     }
@@ -91,7 +102,7 @@ export async function auditArtifacts(directory){
   for(const entry of entries){if(entry.isDirectory()&&entry.name.startsWith('zap-')&&!references.has(entry.name+'/run.json'))orphanRuns.push(entry.name+'/run.json');}
   const reusedRuns=[...references].filter(([,count])=>count>1).map(([path,count])=>({path,references:count}));
   const groups=ledgers.flatMap(l=>l.series);
-  return {schema:'benchmark-artifact-audit-0.1',generatedAt:new Date().toISOString(),summary:{ledgers:ledgers.length,verifiedPlans:ledgers.filter(l=>l.planVerified).length,referencedCells:ledgers.reduce((n,l)=>n+l.referencedRuns,0),verifiedCells:ledgers.reduce((n,l)=>n+l.verifiedRuns,0),series:groups.length,completeVfnSeries:groups.filter(g=>g.completeVfn).length,incompleteVfnSeries:groups.filter(g=>!g.completeVfn).length,errors:issues.filter(i=>i.level==='error').length,warnings:issues.filter(i=>i.level==='warning').length,orphanRuns:orphanRuns.length,reusedRuns:reusedRuns.length},ledgers,issues,orphanRuns,reusedRuns,limitations:['No scan, exploit, browser execution, vulnerability scoring, or source-result freshness verification.','Complete V/F/N means metadata-matched finished runs, not proof of reachability or detection.','Hashes check agreement with stored ledgers; no external signature or immutable trust anchor is provided.','Unreferenced runs may be deliberate standalone experiments and are not automatically invalid.']};
+  return {schema:'benchmark-artifact-audit-0.1',generatedAt:new Date().toISOString(),summary:{ledgers:ledgers.length,verifiedPlans:ledgers.filter(l=>l.planVerified).length,referencedCells:ledgers.reduce((n,l)=>n+l.referencedRuns,0),verifiedCells:ledgers.reduce((n,l)=>n+l.verifiedRuns,0),series:groups.length,completeVfnSeries:groups.filter(g=>g.completeVfn).length,incompleteVfnSeries:groups.filter(g=>!g.completeVfn).length,errors:issues.filter(i=>i.level==='error').length,warnings:issues.filter(i=>i.level==='warning').length,orphanRuns:orphanRuns.length,reusedRuns:reusedRuns.length},ledgers,runtimeSources,issues,orphanRuns,reusedRuns,limitations:['No scan, exploit, browser execution, vulnerability scoring, or source-result freshness verification.','Complete V/F/N means metadata-matched finished runs, not proof of reachability or detection.','Runtime source proofs cover src/ and package manifests only; they do not attest dependency services or image identity.','Hashes check agreement with stored ledgers; no external signature or immutable trust anchor is provided.','Unreferenced runs may be deliberate standalone experiments and are not automatically invalid.']};
 }
 
 export function auditMarkdown(audit){

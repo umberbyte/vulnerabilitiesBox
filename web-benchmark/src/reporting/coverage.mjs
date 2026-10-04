@@ -33,7 +33,7 @@ export function coverageInventory(design,reports){
     if(data.schema==='benchmark-extended-regression-0.1'){
       aggregateEvidence.push({path,scope:'file-level aggregate only; individual variant and arm evidence was not retained',summary:data.summary});continue;
     }
-    if(data.schema==='benchmark-acceptance-0.2'&&data.source){
+    if(['benchmark-acceptance-0.2','benchmark-extended-regression-0.2'].includes(data.schema)&&data.source){
       const stable=compareSources(data.source,data.source).status==='matched'&&data.sourceAfter?.status==='matched'&&data.sourceAfter.recordedSha256===data.source.sha256&&data.sourceAfter.currentSha256===data.source.sha256;
       if(!stable){warn(path,'source_snapshot_unstable_or_invalid');continue;}
     }
@@ -57,7 +57,8 @@ export function coverageInventory(design,reports){
     }
     if(invalid){warn(path,'invalid_or_duplicate_case');continue;}
     if(data.summary?.cells!==undefined&&data.summary.cells!==cells.length){warn(path,'summary_cell_count_mismatch');continue;}
-    sources.push({path,startedAt:data.started||data.startedAt,cells:accepted.length,sourceSnapshotRecorded:Boolean(data.source),...(data.source?.sha256?{sourceSha256:data.source.sha256}:{}),...(data.seed?{seed:data.seed}:{})});
+    const sourceRuntimeFiles=data.source?.files?Object.fromEntries(Object.entries(data.source.files).filter(([file])=>file==='package.json'||file==='package-lock.json'||file.startsWith('src/'))):null;
+    sources.push({path,startedAt:data.started||data.startedAt,cells:accepted.length,sourceSnapshotRecorded:Boolean(data.source),...(data.source?.sha256?{sourceSha256:data.source.sha256}:{}),...(sourceRuntimeFiles?{sourceRuntimeFiles}:{}),...(data.seed?{seed:data.seed}:{})});
     for(const {cell,passed}of accepted){
       const row=byVariant.get(cell.variant),arms=passed?row.passedArms:row.failedArms;
       if(!arms.includes(cell.mode))arms.push(cell.mode);
@@ -71,7 +72,9 @@ export function coverageInventory(design,reports){
 
 export async function collectCoverage(directory,design){
   const reader=await artifactReader(directory),reports=[],unreadable=[];
-  for(const path of ['acceptance.json','extended-regression.json','docker-smoke-selected-run.json']){
+  const saved=(await reader.entries()).filter(entry=>entry.isFile()&&/^extended-regression-(?:saved|source-link)-[A-Za-z0-9-]+\.json$/.test(entry.name)).map(entry=>entry.name).sort();
+  if(saved.length>100)throw Error('Too many saved extended-regression reports');
+  for(const path of ['acceptance.json','extended-regression.json',...saved,'docker-smoke-selected-run.json']){
     try{reports.push({path,data:await reader.json(path)});}catch(e){if(e.code!=='ENOENT')unreadable.push({source:path,code:'unreadable_report'});}
   }
   const inventory=coverageInventory(design,reports);inventory.issues.push(...unreadable);inventory.summary.issues=inventory.issues.length;return inventory;

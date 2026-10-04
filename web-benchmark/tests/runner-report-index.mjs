@@ -23,6 +23,9 @@ test('indexes finished, stopped, and unsupported runs without scoring',async t=>
   assert.equal(index.summary.runStates.budget_stopped,1);assert.equal(index.detectionRate,undefined);
   assert.deepEqual(index.notes,['zap-review.md']);assert.match(renderReports(index),/zap-review.md/);
   assert.match(renderReports(index),/500/);assert.match(renderReports(index),/上限で停止/);
+  index.evidenceLinkage={withCompleteScan:2,completeScanWithoutIndividualVfn:0,completeScanWithIndividualVfnButSourceUnlinked:1,verifiedSourceLinked:1,dependencyEnvironmentLinked:0};
+  const linkedHtml=renderReports(index);
+  assert.match(linkedHtml,/実行ソース一致/);assert.match(linkedHtml,/依存サービスの環境一致は0件/);
 });
 
 test('escaped metadata cannot inject markup or external links',async t=>{

@@ -43,6 +43,17 @@ test('structured extended reports can contribute exact individual outcomes',()=>
   const result=coverageInventory(design,[{path:'extended.json',data:{schema:'benchmark-extended-regression-0.2',results:[{status:'passed',cellResults:[cell('B0002','V'),cell('B0002','F'),cell('B0002','N')]}]}}]);
   assert.equal(result.summary.variantsWithVfnRecords,1);assert.equal(result.summary.aggregateReports,0);
 });
+test('stable extended acceptance exposes only runtime file hashes for source linkage',()=>{
+  const files={'package-lock.json':'a'.repeat(64),'package.json':'b'.repeat(64),'src/app.mjs':'c'.repeat(64),'tests/acceptance.mjs':'d'.repeat(64)};
+  const sha256=createHash('sha256').update(JSON.stringify(Object.fromEntries(Object.entries(files).sort(([a],[b])=>a.localeCompare(b))))).digest('hex');
+  const source={schema:'benchmark-source-snapshot-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',sha256,files};
+  const data={schema:'benchmark-extended-regression-0.2',source,sourceAfter:{status:'matched',recordedSha256:sha256,currentSha256:sha256},results:[{status:'passed',cellResults:['V','F','N'].map(arm=>cell('B0001',arm))}]};
+  const inventory=coverageInventory(design,[{path:'saved.json',data}]);
+  assert.equal(inventory.summary.variantsWithVfnRecords,1);
+  assert.deepEqual(inventory.sources[0].sourceRuntimeFiles,{'package-lock.json':files['package-lock.json'],'package.json':files['package.json'],'src/app.mjs':files['src/app.mjs']});
+  data.sourceAfter={status:'changed'};
+  assert.equal(coverageInventory(design,[{path:'saved.json',data}]).summary.variantsWithVfnRecords,0);
+});
 
 test('independent test files may repeat a condition without doubling coverage',()=>{
   const data={schema:'benchmark-extended-regression-0.2',results:['one','two'].map(file=>({file,status:'passed',cellResults:[cell('B0001','V')]}))};
