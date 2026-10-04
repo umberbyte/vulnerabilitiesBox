@@ -164,4 +164,8 @@ B0260の別issuer応答、B0265のdevice承認主体、B0266の短いdevice code
 
 B0270の初回はテスト側が誤った通常画面の入口を参照して失敗しました。`artifacts/diagnostic-extended-identity-six-initial-20261005.json`と`artifacts/diagnostic-docker-smoke-identity-six-initial-20261005.json`に保全し、正しい`/b3-par`入口で再実行しました。ZAPによる検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中418変種に個別V/F/N合格記録があり、81変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### 入力解析とローカル通信7変種の個別確認
+
+B0150の重複multipart file、B0359の重複query、B0360のquery/body指定差、B0370のgzip本文を、正常な単一入力や非圧縮更新と対比しました。B0362ではローカルHTTP fixtureの応答ヘッダー、B0363ではローカルSMTP fixtureの配信ヘッダー、B0367では実TLS要求とHTTP上の転送宣言を比較しました。結果とともに保存ファイル、会員属性、監査イベント、発行tokenを条件に応じて照合しています。7変種のV/F/N計21条件を同じソース版で確認した記録は`artifacts/extended-regression-saved-parsing-protocol-seven-20261005.json`と`artifacts/docker-smoke-parsing-protocol-seven-20261005.json`です。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。ZAPによる検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中425変種に個別V/F/N合格記録があり、74変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。

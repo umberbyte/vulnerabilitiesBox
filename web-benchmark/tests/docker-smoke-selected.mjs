@@ -6,6 +6,7 @@ import {promisify} from 'node:util';
 import {writeFile,mkdir} from 'node:fs/promises';
 import {request as httpRequest} from 'node:http';
 import {request as httpsRequest} from 'node:https';
+import {gzipSync} from 'node:zlib';
 import WebSocket from 'ws';
 import {chromium} from 'playwright-core';
 
@@ -915,6 +916,98 @@ async function protocolIdentityVariant({base,canary},mode,variant){
  assert(links?.length===(mode==='V'?2:1),'persisted linked-session count arm mismatch');
  if(mode==='V')assert(links[0].actor==='bob'&&links[1].actor==='alice','crossed linked-session audit absent');
 }
+async function parsingBoundaryVariant({base,canary},mode,variant){
+ const cookie=await login(base);
+ const page=await fetch(origin+base+'/v5-parse',{headers:{cookie}});
+ assert(page.status===200,'normal input parsing page unavailable');await page.arrayBuffer();
+ if(variant==='B0150'){
+  const upload=async(contents)=>{
+   const body=new FormData();
+   for(const [name,value]of contents)body.append('file',new Blob([value],{type:'text/plain'}),name);
+   return fetch(origin+base+'/v5-parse',{method:'POST',headers:{cookie},body});
+  };
+  const normal=await upload([['public.txt','Public document']]);
+  assert(normal.status===200,'normal single-file upload failed');
+  const saved=await fetch(origin+base+'/v5-parse/uploaded');
+  assert(saved.status===200&&(await saved.text())==='Public document','normal uploaded document unavailable');
+  const attempt=await upload([['public.txt','Public document'],['private.txt','PRIVATE:'+canary]]);
+  assert(attempt.status===(mode==='V'?200:400),'duplicate multipart file admission arm mismatch');
+  const visible=await fetch(origin+base+'/v5-parse/uploaded');
+  assert(visible.status===200&&(await visible.text())===(mode==='V'?'PRIVATE:'+canary:'Public document'),'duplicate multipart saved file arm mismatch');
+  const state=(await control('oracle')).caseState?.batch5Parsing;
+  assert(state?.lastSaved===(mode==='V'?'PRIVATE:'+canary:'Public document'),'persisted multipart file arm mismatch');
+  return;
+ }
+ if(variant==='B0359'){
+  const normal=await json(base+'/v5-parse?target=101',{},cookie);
+  assert(normal.status===200&&(await normal.json()).document==='Alice private document','normal single query target failed');
+  const attempt=await json(base+'/v5-parse?target=101&target=102',{},cookie);
+  assert(attempt.status===(mode==='V'?200:400),'duplicate query target admission arm mismatch');
+  if(mode==='V')assert((await attempt.json()).document===canary,'duplicate query selected wrong document');
+  return;
+ }
+ if(variant==='B0360'){
+  const normal=await json(base+'/v5-parse?target=101',{target:101,action:'read'},cookie);
+  assert(normal.status===200&&(await normal.json()).document==='Alice private document','normal query/body target failed');
+  const attempt=await json(base+'/v5-parse?target=101',{target:102,action:'read'},cookie);
+  assert(attempt.status===(mode==='V'?200:403),'query/body target precedence arm mismatch');
+  if(mode==='V')assert((await attempt.json()).document===canary,'query/body mismatch did not reach protected document');
+  return;
+ }
+ const normal=await json(base+'/v5-parse',{contact:'normal@example.test'},cookie);
+ assert(normal.status===200,'normal uncompressed contact update failed');
+ const plain=await json(base+'/v5-parse',{contact:'attacker@private.example.test'},cookie);
+ assert(plain.status===403,'ordinary private-domain contact was accepted');
+ const compressed=await fetch(origin+base+'/v5-parse',{method:'POST',headers:{cookie,'content-type':'application/json','content-encoding':'gzip'},body:gzipSync(JSON.stringify({contact:'attacker@private.example.test'}))});
+ assert(compressed.status===(mode==='V'?200:403),'compressed contact validation arm mismatch');
+ const saved=(await control('oracle')).users.find(user=>user.name==='alice')?.contact;
+ assert(saved===(mode==='V'?'attacker@private.example.test':'normal@example.test'),'compressed contact persistence arm mismatch');
+}
+async function localProtocolVariant({base},mode,variant){
+ const cookie=await login(base);
+ const path=variant==='B0363'?'/b3-mail':variant==='B0367'?'/b3-transport':'/b3-wire';
+ const page=await fetch(origin+base+path,{headers:{cookie}});
+ assert(page.status===200,'normal protocol fixture page unavailable');await page.arrayBuffer();
+ if(variant==='B0362'){
+  const exchange=async(value)=>{
+   const raw=`GET /note?value=${encodeURIComponent(value)} HTTP/1.1\r\nHost: public.lab\r\n\r\n`;
+   const response=await json(base+'/b3-wire',{raw},cookie);
+   assert(response.status===200,'bounded local HTTP wire exchange failed');return response.json();
+  };
+  const normal=await exchange('ordinary');
+  assert(normal.rawResponse.includes('X-Note: ordinary'),'normal reflected note header absent');
+  const candidate=await exchange('safe\r\nX-Injected: yes');
+  assert(candidate.rawResponse.includes('X-Injected: yes')===(mode==='V'),'local HTTP response header split arm mismatch');
+  if(mode!=='V')assert(candidate.rawResponse.includes('400'),'fixed HTTP response did not reject control characters');
+  return;
+ }
+ if(variant==='B0363'){
+  const normal=await json(base+'/b3-mail',{subject:'Ordinary notice'},cookie);
+  assert(normal.status===200&&(await normal.json()).subject==='Ordinary notice','normal local SMTP delivery failed');
+  const candidate=await json(base+'/b3-mail',{subject:'Notice\r\nX-Injected: yes'},cookie);
+  assert(candidate.status===(mode==='V'?200:400),'SMTP subject header break arm mismatch');
+  const deliveries=(await control('oracle')).caseState?.protocolBatch?.events?.filter(item=>item.kind==='smtp-delivery');
+  assert(deliveries?.length===(mode==='V'?2:1),'local SMTP delivery count arm mismatch');
+  assert(deliveries[0].data?.headers?.subject==='Ordinary notice','ordinary SMTP subject audit absent');
+  if(mode==='V')assert(deliveries[1].data?.headers?.['x-injected']==='yes','injected SMTP header audit absent');
+  return;
+ }
+ const secureOrigin=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app:8443';
+ const genuine=await new Promise((resolve,reject)=>{
+  const request=httpsRequest(secureOrigin+base+'/b3-transport',{method:'POST',headers:{cookie,'content-type':'application/json'},rejectUnauthorized:false},response=>{
+   let body='';response.setEncoding('utf8');response.on('data',part=>body+=part);response.on('end',()=>resolve({status:response.statusCode,body}));
+  });request.on('error',reject);request.end('{}');
+ });
+ assert(genuine.status===200&&typeof JSON.parse(genuine.body).accessToken==='string','genuine HTTPS transport token unavailable');
+ const forged=await fetch(origin+base+'/b3-transport',{method:'POST',headers:{cookie,'content-type':'application/json','x-forwarded-proto':'https'},body:'{}'});
+ assert(forged.status===(mode==='V'?200:426),'untrusted forwarded-protocol arm mismatch');
+ const state=(await control('oracle')).caseState?.protocolBatch;
+ const checks=state?.events?.filter(item=>item.kind==='secure-transport');
+ assert(checks?.length===(mode==='V'?2:1)&&checks[0].data?.actualTLS===true,'persisted HTTPS transport audit arm mismatch');
+ if(mode==='V')assert(checks[1].data?.actualTLS===false,'untrusted HTTP transport audit absent');
+ const tokens=state?.tokens?.filter(item=>item.kind==='transport');
+ assert(tokens?.length===(mode==='V'?2:1),'issued transport token count arm mismatch');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -1242,6 +1335,13 @@ const cases=[
  ['R0267','B0267',(context,mode)=>protocolIdentityVariant(context,mode,'B0267')],
  ['R0269','B0269',(context,mode)=>protocolIdentityVariant(context,mode,'B0269')],
  ['R0270','B0270',(context,mode)=>protocolIdentityVariant(context,mode,'B0270')],
+ ['R0150','B0150',(context,mode)=>parsingBoundaryVariant(context,mode,'B0150')],
+ ['R0150','B0359',(context,mode)=>parsingBoundaryVariant(context,mode,'B0359')],
+ ['R0150','B0360',(context,mode)=>parsingBoundaryVariant(context,mode,'B0360')],
+ ['R0150','B0370',(context,mode)=>parsingBoundaryVariant(context,mode,'B0370')],
+ ['R0362','B0362',(context,mode)=>localProtocolVariant(context,mode,'B0362')],
+ ['R0363','B0363',(context,mode)=>localProtocolVariant(context,mode,'B0363')],
+ ['R0367','B0367',(context,mode)=>localProtocolVariant(context,mode,'B0367')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
