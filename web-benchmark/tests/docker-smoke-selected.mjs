@@ -592,6 +592,40 @@ async function maintenancePortVariant({base},mode){
  assert(events[0].data?.remote==='127.0.0.1'||events[0].data?.remote==='::ffff:127.0.0.1','normal loopback maintenance address mismatch');
  if(mode==='V')assert(events[1].data?.remote&&!['127.0.0.1','::ffff:127.0.0.1'].includes(events[1].data.remote),'cross-container maintenance address not recorded');
 }
+async function artifactVariant({base},mode,variant){
+ const cookie=await login(base);
+ const page=await fetch(origin+base+'/b3-artifacts',{headers:{cookie}});
+ assert(page.status===200,'normal artifact management page unavailable');await page.arrayBuffer();
+ const fixtures=await fetch(origin+base+'/b3-artifact-fixtures',{headers:{cookie}});
+ assert(fixtures.status===200,'local artifact fixtures unavailable');
+ const f=await fixtures.json();
+ let approved,candidate,approvedId,candidateId,approvedMarker,candidateMarker,rejected;
+ if(variant==='B0474'){
+  approved={package:'display-core',version:'1'};candidate={package:'display-extra',version:'1'};
+  approvedId='display-core@1';candidateId='display-extra@1';approvedMarker='core-v1';candidateMarker='extra-package';rejected=403;
+ }else if(variant==='B0475'){
+  approved={package:'display-core',version:'1',lock:f.lock};candidate={package:'display-core',version:'2',lock:f.lock};
+  approvedId='display-core@1';candidateId='display-core@2';approvedMarker='core-v1';candidateMarker='core-v2-unapproved';rejected=409;
+ }else if(variant==='B0476'){
+  approved={manifest:f.update};candidate={manifest:f.candidateUpdate};
+  approvedId='safe-update';candidateId='candidate-update';approvedMarker='safe-update';candidateMarker='unsigned-update';rejected=403;
+ }else{
+  approved={manifest:f.plugin};candidate={manifest:f.candidatePlugin};
+  approvedId='render-plugin';candidateId='internal-plugin';approvedMarker='render-plugin';candidateMarker='internal-maintenance';rejected=403;
+ }
+ const good=await json(base+'/b3-artifacts',approved,cookie);
+ assert(good.status===200&&(await good.json()).installed===approvedId,'approved local artifact did not activate');
+ const attempt=await json(base+'/b3-artifacts',candidate,cookie);
+ assert(attempt.status===(mode==='V'?200:rejected),'candidate artifact admission arm mismatch');
+ if(mode==='V')assert((await attempt.json()).installed===candidateId,'candidate local artifact did not activate');
+ const state=(await control('oracle')).caseState?.protocolBatch;
+ const activations=state?.events?.filter(item=>item.kind==='artifact-activation');
+ assert(activations?.length===(mode==='V'?2:1),'persisted artifact activation count arm mismatch');
+ assert(activations[0].actor==='alice'&&activations[0].data?.artifact===approvedId&&activations[0].data?.marker===approvedMarker,'approved artifact marker mismatch');
+ if(mode==='V')assert(activations[1].actor==='alice'&&activations[1].data?.artifact===candidateId&&activations[1].data?.marker===candidateMarker,'candidate artifact marker mismatch');
+ const installed=state?.settings?.find(item=>item.key==='installed')?.value;
+ assert(installed?.artifact===(mode==='V'?candidateId:approvedId)&&/^[0-9a-f]{64}$/.test(installed.digest),'persisted installed artifact arm mismatch');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -880,6 +914,10 @@ const cases=[
  ['R0480','B0480',(context,mode)=>signedOrWorkerVariant(context,mode,'B0480')],
  ['R0463','B0463',tlsBackendVariant],
  ['R0466','B0466',maintenancePortVariant],
+ ['R0474','B0474',(context,mode)=>artifactVariant(context,mode,'B0474')],
+ ['R0475','B0475',(context,mode)=>artifactVariant(context,mode,'B0475')],
+ ['R0476','B0476',(context,mode)=>artifactVariant(context,mode,'B0476')],
+ ['R0479','B0479',(context,mode)=>artifactVariant(context,mode,'B0479')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
