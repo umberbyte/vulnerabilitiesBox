@@ -152,6 +152,90 @@ async function publicFileVariant({base,canary},mode,variant,name){
  assert(unrelated.status===404,'unlisted filename was accepted');
  await unrelated.arrayBuffer();
 }
+async function objectAuthorizationVariant({base,canary},mode,variant){
+ const cookie=await login(base);
+ const own=await json(base+'/v4-object',variant==='B0274'?{tenant:'A'}:variant==='B0276'?{scope:'mine'}:variant==='B0277'?{q:'Alice'}:variant==='B0278'?{id:101}:variant==='B0286'?{sourceId:101}:{id:101,expand:false},cookie);
+ assert(own.status===200,'normal own-document operation failed');
+ const ownBody=await own.json();
+ if(variant==='B0274')assert(ownBody.documents.some(item=>item.id===101),'own document absent from normal list');
+ else if(variant==='B0276')assert(ownBody.summary?.includes('Alice private document'),'own summary absent');
+ else if(variant==='B0277')assert(ownBody.results.some(item=>item.id===101),'own search result absent');
+ else if(variant==='B0278'){
+  assert(ownBody.resultId===101,'own asynchronous result ID absent');
+  const result=await fetch(origin+base+'/v4-object/result/101',{headers:{cookie}});
+  assert(result.status===200&&(await result.json()).body==='Alice private document','own asynchronous result unreadable');
+ }else if(variant==='B0286')assert(ownBody.copied&&ownBody.body==='Alice private document','own copy failed');
+ else assert(ownBody.body==='Alice private document'&&!ownBody.related,'normal unexpanded document mismatch');
+ const attack=await json(base+'/v4-object',variant==='B0274'?{tenant:'B'}:variant==='B0276'?{scope:'all'}:variant==='B0277'?{q:'tenant'}:variant==='B0278'?{id:102}:variant==='B0286'?{sourceId:102}:{id:101,expand:true},cookie);
+ if(variant==='B0276'||variant==='B0286'){
+  assert(attack.status===(mode==='V'?200:403),'forbidden aggregate/copy admission arm mismatch');
+  if(mode==='V')assert(JSON.stringify(await attack.json()).includes(canary),'aggregate/copy did not expose protected document');
+ }else{
+  assert(attack.status===200,'ordinary query endpoint failed');
+  const body=await attack.json();
+  if(variant==='B0278'){
+   assert(body.resultId===102,'asynchronous result fixture absent');
+   const result=await fetch(origin+base+'/v4-object/result/102',{headers:{cookie}});
+   assert(result.status===(mode==='V'?200:403),'asynchronous result ownership arm mismatch');
+   if(mode==='V')assert((await result.json()).body===canary,'foreign asynchronous result lacks private canary');
+  }else assert(JSON.stringify(body).includes(canary)===(mode==='V'),'foreign document disclosure arm mismatch');
+ }
+ if(variant==='B0286'){
+  const copies=(await control('oracle')).caseState?.batch4Objects?.copies;
+  assert(copies?.length===(mode==='V'?2:1),'persisted document copies disagree with arm');
+ }
+}
+async function profileAuthorizationVariant({base,canary},mode,variant){
+ const alice=await login(base);
+ const page=await fetch(origin+base+'/v4-profile',{headers:{cookie:alice}});
+ assert(page.status===200,'normal member profile unavailable');
+ await page.arrayBuffer();
+ if(['B0288','B0295','B0304'].includes(variant)){
+  const request=variant==='B0288'?{objectId:101}:variant==='B0295'?{query:'{ member { name secret } }'}:{format:'csv'};
+  const response=await json(base+'/v4-profile',request,alice);
+  assert(response.status===200,'normal profile read/export failed');
+  if(variant==='B0288'){
+   const body=await response.json();
+   assert(body.member?.name==='alice'&&(body.member.secret===canary)===(mode==='V'),'attribute-level read arm mismatch');
+  }else if(variant==='B0295'){
+   const body=await response.json();
+   assert(body.data?.member?.name==='alice'&&(body.data.member.secret===canary)===(mode==='V'),'GraphQL field read arm mismatch');
+  }else assert((await response.text()).includes(canary)===(mode==='V'),'CSV secret export arm mismatch');
+  return;
+ }
+ if(['B0297','B0298','B0299'].includes(variant)){
+  const normal=variant==='B0297'?{profile:{contact:'normal@example.test'}}:variant==='B0298'?{patch:[{op:'replace',path:'/contact',value:'normal@example.test'}]}:{contact:'normal@example.test'};
+  const update=await json(base+'/v4-profile',normal,alice);
+  assert(update.status===200&&(await update.json()).contact==='normal@example.test','normal contact update failed');
+  const escalation=variant==='B0297'?{profile:{role:'admin'}}:variant==='B0298'?{patch:[{op:'replace',path:'/role',value:'admin'}]}:{role:'admin'};
+  const attempt=await json(base+'/v4-profile',escalation,alice);
+  assert(attempt.status===200,'profile role-field request failed');
+  const row=(await control('oracle')).caseState?.batch4Profile;
+  assert(row?.aliceRole===(mode==='V'?'admin':'user')&&row.aliceContact==='normal@example.test','persisted role/contact arm mismatch');
+  return;
+ }
+ const admin=await login(base,'admin');
+ let endpoint=base+'/v4-profile/management',method='PATCH';
+ if(variant==='B0293'){endpoint=base+'/v4-profile/legacy';method='POST';}
+ if(variant==='B0294'){endpoint=base+'/v4-profile/rpc';method='POST';}
+ if(variant==='B0292'){
+  const forbidden=await fetch(origin+endpoint,{headers:{cookie:alice}});
+  assert(forbidden.status===403,'normal member sees management operation');
+  await forbidden.arrayBuffer();
+  const available=await fetch(origin+endpoint,{headers:{cookie:admin}});
+  assert(available.status===200,'administrator management view unavailable');
+  await available.arrayBuffer();
+ }
+ const send=cookie=>fetch(origin+endpoint,{method,headers:{cookie,'content-type':'application/json'},body:JSON.stringify({action:'rebuild'})});
+ const normal=await send(admin);
+ assert(normal.status===200,'normal administrator operation failed');
+ await normal.arrayBuffer();
+ const attempt=await send(alice);
+ assert(attempt.status===(mode==='V'?200:403),'member management authorization arm mismatch');
+ await attempt.arrayBuffer();
+ const operations=(await control('oracle')).operations;
+ assert(operations.length===(mode==='V'?2:1)&&operations.some(item=>item.username==='admin')&&operations.some(item=>item.username==='alice')===(mode==='V'),'persisted management operation arm mismatch');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -398,6 +482,21 @@ const cases=[
   const page=await fetch(origin+base+'/r3-0490',{headers:{cookie}});
   assert(page.status===200,'main web application did not remain healthy');
  }],
+ ['R0271','B0274',(context,mode)=>objectAuthorizationVariant(context,mode,'B0274')],
+ ['R0271','B0276',(context,mode)=>objectAuthorizationVariant(context,mode,'B0276')],
+ ['R0271','B0277',(context,mode)=>objectAuthorizationVariant(context,mode,'B0277')],
+ ['R0271','B0278',(context,mode)=>objectAuthorizationVariant(context,mode,'B0278')],
+ ['R0271','B0286',(context,mode)=>objectAuthorizationVariant(context,mode,'B0286')],
+ ['R0271','B0289',(context,mode)=>objectAuthorizationVariant(context,mode,'B0289')],
+ ['R0094','B0288',(context,mode)=>profileAuthorizationVariant(context,mode,'B0288')],
+ ['R0094','B0295',(context,mode)=>profileAuthorizationVariant(context,mode,'B0295')],
+ ['R0094','B0304',(context,mode)=>profileAuthorizationVariant(context,mode,'B0304')],
+ ['R0095','B0297',(context,mode)=>profileAuthorizationVariant(context,mode,'B0297')],
+ ['R0095','B0298',(context,mode)=>profileAuthorizationVariant(context,mode,'B0298')],
+ ['R0095','B0299',(context,mode)=>profileAuthorizationVariant(context,mode,'B0299')],
+ ['R0291','B0292',(context,mode)=>profileAuthorizationVariant(context,mode,'B0292')],
+ ['R0291','B0293',(context,mode)=>profileAuthorizationVariant(context,mode,'B0293')],
+ ['R0291','B0294',(context,mode)=>profileAuthorizationVariant(context,mode,'B0294')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

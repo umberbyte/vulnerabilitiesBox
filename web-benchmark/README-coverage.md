@@ -98,4 +98,10 @@ B0471、B0483、B0485、B0489、B0490について、ローカルDockerでV/F/N�
 
 最終記録は`artifacts/extended-regression-saved-lifecycle-five-initial-20261005.json`と`artifacts/docker-smoke-lifecycle-five-initial-20261005.json`です。検証・対象の実行ソースと対象の実行前後のソースが一致しました。B0489はaudit領域、B0490は隔離worker内の条件であり、一般のWeb DAST検出へそのまま換算しません。この5変種のZAP検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中350変種に個別V/F/N合格記録があり、149変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### 文書・会員認可15変種の個別成立確認
+
+B0274、B0276、B0277、B0278、B0286、B0289では、本人文書の通常操作を先に実行し、他人または別tenantの文書に対する一覧・集計・検索・非同期結果・複製・関連展開を比較しました。B0288、B0295、B0304では通常の会員属性読取と、秘密属性を含むカード・GraphQL・CSV出力を比較しました。B0297、B0298、B0299では通常の連絡先更新後、保護されたrole更新を試し、専用監査値で実DBのroleと連絡先を確認しました。B0292、B0293、B0294では管理者の正規操作後に一般会員の同じ管理操作を試し、操作履歴を照合しました。
+
+ローカルDockerで15変種のV/F/N計45条件がすべて合格しました。最終記録は`artifacts/extended-regression-saved-authorization-fifteen-20261005.json`と`artifacts/docker-smoke-authorization-fifteen-20261005.json`です。検証側と対象アプリの実行ソース、および対象の実行前後のソースが一致しました。初回はB0297～B0299の照合で、一般oracleのユーザー一覧にroleが含まれると誤認したため9条件が失敗しました。専用監査値へ照合先を修正し、初回の失敗記録は`artifacts/diagnostic-extended-authorization-fifteen-initial-20261005.json`と`artifacts/diagnostic-docker-smoke-authorization-fifteen-initial-20261005.json`に保全しました。これらのZAP検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中365変種に個別V/F/N合格記録があり、134変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
