@@ -118,4 +118,10 @@ B0192では正しいパスワードでの専用ログインとセッション成
 
 B0094は設計名が「Mongo projection」ですが、現行の`src/cases/batch4-auth-profile.mjs`はPostgreSQLの会員属性を読んで出力フィールドを絞る実装です。フィールド認可の比較には使えても、MongoDBのprojectionの診断評価とは同一視できません。実装の適合性を確認するまで、B0094の個別成立数を増やす対象から外しています。
 
-2026-10-05時点の保存記録では、500変種中380変種に個別V/F/N合格記録があり、119変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### WebSocket・SSE 6変種の個別成立確認
+
+B0343では本人のWebSocket部屋の読取を正常に通し、別会員の部屋へのframeを比較しました。B0344では管理者の正規WebSocket操作を通した後、一般会員の同操作を試し、実DBの操作履歴を照合しました。B0349では本人向けのSSEリンクを画面から確認し、全条件で本人文書の通常読取を成立させてから、別tenant指定による文書越境を比較しました。B0350では本人の再接続cursorと別会員のcursorを比較し、SSE本文と選択された主体の監査イベントを確認しました。B0240では接続中のWebSocketで通常frameを受け取ってからログアウトし、**同じ接続**の次のframeと失効後の監査イベントを比較しました。B0341ではChromiumの同originページと別originページから認証付きWebSocketを開き、実際のブラウザOriginで読取可否を確認しました。
+
+ローカルDockerで6変種のV/F/N計18条件が合格しました。現行実装の最終記録は`artifacts/extended-regression-saved-stream-six-final-20261005.json`と`artifacts/docker-smoke-stream-six-final-20261005.json`です。検証側・対象アプリの実行ソースと対象の実行前後のソースが一致しました。初回の6変種一括実行では、追加2変種の画面取得・画面要素待機が失敗しました。さらに旧B0349はVで常に同一tenantの別会員文書を返しており、設計した別tenant漏れと通常読取の維持を満たしていませんでした。対象実装を修正し、古い成立記録を診断資料へ移しました。集計から除外した記録は`artifacts/diagnostic-extended-stream-six-initial-20261005.json`、`artifacts/diagnostic-extended-stream-four-pre-tenant-fix-20261005.json`、`artifacts/diagnostic-extended-stream-six-pre-link-20261005.json`です。初回失敗の詳細は`artifacts/diagnostic-docker-smoke-stream-six-initial-20261005.json`、旧実装の詳細は対応する元の`docker-smoke-stream-*-20261005.json`に残しています。ZAPによる検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中386変種に個別V/F/N合格記録があり、113変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。

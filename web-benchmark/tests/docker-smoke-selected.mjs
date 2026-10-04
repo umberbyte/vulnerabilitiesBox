@@ -397,6 +397,98 @@ async function remainingIdentityVariant({base,canary},mode,variant){
  const alice=(await control('oracle')).users.find(user=>user.name==='alice');
  assert(alice?.password==='Changed-alice-2026!','recovery password state mismatch');
 }
+async function streamAuthorizationVariant({base,canary},mode,variant){
+ const alice=await login(base);
+ const page=await fetch(origin+base+(variant==='B0350'?'/b3-events':variant==='B0349'?'/v5-transport':'/v5-socket'),{headers:{cookie:alice}});
+ assert(page.status===200,'normal stream or socket page unavailable');
+ if(variant==='B0349')assert((await page.text()).includes('/v5-transport/events?tenant=A'),'normal SSE selector link absent');
+ else await page.arrayBuffer();
+ if(variant==='B0343'){
+  const own=await frame(base,alice,{action:'read',room:'alice-private'});
+  assert(own.owner==='alice'&&own.body==='Alice private document','own WebSocket room read failed');
+  const foreign=await frame(base,alice,{action:'read',room:'bob-private'});
+  assert(mode==='V'?foreign.owner==='bob'&&foreign.body===canary:foreign.error==='forbidden','foreign WebSocket room arm mismatch');
+  return;
+ }
+ if(variant==='B0344'){
+  const admin=await login(base,'admin');
+  const normal=await frame(base,admin,{action:'rebuild'});
+  assert(normal.completed===true,'normal admin WebSocket operation failed');
+  const attack=await frame(base,alice,{action:'rebuild'});
+  assert(mode==='V'?attack.completed===true:attack.error==='forbidden','member WebSocket management arm mismatch');
+  const operations=(await control('oracle')).operations;
+  assert(operations.length===(mode==='V'?2:1)&&operations.some(item=>item.username==='admin')&&operations.some(item=>item.username==='alice')===(mode==='V'),'persisted WebSocket operation count mismatch');
+  return;
+ }
+ if(variant==='B0349'){
+  const own=await fetch(origin+base+'/v5-transport/events',{headers:{cookie:alice}});
+  assert(own.status===200&&own.headers.get('content-type')?.includes('text/event-stream'),'normal SSE endpoint unavailable');
+  const ownBody=await own.text();
+  assert(ownBody.includes('event: update')&&ownBody.includes('Alice private document')&&ownBody.includes('"tenant":"A"'),'own SSE document absent');
+  const foreign=await fetch(origin+base+'/v5-transport/events?tenant=B',{headers:{cookie:alice}});
+  assert(foreign.status===200,'tenant selector SSE endpoint unavailable');
+  const body=await foreign.text();
+  assert(body.includes(canary+' tenant B')===(mode==='V'),'SSE tenant data arm mismatch');
+  assert(body.includes('"tenant":"'+(mode==='V'?'B':'A')+'"'),'SSE tenant identity arm mismatch');
+  if(mode!=='V')assert(body.includes('Alice private document'),'own SSE document absent after selector');
+  return;
+ }
+ const own=await fetch(origin+base+'/b3-events',{headers:{cookie:alice,'last-event-id':'alice:1'}});
+ assert(own.status===200&&(await own.text()).includes('Alice private document'),'own SSE cursor did not resume');
+ const foreign=await fetch(origin+base+'/b3-events',{headers:{cookie:alice,'last-event-id':'bob:1'}});
+ assert(foreign.status===(mode==='V'?200:403),'foreign SSE cursor arm mismatch');
+ if(mode==='V')assert((await foreign.text()).includes(canary),'foreign SSE cursor private data absent');
+ const events=(await control('oracle')).caseState?.protocolBatch?.events||[];
+ assert(events.some(item=>item.kind==='sse-history'&&item.data?.selectedOwner==='alice'),'own SSE history event absent');
+ assert(events.some(item=>item.kind==='sse-history'&&item.data?.selectedOwner==='bob')===(mode==='V'),'foreign SSE history event arm mismatch');
+}
+async function liveSocketVariant({base},mode,variant){
+ if(variant==='B0341'){
+  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app:8443';
+  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+  try{
+   const context=await browser.newContext({ignoreHTTPSErrors:true});
+   const loginResponse=await context.request.post(target+base+'/login',{data:{username:'alice',password:'Fixture-alice-2026!'}});
+   assert(loginResponse.status()===200,'secure member login failed');
+   const read=async(page)=>page.evaluate(path=>new Promise(resolve=>{
+    const socket=new WebSocket('wss://app:8443'+path);
+    const timer=setTimeout(()=>{socket.close();resolve('blocked');},4000);
+    socket.onopen=()=>socket.send(JSON.stringify({action:'report'}));
+    socket.onmessage=event=>{clearTimeout(timer);const body=event.data;socket.close();resolve(body);};
+    socket.onerror=()=>{clearTimeout(timer);resolve('blocked');};
+    socket.onclose=()=>{clearTimeout(timer);resolve('blocked');};
+   }),base+'/b3-socket');
+   const own=await context.newPage();await own.goto(target+base+'/login');
+   assert((await read(own)).includes('Alice private document'),'same-origin WebSocket read failed');
+   const foreign=await context.newPage();await foreign.goto('https://app:8444/b3-socket-client');
+   const result=await read(foreign);
+   assert(mode==='V'?result.includes('Alice private document'):result==='blocked','cross-origin browser WebSocket arm mismatch');
+  }finally{await browser.close();}
+  return;
+ }
+ const cookie=await login(base);
+ const client=new WebSocket(origin.replace(/^http/,'ws')+base+'/b3-socket',{headers:{cookie},handshakeTimeout:2500});
+ await new Promise((resolve,reject)=>{client.once('open',resolve);client.once('error',reject);});
+ const exchange=()=>new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>reject(Error('WebSocket frame deadline')),3000);
+  const done=value=>{clearTimeout(timer);client.off('message',message);client.off('close',closed);client.off('error',failed);resolve(value);};
+  const message=bytes=>done(JSON.parse(bytes.toString()));
+  const closed=()=>done(null);
+  const failed=error=>{clearTimeout(timer);reject(error);};
+  client.once('message',message);client.once('close',closed);client.once('error',failed);
+  client.send(JSON.stringify({action:'report'}));
+ });
+ try{
+  const first=await exchange();assert(first?.username==='alice'&&first.report==='Alice private document','active WebSocket frame failed');
+  const logout=await json(base+'/logout',{},cookie);
+  assert(logout.status===200,'normal member logout failed');
+  const second=await exchange();
+  assert(mode==='V'?second?.username==='alice'&&second.report==='Alice private document':second===null,'revoked WebSocket frame arm mismatch');
+  const events=(await control('oracle')).caseState?.protocolBatch?.events||[];
+  assert(events.some(item=>item.kind==='socket-report'&&item.data?.sessionPresent===true),'active socket report event absent');
+  assert(events.some(item=>item.kind==='socket-report'&&item.data?.sessionPresent===false)===(mode==='V'),'revoked socket report event arm mismatch');
+ }finally{client.terminate();}
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -673,6 +765,12 @@ const cases=[
  ['R0208','B0454',(context,mode)=>remainingIdentityVariant(context,mode,'B0454')],
  ['R0095','B0296',(context,mode)=>remainingIdentityVariant(context,mode,'B0296')],
  ['R0212','B0212',(context,mode)=>remainingIdentityVariant(context,mode,'B0212')],
+ ['R0271','B0343',(context,mode)=>streamAuthorizationVariant(context,mode,'B0343')],
+ ['R0291','B0344',(context,mode)=>streamAuthorizationVariant(context,mode,'B0344')],
+ ['R0271','B0349',(context,mode)=>streamAuthorizationVariant(context,mode,'B0349')],
+ ['R0350','B0350',(context,mode)=>streamAuthorizationVariant(context,mode,'B0350')],
+ ['R0240','B0240',(context,mode)=>liveSocketVariant(context,mode,'B0240')],
+ ['R0341','B0341',(context,mode)=>liveSocketVariant(context,mode,'B0341')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
