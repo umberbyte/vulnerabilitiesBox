@@ -18,7 +18,7 @@ import {checks as batch3LifecycleChecks} from './batch3-lifecycle.mjs';
 import {checks as batch3ProtocolChecks} from './batch3-protocols.mjs';
 import {checks as batch3EngineChecks} from './batch3-engines-acceptance.mjs';
 import {definitions as caseDefinitions} from '../src/cases/index.mjs';
-import {sourceSnapshot,compareSources} from '../src/reporting/source.mjs';
+import {sourceSnapshot,compareSources,runtimeSourceProof,compareRuntimeSourceProof} from '../src/reporting/source.mjs';
 const target=process.env.TARGET_URL||'https://app:8443';
 const attacker=process.env.ATTACKER_URL||'https://app:8444';
 const control=process.env.CONTROL_URL||'http://app:8099';
@@ -34,8 +34,11 @@ async function ctl(endpoint,data) {
   assert.equal(result.status,200,'Private control call failed');return result.json();
 }
 const source=await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'});
+const targetRuntimeSource={verifier:await runtimeSourceProof('.'),targetBefore:await ctl('/source-proof')};
+targetRuntimeSource.verifierMatch=compareRuntimeSourceProof(targetRuntimeSource.verifier,targetRuntimeSource.targetBefore);
+if(targetRuntimeSource.verifierMatch.status!=='matched')throw new Error('Verifier and target runtime source differ before acceptance');
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
-const report={schema:'benchmark-acceptance-0.2',started:new Date().toISOString(),platform:process.platform,arch:process.arch,node:process.version,browser:browser.version(),seed:'acceptance-v1',source,scope:`${selectedCases.length} representative variants; V/F/N; acceptance, not scanner measurement`,results:[]};
+const report={schema:'benchmark-acceptance-0.2',started:new Date().toISOString(),platform:process.platform,arch:process.arch,node:process.version,browser:browser.version(),seed:'acceptance-v1',source,targetRuntimeSource,scope:`${selectedCases.length} representative variants; V/F/N; acceptance, not scanner measurement`,results:[]};
 const negatives={R0001:'Quoted text is handled as a search value',R0021:'HTML-looking input remains visible text',R0041:'Hash containing markup remains visible text',R0124:'Legitimate public file remains readable',R0141:'Script-looking upload is a downloadable attachment',R0182:'Valid member credentials still authenticate',R0201:'A legitimately delivered reset token works',R0221:'A pre-login session can enter a legitimate login workflow',R0241:'A legitimately signed administrator JWT works',R0251:'A matching OAuth state completes login',R0271:'Intentionally shared document is readable across owners',R0291:'Administrator can perform the management action',R0311:'An authenticated same-origin form with token works',R0332:'Authenticated same-origin API data remains readable',R0380:'An uncached diagnostic error is distinct from the public news response',R0391:'A purchase at the server price succeeds'};
 let failed=0;
 try {
@@ -195,6 +198,8 @@ try {
   await browser.close();report.finished=new Date().toISOString();report.summary={cells:report.results.length,passed:report.results.filter(r=>r.passed).length,failed,checks:report.results.reduce((n,r)=>n+r.checks.length,0)};
   try{report.sourceAfter=compareSources(source,await sourceSnapshot('.',{designPath:'../benchmark-design-v2.json'}));}
   catch(error){report.sourceAfter={status:'unavailable',reason:error.message};}
+  try{targetRuntimeSource.targetAfter=await ctl('/source-proof');targetRuntimeSource.targetMatch=compareRuntimeSourceProof(targetRuntimeSource.targetBefore,targetRuntimeSource.targetAfter);}
+  catch(error){targetRuntimeSource.targetMatch={status:'unavailable',reason:error.message};}
   await mkdir('artifacts',{recursive:true});await writeFile('artifacts/'+outputName,JSON.stringify(report,null,2));console.log(JSON.stringify(report.summary));
 }
-if(failed||report.sourceAfter.status!=='matched')process.exitCode=1;
+if(failed||report.sourceAfter.status!=='matched'||targetRuntimeSource.targetMatch.status!=='matched')process.exitCode=1;

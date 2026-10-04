@@ -1,6 +1,7 @@
 // Focused Docker smoke for selected Batch 05 boundaries. This is not the full
 // V/F/N acceptance or a scanner measurement.
 import {execFile} from 'node:child_process';
+import {createHmac} from 'node:crypto';
 import {promisify} from 'node:util';
 import {writeFile,mkdir} from 'node:fs/promises';
 import {request as httpRequest} from 'node:http';
@@ -489,6 +490,57 @@ async function liveSocketVariant({base},mode,variant){
   assert(events.some(item=>item.kind==='socket-report'&&item.data?.sessionPresent===false)===(mode==='V'),'revoked socket report event arm mismatch');
  }finally{client.terminate();}
 }
+async function signedOrWorkerVariant({base,canary},mode,variant){
+ const cookie=await login(base,variant==='B0242'||variant==='B0245'?'admin':'alice');
+ const page=await fetch(origin+base+(variant==='B0250'?'/b3-restore':variant==='B0480'?'/b3-queue':'/b3-tokens'),{headers:{cookie}});
+ assert(page.status===200,'normal signed or worker endpoint unavailable');await page.arrayBuffer();
+ if(variant==='B0242'||variant==='B0245'){
+  const issue=await fetch(origin+base+'/b3-token',{headers:{cookie}});
+  assert(issue.status===200,'normal signed token issuance failed');
+  const {token}=await issue.json();
+  const report=await fetch(origin+base+'/b3-token-report',{headers:{authorization:'Bearer '+token}});
+  assert(report.status===200&&(await report.json()).report===canary,'normal signed admin report unavailable');
+  const memberCookie=await login(base,'alice');
+  const memberTokenResponse=await fetch(origin+base+'/b3-token',{headers:{cookie:memberCookie}});
+  assert(memberTokenResponse.status===200,'normal member token issuance failed');
+  const memberToken=(await memberTokenResponse.json()).token;
+  const fixtures=await fetch(origin+base+'/b3-key-fixtures');
+  assert(fixtures.status===200,'local public key fixtures unavailable');
+  const keys=await fixtures.json(),parts=memberToken.split('.');
+  const header=variant==='B0242'?{alg:'HS256',typ:'JWT'}:{alg:'HS256',typ:'JWT',kid:keys.localFixtureKid};
+  const claims=JSON.parse(Buffer.from(parts[1],'base64url'));
+  assert(claims.sub==='alice'&&claims.role==='user','member token claims unavailable');
+  claims.role='admin';
+  const content=Buffer.from(JSON.stringify(header)).toString('base64url')+'.'+Buffer.from(JSON.stringify(claims)).toString('base64url');
+  const secret=variant==='B0242'?keys.publicKey:keys.localFixtureKey;
+  assert(typeof secret==='string'&&secret.length>16,'local verification fixture key absent');
+  const forged=content+'.'+createHmac('sha256',secret).update(content).digest('base64url');
+  const attempt=await fetch(origin+base+'/b3-token-report',{headers:{authorization:'Bearer '+forged}});
+  assert(attempt.status===(mode==='V'?200:401),'alternate JWT verifier arm mismatch');
+  if(mode==='V')assert((await attempt.json()).report===canary,'alternate JWT report absent');
+  const events=(await control('oracle')).caseState?.protocolBatch?.events||[];
+  assert(events.filter(item=>item.kind==='signed-report').length===(mode==='V'?2:1),'signed report audit count mismatch');
+  return;
+ }
+ if(variant==='B0250'){
+  const normal=await json(base+'/b3-restore',{serializedObject:{type:'Note',text:'Ordinary note'}},cookie);
+  assert(normal.status===200&&(await normal.json()).text==='Ordinary note','normal typed restoration failed');
+  const attempt=await json(base+'/b3-restore',{serializedObject:{type:'RecoveryMarker'}},cookie);
+  assert(attempt.status===(mode==='V'?200:400),'typed restoration hook arm mismatch');
+  const state=(await control('oracle')).caseState?.protocolBatch;
+  assert(state?.events.some(item=>item.kind==='restoration-marker')===(mode==='V'),'worker restoration marker arm mismatch');
+  return;
+ }
+ const own=await json(base+'/b3-queue',{owner:'alice',queueCommand:'LPUSH',job:'normal'},cookie);
+ assert(own.status===200,'normal member queue append failed');
+ const ownList=await fetch(origin+base+'/b3-queue',{headers:{cookie}});
+ assert(ownList.status===200&&(await ownList.json()).some(item=>item.id==='normal'),'own queue item absent');
+ const attack=await json(base+'/b3-queue',{owner:'bob',queueCommand:'LPUSH',job:'foreign'},cookie);
+ assert(attack.status===(mode==='V'?200:403),'foreign queue management arm mismatch');
+ const state=(await control('oracle')).caseState?.protocolBatch;
+ assert(state?.jobs?.bob?.some(item=>item.id==='foreign')===(mode==='V'),'persisted foreign queue arm mismatch');
+ assert(state.events.filter(item=>item.kind==='queue-command').length===(mode==='V'?2:1),'queue command audit count mismatch');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -771,6 +823,10 @@ const cases=[
  ['R0350','B0350',(context,mode)=>streamAuthorizationVariant(context,mode,'B0350')],
  ['R0240','B0240',(context,mode)=>liveSocketVariant(context,mode,'B0240')],
  ['R0341','B0341',(context,mode)=>liveSocketVariant(context,mode,'B0341')],
+ ['R0242','B0242',(context,mode)=>signedOrWorkerVariant(context,mode,'B0242')],
+ ['R0245','B0245',(context,mode)=>signedOrWorkerVariant(context,mode,'B0245')],
+ ['R0250','B0250',(context,mode)=>signedOrWorkerVariant(context,mode,'B0250')],
+ ['R0480','B0480',(context,mode)=>signedOrWorkerVariant(context,mode,'B0480')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

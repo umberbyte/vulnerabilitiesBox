@@ -124,4 +124,12 @@ B0343では本人のWebSocket部屋の読取を正常に通し、別会員の部
 
 ローカルDockerで6変種のV/F/N計18条件が合格しました。現行実装の最終記録は`artifacts/extended-regression-saved-stream-six-final-20261005.json`と`artifacts/docker-smoke-stream-six-final-20261005.json`です。検証側・対象アプリの実行ソースと対象の実行前後のソースが一致しました。初回の6変種一括実行では、追加2変種の画面取得・画面要素待機が失敗しました。さらに旧B0349はVで常に同一tenantの別会員文書を返しており、設計した別tenant漏れと通常読取の維持を満たしていませんでした。対象実装を修正し、古い成立記録を診断資料へ移しました。集計から除外した記録は`artifacts/diagnostic-extended-stream-six-initial-20261005.json`、`artifacts/diagnostic-extended-stream-four-pre-tenant-fix-20261005.json`、`artifacts/diagnostic-extended-stream-six-pre-link-20261005.json`です。初回失敗の詳細は`artifacts/diagnostic-docker-smoke-stream-six-initial-20261005.json`、旧実装の詳細は対応する元の`docker-smoke-stream-*-20261005.json`に残しています。ZAPによる検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中386変種に個別V/F/N合格記録があり、113変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### 署名・復元・queueと共通ルートの個別確認
+
+B0242とB0245では、管理者の正規署名トークンによる読取を通した後、一般会員のclaimを管理者へ変更し、公開RSA鍵または別のローカルfixture鍵で署名したトークンを比較しました。B0250では通常のNoteをworkerで復元し、別の型を復元した場合のworker markerを監査値で照合しました。B0480では本人のRedis queueへの正常な追加を通し、別会員queueへの追加と保存済みjob・操作履歴を比較しました。4変種のV/F/N計12条件は`artifacts/extended-regression-saved-signed-worker-four-confirmed-20261005.json`と`artifacts/docker-smoke-signed-worker-four-confirmed-20261005.json`に記録しました。
+
+同じURLを使う複数rootで、先に登録された別rootの経路が404を返し、後続の正常経路へ進まない問題を修正しました。R0234、R0237、R0240、R0242、R0245、R0341の6 root・V/F/N計18条件を既存の成立テストで再確認し、`artifacts/acceptance-saved-gate-routing-source-linked-20261005.json`に記録しました。R0234の初回実行ではテスト側がoriginを二重連結したため対象へ到達できず、URLを修正しています。失敗記録は`artifacts/diagnostic-acceptance-gate-routing-initial-20261005.json`に保全しました。初回のB0245正常画面の失敗は`artifacts/diagnostic-extended-signed-worker-four-initial-20261005.json`と対応する`diagnostic-docker-smoke-*`に保全しています。
+
+今回の最終記録は、検証ソースの前後、検証側と対象アプリの実行ソース、対象アプリの実行前後の照合がすべて一致しました。成立確認の追加は重複を除く6変種であり、ZAP検出の測定ではありません。
+
+2026-10-05時点の保存記録では、500変種中392変種に個別V/F/N合格記録があり、107変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
