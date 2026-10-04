@@ -52,6 +52,19 @@ async function frame(base,cookie,value){
   client.once('error',error=>{clearTimeout(timer);reject(error);});
  });
 }
+async function csrfVariant({base},mode,attempt,rejected=403){
+ const cookie=await login(base);
+ const session=await (await fetch(origin+base+'/session',{headers:{cookie}})).json();
+ assert(typeof session.csrf==='string'&&session.csrf.length>0,'genuine session CSRF token absent');
+ const normal=await json(base+'/v4-csrf',{action:'update',contact:'normal@example.test',csrf:session.csrf},cookie);
+ assert(normal.status===200,'normal token-bearing contact update failed');
+ const attack=await attempt({base,cookie,csrf:session.csrf});
+ assert(attack.status===(mode==='V'?200:rejected),'CSRF admission arm mismatch: HTTP '+attack.status);
+ const alice=(await control('oracle')).users.find(user=>user.name==='alice');
+ assert(alice?.contact===(mode==='V'?'attacker@example.test':'normal@example.test'),'persisted contact does not match CSRF arm');
+ const anonymous=await json(base+'/v4-csrf',{action:'update',contact:'anonymous@example.test'});
+ assert(anonymous.status===401,'anonymous update unexpectedly succeeded');
+}
 const cases=[
  ['R0377','B0378',async({base,canary},mode)=>{
   const first=await (await fetch(origin+base+'/v5-cache/public;private')).json();
@@ -183,6 +196,17 @@ const cases=[
   assert(privateResponse.status===200&&JSON.parse(privateResponse.text).text===canary,'secure private fixture absent');
   assert(publicResponse.text===(mode==='V'?canary:'Public transport page'),'scheme cache isolation arm mismatch');
  }],
+ ['R0311','B0312',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie))],
+ ['R0311','B0315',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test',_method:'DELETE'},cookie))],
+ ['R0311','B0317',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',JSON.stringify({action:'update',contact:'attacker@example.test'}),cookie,{headers:{'content-type':'text/plain'}}),415)],
+ ['R0311','B0318',(context,mode)=>csrfVariant(context,mode,({base,cookie,csrf})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test',csrf:(csrf[0]==='a'?'b':'a')+csrf.slice(1)},cookie))],
+ ['R0311','B0327',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>{
+  const form=new FormData();form.set('action','update');form.set('contact','attacker@example.test');
+  return fetch(origin+base+'/v4-csrf',{method:'POST',headers:{cookie},body:form});
+ })],
+ ['R0319','B0320',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{origin:'null'}}))],
+ ['R0319','B0321',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie))],
+ ['R0319','B0322',(context,mode)=>csrfVariant(context,mode,({base,cookie})=>json(base+'/v4-csrf',{action:'update',contact:'attacker@example.test'},cookie,{headers:{referer:'https://evil.benchmark.test:8444/next?app.benchmark.test'}}))],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

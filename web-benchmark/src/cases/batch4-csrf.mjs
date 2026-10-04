@@ -54,6 +54,7 @@ export function register(router,{db,getRun,vulnerable,requireLogin,page,esc}){
   const token=String(body.csrf||''),v=vulnerable();let authorized=false;
   if(id==='B0312')authorized=v&&token===''||token===req.session.csrf;
   else if(id==='B0315')authorized=v&&body._method==='DELETE'||token===req.session.csrf;
+  else if(id==='B0317')authorized=v&&req.is('text/plain')||token===req.session.csrf;
   else if(id==='B0318')authorized=v&&token.length===req.session.csrf.length||token===req.session.csrf;
   else if(id==='B0327')authorized=v&&req.is('multipart/form-data')||token===req.session.csrf;
   else if(id==='B0320')authorized=v&&req.headers.origin==='null'||token===req.session.csrf;
