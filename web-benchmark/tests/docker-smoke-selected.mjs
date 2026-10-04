@@ -3,6 +3,8 @@
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {writeFile,mkdir} from 'node:fs/promises';
+import {request as httpRequest} from 'node:http';
+import {request as httpsRequest} from 'node:https';
 import WebSocket from 'ws';
 
 const runFile=promisify(execFile);
@@ -109,8 +111,82 @@ const cases=[
   const response=await json(base+'/v5-transport/login',{username:'alice',password:'Fixture-alice-2026!'});
   assert(mode==='V'?response.status===200:[308,426].includes(response.status),'HTTP credential arm mismatch');
  }],
+ ['R0371','B0372',async({base,canary},mode)=>{
+  const privateResponse=await (await fetch(origin+base+'/v4-cache?q=private')).json();
+  const publicResponse=await (await fetch(origin+base+'/v4-cache?q=public')).json();
+  assert(privateResponse.result===canary,'private query fixture absent');
+  assert(publicResponse.result===(mode==='V'?canary:'Public search result'),'query cache key arm mismatch');
+ }],
+ ['R0371','B0373',async({base,canary},mode)=>{
+  const alice=await login(base),bob=await login(base,'bob');
+  const aliceCard=await (await fetch(origin+base+'/v4-cache',{headers:{cookie:alice}})).json();
+  const bobCard=await (await fetch(origin+base+'/v4-cache',{headers:{cookie:bob}})).json();
+  assert(aliceCard.card==='alice:'+canary,'Alice card fixture absent');
+  assert(bobCard.card===(mode==='V'?aliceCard.card:'bob:bob@example.test'),'subject cache isolation arm mismatch');
+ }],
+ ['R0371','B0374',async({base},mode)=>{
+  const privateResponse=await (await json(base+'/v4-cache',{draft:'private-draft'})).json();
+  const publicResponse=await (await fetch(origin+base+'/v4-cache')).json();
+  assert(privateResponse.method==='POST'&&privateResponse.draft==='private-draft','private draft fixture absent');
+  assert(publicResponse.draft===(mode==='V'?'private-draft':'Published draft'),'method cache key arm mismatch');
+ }],
+ ['R0371','B0375',async({base,canary},mode)=>{
+  const html=await fetch(origin+base+'/v4-cache',{headers:{accept:'text/html'}});
+  const htmlBody=await html.text();
+  const jsonResponse=await fetch(origin+base+'/v4-cache',{headers:{accept:'application/json'}});
+  assert(html.status===200&&htmlBody.includes(canary),'HTML representation fixture absent');
+  assert(jsonResponse.headers.get('content-type')?.includes('text/html')===(mode==='V'),'Accept cache key arm mismatch');
+  if(mode!=='V')assert((await jsonResponse.json()).content==='Public JSON record','fixed JSON representation absent');
+ }],
+ ['R0371','B0376',async({base,canary},mode)=>{
+  const alice=await login(base);
+  const privateResponse=await (await fetch(origin+base+'/v4-cache',{headers:{cookie:alice}})).json();
+  const publicResponse=await (await fetch(origin+base+'/v4-cache')).json();
+  assert(privateResponse.authorized&&privateResponse.profile==='alice:'+canary,'authenticated profile fixture absent');
+  assert(publicResponse.profile===(mode==='V'?privateResponse.profile:'Public profile'),'authenticated cache isolation arm mismatch');
+ }],
+ ['R0371','B0385',async({base,canary},mode)=>{
+  const alice=await login(base),bob=await login(base,'bob');
+  const aliceFragment=await (await fetch(origin+base+'/v4-cache',{headers:{cookie:alice}})).json();
+  const bobFragment=await (await fetch(origin+base+'/v4-cache',{headers:{cookie:bob}})).json();
+  assert(aliceFragment.fragment.includes(canary),'Alice fragment fixture absent');
+  assert(bobFragment.fragment===(mode==='V'?aliceFragment.fragment:'<aside>bob:bob@example.test</aside>'),'fragment subject cache arm mismatch');
+ }],
+ ['R0371','B0386',async({base,canary},mode)=>{
+  const alice=await login(base),carol=await login(base,'carol');
+  const aliceRecord=await (await fetch(origin+base+'/v4-cache?id=101',{headers:{cookie:alice}})).json();
+  const carolRecord=await (await fetch(origin+base+'/v4-cache?id=101',{headers:{cookie:carol}})).json();
+  assert(aliceRecord.document===canary,'tenant A document fixture absent');
+  assert(carolRecord.document===(mode==='V'?canary:'Tenant B record'),'tenant cache namespace arm mismatch');
+ }],
+ ['R0371','B0388',async({base,canary},mode)=>{
+  const getWithBody=body=>new Promise((resolve,reject)=>{
+   const payload=body?JSON.stringify(body):'';
+   const req=httpRequest(origin+base+'/v4-cache',{method:'GET',headers:payload?{'content-type':'application/json','content-length':Buffer.byteLength(payload)}:{}},res=>{
+    let text='';res.on('data',part=>text+=part);res.on('end',()=>resolve({status:res.statusCode,text}));
+   });req.on('error',reject);req.end(payload);
+  });
+  const warm=await getWithBody({term:'private'}),clean=await getWithBody();
+  assert(warm.status===(mode==='V'?200:400),'GET-body rejection arm mismatch');
+  assert(clean.status===200&&JSON.parse(clean.text).result===(mode==='V'?canary:'Public body result'),'GET-body cache key arm mismatch');
+ }],
+ ['R0371','B0389',async({base,canary},mode)=>{
+  const secureOrigin=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN;
+  if(!secureOrigin)throw Error('Local secure origin is required for B0389');
+  const alice=await login(base);
+  const privateResponse=await new Promise((resolve,reject)=>{
+   const req=httpsRequest(secureOrigin+base+'/v5-cache',{headers:{cookie:alice},rejectUnauthorized:false},res=>{
+    let text='';res.on('data',part=>text+=part);res.on('end',()=>resolve({status:res.statusCode,text}));
+   });req.on('error',reject);req.end();
+  });
+  const publicResponse=await (await fetch(origin+base+'/v5-cache')).json();
+  assert(privateResponse.status===200&&JSON.parse(privateResponse.text).text===canary,'secure private fixture absent');
+  assert(publicResponse.text===(mode==='V'?canary:'Public transport page'),'scheme cache isolation arm mismatch');
+ }],
 ];
-for(const [root,variant,check] of cases)for(const mode of arms){
+const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
+if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
+for(const [root,variant,check] of cases.filter(item=>requested.includes(item[1])))for(const mode of arms){
  const start=Date.now();
  try{const context=await reset(root,variant,mode);await check(context,mode);report.results.push({root,variant,mode,status:'passed',elapsedMs:Date.now()-start});}
  catch(error){report.results.push({root,variant,mode,status:'failed',reason:error.message,elapsedMs:Date.now()-start});}

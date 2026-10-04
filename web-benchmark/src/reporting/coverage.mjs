@@ -1,5 +1,5 @@
 import {artifactReader} from './files.mjs';
-import {compareSources} from './source.mjs';
+import {compareSources,compareRuntimeSourceProof} from './source.mjs';
 
 export function designCases(design){
   if(!Array.isArray(design.variants)||design.variants.length>1000)throw Error('Invalid design variants');
@@ -33,9 +33,17 @@ export function coverageInventory(design,reports){
     if(data.schema==='benchmark-extended-regression-0.1'){
       aggregateEvidence.push({path,scope:'file-level aggregate only; individual variant and arm evidence was not retained',summary:data.summary});continue;
     }
+    const sourceRuntimeFiles=data.source?.files?Object.fromEntries(Object.entries(data.source.files).filter(([file])=>file==='package.json'||file==='package-lock.json'||file.startsWith('src/'))):null;
     if(['benchmark-acceptance-0.2','benchmark-extended-regression-0.2'].includes(data.schema)&&data.source){
       const stable=compareSources(data.source,data.source).status==='matched'&&data.sourceAfter?.status==='matched'&&data.sourceAfter.recordedSha256===data.source.sha256&&data.sourceAfter.currentSha256===data.source.sha256;
       if(!stable){warn(path,'source_snapshot_unstable_or_invalid');continue;}
+    }
+    if(data.targetRuntimeSource){
+      const proof=data.targetRuntimeSource;
+      const sameFiles=sourceRuntimeFiles&&JSON.stringify(Object.entries(sourceRuntimeFiles).sort())===JSON.stringify(Object.entries(proof.verifier?.files||{}).sort());
+      if(!sameFiles||compareRuntimeSourceProof(proof.verifier,proof.targetBefore).status!=='matched'||compareRuntimeSourceProof(proof.targetBefore,proof.targetAfter).status!=='matched'){
+        warn(path,'target_runtime_source_unmatched_or_invalid');continue;
+      }
     }
     let cells,allowed=['V','F','N'];
     if(data.schema==='benchmark-acceptance-0.2')cells=data.results;
@@ -57,7 +65,6 @@ export function coverageInventory(design,reports){
     }
     if(invalid){warn(path,'invalid_or_duplicate_case');continue;}
     if(data.summary?.cells!==undefined&&data.summary.cells!==cells.length){warn(path,'summary_cell_count_mismatch');continue;}
-    const sourceRuntimeFiles=data.source?.files?Object.fromEntries(Object.entries(data.source.files).filter(([file])=>file==='package.json'||file==='package-lock.json'||file.startsWith('src/'))):null;
     sources.push({path,startedAt:data.started||data.startedAt,cells:accepted.length,sourceSnapshotRecorded:Boolean(data.source),...(data.source?.sha256?{sourceSha256:data.source.sha256}:{}),...(sourceRuntimeFiles?{sourceRuntimeFiles}:{}),...(data.seed?{seed:data.seed}:{})});
     for(const {cell,passed}of accepted){
       const row=byVariant.get(cell.variant),arms=passed?row.passedArms:row.failedArms;

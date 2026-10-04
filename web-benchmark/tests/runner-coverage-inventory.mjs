@@ -69,6 +69,18 @@ test('stable extended acceptance exposes only runtime file hashes for source lin
   data.sourceAfter={status:'changed'};
   assert.equal(coverageInventory(design,[{path:'saved.json',data}]).summary.variantsWithVfnRecords,0);
 });
+test('recorded target runtime proof is recomputed before acceptance cells count',()=>{
+  const files={'package-lock.json':'a'.repeat(64),'package.json':'b'.repeat(64),'src/app.mjs':'c'.repeat(64)};
+  const sha256=createHash('sha256').update(JSON.stringify(Object.fromEntries(Object.entries(files).sort(([a],[b])=>a.localeCompare(b))))).digest('hex');
+  const source={schema:'benchmark-source-snapshot-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',sha256,files};
+  const proof={schema:'benchmark-runtime-source-proof-0.1',algorithm:'sha256-byte-files-and-sorted-path-map',sha256,files,runtime:{node:'v24',platform:'linux',architecture:'arm64'}};
+  const data={schema:'benchmark-extended-regression-0.2',source,sourceAfter:{status:'matched',recordedSha256:sha256,currentSha256:sha256},targetRuntimeSource:{verifier:structuredClone(proof),targetBefore:structuredClone(proof),targetAfter:structuredClone(proof)},results:[{status:'passed',cellResults:['V','F','N'].map(arm=>cell('B0001',arm))}]};
+  assert.equal(coverageInventory(design,[{path:'saved.json',data}]).summary.variantsWithVfnRecords,1);
+  const altered=structuredClone(data);altered.targetRuntimeSource.targetAfter.files['src/app.mjs']='d'.repeat(64);
+  const invalid=coverageInventory(design,[{path:'saved.json',data:altered}]);
+  assert.equal(invalid.summary.variantsWithVfnRecords,0);
+  assert.deepEqual(invalid.issues,[{source:'saved.json',code:'target_runtime_source_unmatched_or_invalid'}]);
+});
 
 test('independent test files may repeat a condition without doubling coverage',()=>{
   const data={schema:'benchmark-extended-regression-0.2',results:['one','two'].map(file=>({file,status:'passed',cellResults:[cell('B0001','V')]}))};
