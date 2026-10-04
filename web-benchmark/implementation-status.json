@@ -1,6 +1,6 @@
 {
   "schema": "benchmark-implementation-0.8",
-  "date": "2026-10-03",
+  "date": "2026-10-04",
   "scope": "設計337根本原因／500変種、全てソース実装。成立確認済み範囲とソース実装を区別する。",
   "summary": {
     "design_roots": 337,
@@ -9,10 +9,10 @@
     "implemented_positive_variants": 500,
     "fixed_representative_controls": 337,
     "safe_analogue_conditions": 337,
-    "validated_execution_cells": 630,
+    "validated_execution_cells": 797,
     "remaining_unimplemented_roots": 0,
     "remaining_unimplemented_positive_variants": 0,
-    "checks": 13213,
+    "checks": 13198,
     "comparison_tracks": {
       "audit": 16,
       "bounded_stress": 20,
@@ -24,7 +24,7 @@
     "previous_release_verified_roots": 210,
     "pending_final_acceptance_roots": 127,
     "planned_execution_cells": 1011,
-    "validated_execution_scope": "current_source_210_representative_roots_vfn",
+    "validated_execution_scope": "latest_629_passed_representative_cells_plus_168_passed_extended_variant_cells; one_representative_cell_failed",
     "additional_source_variants": 163
   },
   "verification": {
@@ -168,9 +168,14 @@
         "F",
         "N"
       ],
-      "passed_cells": 630,
-      "checks": 13213,
-      "report": "artifacts/acceptance.json"
+      "passed_cells": 629,
+      "failed_cells": 1,
+      "failed_variant": "B0226",
+      "failed_arm": "V",
+      "checks": 13198,
+      "report": "artifacts/acceptance.json",
+      "source_sha256": "b48a7cc814a9d5f2fd80abe3da8deaf52f7bab00ac8f1622ed6af0030fc2a6a1",
+      "source_after": "matched"
     },
     "current_source_extended_variants": {
       "variants": 56,
@@ -181,32 +186,36 @@
       ],
       "passed_cells": 168,
       "test_files": 22,
-      "report": "artifacts/extended-regression.json"
+      "report": "artifacts/extended-regression.json",
+      "source_sha256": "b48a7cc814a9d5f2fd80abe3da8deaf52f7bab00ac8f1622ed6af0030fc2a6a1",
+      "source_after": "matched"
     },
     "current_source_unit": {
-      "passed": 187,
-      "files": 14,
-      "source_snapshot_recorded": false
+      "passed": 292,
+      "files": 24,
+      "source_snapshot_recorded": true
     },
     "current_source_full_regression": {
       "report": "artifacts/full-regression.md",
       "machine_report": "artifacts/full-regression.json",
-      "stages": 4,
-      "passed": 4,
+      "stages": 2,
+      "passed": 1,
+      "failed": 1,
+      "complete": false,
       "scanner_measurement": false,
-      "source_snapshot_recorded": false
+      "source_snapshot_recorded": true
     },
     "latest_offline_tools_unit": {
       "report": "artifacts/tools-check.md",
       "machine_report": "artifacts/tools-check.json",
-      "passed": 289,
-      "tests": 289,
-      "files": 23,
-      "source_sha256": "82fbd044970546c5079bc58e89031487475910553b33562ceae3dfa168407b06",
+      "passed": 292,
+      "tests": 292,
+      "files": 24,
+      "source_sha256": "b48a7cc814a9d5f2fd80abe3da8deaf52f7bab00ac8f1622ed6af0030fc2a6a1",
       "source_snapshot_recorded": true,
       "application_acceptance": false,
       "scanner_measurement": false,
-      "archive": "verification-history/tools-2026-10-03T16-00-41-507Z-ffa797f3-7348-42e5-b7f8-ea871e55f316",
+      "archive": "verification-history/tools-2026-10-04T07-17-49-804Z-1618f421-4157-49d9-9ae1-a6c822497686",
       "environment_recorded": true,
       "environment_scope": "offline-tools-process"
     },
@@ -224,6 +233,23 @@
       "report": "artifacts/evidence-overview.md",
       "machine_report": "artifacts/evidence-overview.json",
       "scope": "Saved individual acceptance records and metadata-matched diagnostic completion grouped by root, track and primary family; no scanner scoring or current-source acceptance"
+    },
+    "latest_individual_acceptance_inventory": {
+      "report": "artifacts/coverage-inventory.md",
+      "machine_report": "artifacts/coverage-inventory.json",
+      "variants_with_vfn_records": 265,
+      "variants_with_partial_records": 10,
+      "variants_without_individual_records": 224,
+      "variants_with_failed_or_conflicting_records": 1,
+      "scanner_detection_scored": false
+    },
+    "offline_evidence_linkage": {
+      "report": "artifacts/evidence-linkage.md",
+      "machine_report": "artifacts/evidence-linkage.json",
+      "audited_complete_scan_variants": 227,
+      "without_individual_vfn_records": 121,
+      "with_individual_vfn_but_source_unlinked": 106,
+      "standalone_b0002_outside_audited_ledgers": true
     }
   },
   "implemented": [
@@ -20816,7 +20842,7 @@
     "README-evaluation.md": "592de776a790c56f0d2d722c1bd523adddace63e4a48afa4b2534dc0b35913f4",
     "README-panel.md": "0665f95dd3539c334880a6bfe1315de93f1fa7572b3adcc12cc0d37fed026b3c",
     "README-zap.md": "5fb92e401d7a300d30ca76c240af46a8cb4443e55fc6ab03b0e1b6e05955c6de",
-    "README.md": "81eca4f2b0372fe0a8f47a7ace784fdcbc9af3b90c06813502ee4e0f3bad8e2c",
+    "README.md": "914445ba0abae0901f4f64e3c877194377d30fb20029deaede55bf80f8491ad2",
     "run-panel.cmd": "669aa15a78106536bc70e414c632922005be369ff08832a50e9c567b25a94224",
     "run-panel.sh": "afe1ba64ce6462c287e7c586909107fc9fefd14db0899b399f9d301489e41987",
     "scan-zap.cmd": "9c80fd63f9497bc8c932a5e7a7efced12fcecae78544fd1753da3e14d3f63be5",
