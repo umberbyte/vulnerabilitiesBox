@@ -541,6 +541,57 @@ async function signedOrWorkerVariant({base,canary},mode,variant){
  assert(state?.jobs?.bob?.some(item=>item.id==='foreign')===(mode==='V'),'persisted foreign queue arm mismatch');
  assert(state.events.filter(item=>item.kind==='queue-command').length===(mode==='V'?2:1),'queue command audit count mismatch');
 }
+async function tlsBackendVariant({base},mode){
+ const cookie=await login(base);
+ const page=await fetch(origin+base+'/b3-tls',{headers:{cookie}});
+ assert(page.status===200,'normal TLS backend page unavailable');await page.arrayBuffer();
+ const trusted=await json(base+'/b3-tls',{peer:'trusted'},cookie);
+ assert(trusted.status===200,'trusted backend TLS request failed');
+ const trustedBody=await trusted.json();
+ assert(trustedBody.ok===true&&trustedBody.authorized===true&&trustedBody.body==='Harmless local TLS notice','trusted backend certificate was not verified');
+ for(const peer of ['hostname-mismatch','untrusted']){
+  const response=await json(base+'/b3-tls',{peer},cookie);
+  assert(response.status===(mode==='V'?200:502),peer+' TLS admission arm mismatch');
+  const body=await response.json();
+  assert(body.ok===(mode==='V'),peer+' TLS result arm mismatch');
+  if(mode==='V')assert(body.authorized===false&&body.body==='Harmless local TLS notice',peer+' unverified TLS notice absent');
+  else assert(typeof body.errorCode==='string'&&body.errorCode.length>0,peer+' certificate rejection reason absent');
+ }
+ const state=(await control('oracle')).caseState?.protocolBatch;
+ const checks=state?.events?.filter(item=>item.kind==='tls-check');
+ assert(checks?.length===3&&checks.every(item=>item.actor==='alice'),'TLS request audit count or actor mismatch');
+ assert(checks[0].data?.peer==='trusted'&&checks[0].data?.authorized===true,'trusted TLS audit absent');
+ assert(checks.slice(1).every(item=>item.data?.authorized===false||item.data?.ok===false),'unverified TLS audit absent');
+ const notice=state?.settings?.find(item=>item.key==='backend-notice')?.value;
+ assert(notice?.peer===(mode==='V'?'untrusted':'trusted')&&notice?.body==='Harmless local TLS notice','persisted backend notice arm mismatch');
+}
+async function maintenancePortVariant({base},mode){
+ const admin=await login(base,'admin');
+ const member=await login(base,'alice');
+ const details=await fetch(origin+base+'/b3-port',{headers:{cookie:admin}});
+ assert(details.status===200,'normal maintenance port description unavailable');
+ const {hostname,port,maintenancePath}=await details.json();
+ assert(hostname==='app'&&Number.isInteger(port)&&port>0&&port<=65535&&maintenancePath==='/maintain','local maintenance port fixture invalid');
+ const denied=await json(base+'/b3-port',{},member);
+ assert(denied.status===403,'ordinary member invoked authorized maintenance operation');
+ const normal=await json(base+'/b3-port',{},admin);
+ assert(normal.status===200,'administrator loopback maintenance failed');
+ await normal.arrayBuffer();
+ let remoteStatus=null,remoteFailure=null;
+ try{
+  const remote=await fetch('http://'+hostname+':'+port+maintenancePath,{method:'POST',signal:AbortSignal.timeout(1500)});
+  remoteStatus=remote.status;await remote.arrayBuffer();
+ }catch(error){
+  remoteFailure=error.cause?.code||error.code||error.name;
+  if(mode==='V')throw Error('maintenance port unavailable from verifier container: '+error.message);
+ }
+ assert(mode==='V'?remoteStatus===200:remoteStatus===null,'cross-container maintenance reachability arm mismatch');
+ if(mode!=='V')assert(remoteFailure==='ECONNREFUSED','cross-container maintenance failed for a reason other than refused connection: '+remoteFailure);
+ const events=(await control('oracle')).caseState?.protocolBatch?.events?.filter(item=>item.kind==='port-maintenance');
+ assert(events?.length===(mode==='V'?2:1),'persisted maintenance event count arm mismatch');
+ assert(events[0].data?.remote==='127.0.0.1'||events[0].data?.remote==='::ffff:127.0.0.1','normal loopback maintenance address mismatch');
+ if(mode==='V')assert(events[1].data?.remote&&!['127.0.0.1','::ffff:127.0.0.1'].includes(events[1].data.remote),'cross-container maintenance address not recorded');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -827,6 +878,8 @@ const cases=[
  ['R0245','B0245',(context,mode)=>signedOrWorkerVariant(context,mode,'B0245')],
  ['R0250','B0250',(context,mode)=>signedOrWorkerVariant(context,mode,'B0250')],
  ['R0480','B0480',(context,mode)=>signedOrWorkerVariant(context,mode,'B0480')],
+ ['R0463','B0463',tlsBackendVariant],
+ ['R0466','B0466',maintenancePortVariant],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
