@@ -33,6 +33,11 @@ export function coverageInventory(design,reports){
     if(data.schema==='benchmark-extended-regression-0.1'){
       aggregateEvidence.push({path,scope:'file-level aggregate only; individual variant and arm evidence was not retained',summary:data.summary});continue;
     }
+    // This is a test-harness coverage error, not an observation about the
+    // variant. Keep the raw report and reject the entire mixed-scope run.
+    if(data.schema==='benchmark-acceptance-0.2'&&Array.isArray(data.results)&&data.results.some(cell=>cell?.error==='Uncovered root')){
+      warn(path,'acceptance_root_not_implemented');continue;
+    }
     const sourceRuntimeFiles=data.source?.files?Object.fromEntries(Object.entries(data.source.files).filter(([file])=>file==='package.json'||file==='package-lock.json'||file.startsWith('src/'))):null;
     if(['benchmark-acceptance-0.2','benchmark-extended-regression-0.2'].includes(data.schema)&&data.source){
       const stable=compareSources(data.source,data.source).status==='matched'&&data.sourceAfter?.status==='matched'&&data.sourceAfter.recordedSha256===data.source.sha256&&data.sourceAfter.currentSha256===data.source.sha256;

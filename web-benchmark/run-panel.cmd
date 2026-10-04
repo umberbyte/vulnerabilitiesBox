@@ -11,6 +11,8 @@ set "SCAN_CUSTOM_MODE=%CUSTOM_MODE%"
 if "%SCAN_CUSTOM_MODE%"=="" set "SCAN_CUSTOM_MODE=none"
 set "PANEL_PATH=%~1"
 set "PANEL_LEDGER=%~2"
+rem The offline report index discovers operator ledgers by this suffix.
+if /I not "%PANEL_LEDGER:~-11%"=="ledger.json" goto invalid_files
 if not exist "%PANEL_PATH%" goto invalid_files
 if exist "%PANEL_LEDGER%" goto invalid_files
 set "PANEL_PATH=%PANEL_PATH:\=/%"
@@ -56,7 +58,7 @@ echo Target measurement is active, busy, or unavailable. No scanner replacement 
 popd
 exit /b 1
 :invalid_files
-echo An existing plan and a new ledger are required. Both paths must be inside artifacts. >&2
+echo An existing plan and a new *ledger.json file are required. Both paths must be inside artifacts. >&2
 popd
 exit /b 1
 :usage

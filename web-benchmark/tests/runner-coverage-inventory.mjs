@@ -41,6 +41,17 @@ test('failed and passed records for the same condition stay visible',()=>{
   const result=coverageInventory(design,[report('a',[cell('B0001','V')]),report('b',[cell('B0001','V',false)])]);
   assert.equal(result.summary.variantsWithConflictingOrFailedRecords,1);assert.deepEqual(result.rows[0].failedArms,['V']);
 });
+test('an uncovered acceptance root invalidates that report without hiding a real failure elsewhere',()=>{
+  const uncovered=report('unsupported',[cell('B0001','V'),{...cell('B0002','F',false),error:'Uncovered root'}]);
+  const failed=report('actual-failure',[cell('B0001','N',false)]);
+  const valid=report('valid',['V','F','N'].map(arm=>cell('B0002',arm)));
+  const result=coverageInventory(design,[uncovered,failed,valid]);
+  assert.deepEqual(result.issues,[{source:'unsupported',code:'acceptance_root_not_implemented'}]);
+  assert.equal(result.rows[0].status,'mixed_or_failed_records');
+  assert.deepEqual(result.rows[0].failedArms,['N']);
+  assert.equal(result.rows[1].status,'vfn_records');
+  assert.equal(result.sources.some(source=>source.path==='unsupported'),false);
+});
 test('saved focused acceptance is included without erasing an earlier failure',async()=>{
   await mkdir('artifacts',{recursive:true});
   const directory=await mkdtemp(join(process.cwd(),'artifacts','coverage-test-'));

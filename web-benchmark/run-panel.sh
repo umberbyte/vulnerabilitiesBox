@@ -9,6 +9,7 @@ case "${3:-}" in ''|custom|custom-only) ;; *) echo 'Unknown scanner mode.' >&2; 
 SCAN_CUSTOM_MODE="${3:-none}"
 export SCAN_CUSTOM_MODE
 export PANEL_PATH="$1" PANEL_LEDGER="$2"
+case "$PANEL_LEDGER" in *ledger.json) ;; *) echo 'Ledger filename must end in ledger.json for the offline report index.' >&2; exit 1 ;; esac
 if [ ! -f "$PANEL_PATH" ] || [ -e "$PANEL_LEDGER" ]; then
   echo 'An existing plan and a new ledger are required. Both paths must be inside artifacts.' >&2
   exit 1
