@@ -1008,6 +1008,34 @@ async function localProtocolVariant({base},mode,variant){
  const tokens=state?.tokens?.filter(item=>item.kind==='transport');
  assert(tokens?.length===(mode==='V'?2:1),'issued transport token count arm mismatch');
 }
+async function httpBoundaryVariant({base},mode,variant){
+ const cookie=await login(base);
+ const page=await fetch(origin+base+'/b3-wire',{headers:{cookie}});
+ assert(page.status===200,'normal wire fixture page unavailable');await page.arrayBuffer();
+ const request=(method,path,headers='',body='')=>`${method} ${path} HTTP/1.1\r\nHost: public.lab\r\n${headers}${body?'Content-Length: '+Buffer.byteLength(body)+'\r\n':''}\r\n${body}`;
+ const exchange=async raw=>{
+  const response=await json(base+'/b3-wire',{raw},cookie);
+  assert(response.status===200,'bounded local wire exchange failed');return response.json();
+ };
+ const normal=await exchange(request('GET','/public'));
+ assert(normal.rawResponse.includes('Public fixture response')&&normal.trace?.some(item=>item.stage==='backend'&&item.target==='/public'&&!item.internal),'normal public backend exchange failed');
+ let raw;
+ if(variant==='B0351'){
+  const body='0\r\n\r\n'+request('GET','/admin');
+  raw='POST /discard HTTP/1.1\r\nHost: public.lab\r\nContent-Length: '+Buffer.byteLength(body)+'\r\nTransfer-Encoding: chunked\r\n\r\n'+body;
+ }else if(variant==='B0356')raw=request('POST','/discard','',request('GET','/admin'));
+ else if(variant==='B0357')raw=request('POST','/record','X-HTTP-Method-Override: DELETE\r\n');
+ else if(variant==='B0358')raw=request('GET','/public/../admin');
+ else if(variant==='B0364')raw='GET /public HTTP/1.1\r\nHost: internal.lab\r\n\r\n';
+ else if(variant==='B0365')raw=request('GET','/public','X-Original-URL: /admin\r\n');
+ else raw='GET http://internal.lab/admin HTTP/1.1\r\nHost: public.lab\r\n\r\n';
+ const candidate=await exchange(raw);
+ assert(typeof candidate.rawResponse==='string'&&Array.isArray(candidate.trace),'local wire response or trace absent');
+ const events=(await control('oracle')).caseState?.protocolBatch?.events||[];
+ const action=variant==='B0357'?'wire-delete':'wire-admin';
+ assert(events.some(item=>item.kind==='wire-request'&&item.data?.target==='/public'),'normal public backend event absent');
+ assert(events.some(item=>item.kind===action&&item.actor==='alice')===(mode==='V'),'forbidden backend action arm mismatch');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -1342,6 +1370,13 @@ const cases=[
  ['R0362','B0362',(context,mode)=>localProtocolVariant(context,mode,'B0362')],
  ['R0363','B0363',(context,mode)=>localProtocolVariant(context,mode,'B0363')],
  ['R0367','B0367',(context,mode)=>localProtocolVariant(context,mode,'B0367')],
+ ['R0351','B0351',(context,mode)=>httpBoundaryVariant(context,mode,'B0351')],
+ ['R0356','B0356',(context,mode)=>httpBoundaryVariant(context,mode,'B0356')],
+ ['R0357','B0357',(context,mode)=>httpBoundaryVariant(context,mode,'B0357')],
+ ['R0358','B0358',(context,mode)=>httpBoundaryVariant(context,mode,'B0358')],
+ ['R0364','B0364',(context,mode)=>httpBoundaryVariant(context,mode,'B0364')],
+ ['R0365','B0365',(context,mode)=>httpBoundaryVariant(context,mode,'B0365')],
+ ['R0366','B0366',(context,mode)=>httpBoundaryVariant(context,mode,'B0366')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

@@ -168,4 +168,8 @@ B0270の初回はテスト側が誤った通常画面の入口を参照して失
 
 B0150の重複multipart file、B0359の重複query、B0360のquery/body指定差、B0370のgzip本文を、正常な単一入力や非圧縮更新と対比しました。B0362ではローカルHTTP fixtureの応答ヘッダー、B0363ではローカルSMTP fixtureの配信ヘッダー、B0367では実TLS要求とHTTP上の転送宣言を比較しました。結果とともに保存ファイル、会員属性、監査イベント、発行tokenを条件に応じて照合しています。7変種のV/F/N計21条件を同じソース版で確認した記録は`artifacts/extended-regression-saved-parsing-protocol-seven-20261005.json`と`artifacts/docker-smoke-parsing-protocol-seven-20261005.json`です。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。ZAPによる検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中425変種に個別V/F/N合格記録があり、74変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### HTTP/1境界7変種の個別確認
+
+B0351のCL/TE優先順位、B0356のbody境界、B0357のmethod override、B0358のpath正規化、B0364のHost、B0365の`X-Original-URL`、B0366のabsolute-form request-targetを、ローカルのfrontend/backend二段構成で確認しました。各条件で公開経路の正常応答と実socket上のtraceを確認したうえで、Vだけが内部管理操作または記録削除へ到達したかを対象アプリの監査イベントで照合しました。7変種のV/F/N計21条件は`artifacts/extended-regression-saved-http-boundary-seven-20261005.json`と`artifacts/docker-smoke-http-boundary-seven-20261005.json`に記録しました。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。これらは制限されたfixtureであり、汎用HTTP parserの脆弱性やZAP検出を示すものではありません。
+
+2026-10-05時点の保存記録では、500変種中432変種に個別V/F/N合格記録があり、67変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
