@@ -802,6 +802,119 @@ async function authWorkflowVariant({base,canary},mode,variant){
  const saved=(await control('oracle')).users.find(user=>user.name==='alice')?.contact;
  assert(saved===(mode==='V'?'alice.updated@example.test':'normal@example.test'),'redirected contact persistence arm mismatch');
 }
+async function protocolIdentityVariant({base,canary},mode,variant){
+ const device=variant==='B0265'||variant==='B0266';
+ const cookie=await login(base);
+ const page=await fetch(origin+base+(device?'/b3-device':variant==='B0270'?'/b3-par':'/b3-link'),{headers:{cookie}});
+ assert(page.status===200,'normal identity protocol page unavailable');await page.arrayBuffer();
+ const send=(path,body,session=cookie)=>json(base+path,body,session);
+ if(device){
+  const create=async()=>{
+   const response=await send('/b3-device',{});
+   assert(response.status===200,'device code issuance failed');
+   const value=await response.json();
+   assert(typeof value.deviceCode==='string'&&typeof value.userCode==='string','device code fixture absent');
+   return value;
+  };
+  const approve=async(value,username)=>{
+   const response=await send('/b3-device/approve',{userCode:value.userCode,username});
+   assert(response.status===200,'device approval failed');
+  };
+  if(variant==='B0265'){
+   const candidate=await create();await approve(candidate,'bob');
+   const switched=await send('/b3-device/poll',{deviceCode:candidate.deviceCode});
+   assert(switched.status===200,'approved device polling failed');
+   const body=await switched.json();
+   assert(body.username===(mode==='V'?'bob':'alice'),'device approval principal arm mismatch');
+   const report=await fetch(origin+base+'/b3-linked-report',{headers:{authorization:'Bearer '+body.accessToken}});
+   assert(report.status===200&&(await report.json()).username===body.username,'device bearer principal mismatch');
+   const normal=await create();await approve(normal,'alice');
+   const own=await send('/b3-device/poll',{deviceCode:normal.deviceCode});
+   assert(own.status===200&&(await own.json()).username==='alice','normal own-device approval failed');
+   const events=(await control('oracle')).caseState?.protocolBatch?.events?.filter(item=>item.kind==='device-approved');
+   assert(events?.length===2&&events[0].data?.selectedOwner===(mode==='V'?'bob':'alice')&&events[1].data?.selectedOwner==='alice','persisted device approval principals mismatch');
+   return;
+  }
+  const normal=await create();await approve(normal,'alice');
+  const own=await send('/b3-device/poll',{deviceCode:normal.deviceCode});
+  assert(own.status===200&&(await own.json()).username==='alice','normal device poll failed');
+  const candidate=await create();await approve(candidate,'alice');
+  let guessed=null;
+  for(const code of ['00','01','02','03']){
+   const response=await send('/b3-device/poll',{deviceCode:code});
+   if(response.status===200){guessed={code,body:await response.json()};break;}
+   assert(response.status===404,'bounded code guess returned unexpected status');
+  }
+  assert((guessed!==null)===(mode==='V'),'bounded device code enumeration arm mismatch');
+  if(mode==='V')assert(guessed.code===candidate.deviceCode&&guessed.body.username==='alice','enumerated code did not select approved device');
+  else assert(/^[0-9a-f]{48}$/.test(candidate.deviceCode),'fixed device code lacks sufficient random length');
+  return;
+ }
+ if(variant==='B0267'){
+  const flow=await send('/b3-link',{clientId:'client-A',issuer:'fixture-A'});
+  assert(flow.status===200,'normal identity flow issue failed');
+  const state=(await flow.json()).state;
+  const authorize=async()=>{
+   const response=await send('/b3-provider/authorize',{username:'alice',password:'Fixture-alice-2026!',clientId:'client-A',issuer:'fixture-A',state});
+   assert(response.status===200,'normal provider authorization failed');return response.json();
+  };
+  const candidate=await authorize();
+  const bad=await send('/b3-link/exchange',{code:candidate.code,clientId:'client-A',clientSecret:{unexpected:'object'}});
+  assert(bad.status===(mode==='V'?200:401),'client-secret type exception arm mismatch');
+  if(mode==='V')assert(typeof(await bad.json()).accessToken==='string','exceptional token exchange absent');
+  const accepted=await authorize();
+  const good=await send('/b3-link/exchange',{code:accepted.code,clientId:'client-A',clientSecret:'Fixture-client-A-2026!'});
+  assert(good.status===200,'normal client-authenticated token exchange failed');
+  const events=(await control('oracle')).caseState?.protocolBatch?.events||[];
+  assert(events.some(item=>item.kind==='client-auth-exception')&&events.filter(item=>item.kind==='code-exchanged').length===(mode==='V'?2:1),'client-auth exception audit arm mismatch');
+  return;
+ }
+ if(variant==='B0270'){
+  const par=async()=>{
+   const response=await send('/b3-par',{clientId:'client-A',clientSecret:'Fixture-client-A-2026!',scope:'read'});
+   assert(response.status===200,'normal PAR creation failed');return(await response.json()).requestUri;
+  };
+  const allowed=await send('/b3-provider/authorize',{requestUri:await par(),clientId:'client-A',clientSecret:'Fixture-client-A-2026!',username:'alice',password:'Fixture-alice-2026!'});
+  assert(allowed.status===200,'same-client PAR authorization failed');
+  const normal=await send('/b3-link/exchange',{code:(await allowed.json()).code,clientId:'client-A',clientSecret:'Fixture-client-A-2026!'});
+  assert(normal.status===200,'normal PAR token exchange failed');
+  const cross=await send('/b3-provider/authorize',{requestUri:await par(),clientId:'client-B',clientSecret:'Fixture-client-B-2026!',username:'alice',password:'Fixture-alice-2026!'});
+  assert(cross.status===(mode==='V'?200:403),'PAR request URI client-binding arm mismatch');
+  if(mode==='V'){
+   const swapped=await send('/b3-link/exchange',{code:(await cross.json()).code,clientId:'client-B',clientSecret:'Fixture-client-B-2026!'});
+   assert(swapped.status===200,'cross-client PAR token exchange did not complete');
+  }
+  const events=(await control('oracle')).caseState?.protocolBatch?.events?.filter(item=>item.kind==='authorization-issued');
+  assert(events?.length===(mode==='V'?2:1)&&events[0].data?.sourceClient==='client-A','PAR authorization audit arm mismatch');
+  if(mode==='V')assert(events[1].data?.sourceClient==='client-A'&&events[1].data?.clientId==='client-B','cross-client PAR audit absent');
+  return;
+ }
+ const begin=async(session,issuer='fixture-A')=>{
+  const response=await send('/b3-link',{clientId:'client-A',issuer},session);
+  assert(response.status===200,'normal issuer-bound flow creation failed');return response.json();
+ };
+ const provider=async(flow,issuer,owner)=>{
+  const response=await send('/b3-provider/authorize',{username:owner,password:`Fixture-${owner}-2026!`,clientId:'client-A',issuer,state:flow.state});
+  assert(response.status===200,'normal signed provider response unavailable');return response.json();
+ };
+ const flow=await begin(cookie);
+ const issued=await provider(flow,variant==='B0260'?'fixture-B':'fixture-A','bob');
+ let response=issued.response;
+ if(variant==='B0269'){
+  const pieces=response.split('.'),claims=JSON.parse(Buffer.from(pieces[1],'base64url'));
+  claims.sub='admin';pieces[1]=Buffer.from(JSON.stringify(claims)).toString('base64url');response=pieces.join('.');
+ }
+ const crossed=await send('/b3-link/callback',{response},cookie);
+ assert(crossed.status===(mode==='V'?200:variant==='B0260'?403:401),'signed identity callback arm mismatch');
+ if(mode==='V')assert((await crossed.json()).username==='bob','crossed signed callback did not link intended account');
+ const fresh=await login(base);
+ const goodFlow=await begin(fresh),goodResponse=await provider(goodFlow,'fixture-A','alice');
+ const good=await send('/b3-link/callback',{response:goodResponse.response},fresh);
+ assert(good.status===200&&(await good.json()).username==='alice','normal signed identity callback failed');
+ const links=(await control('oracle')).caseState?.protocolBatch?.events?.filter(item=>item.kind==='linked-session');
+ assert(links?.length===(mode==='V'?2:1),'persisted linked-session count arm mismatch');
+ if(mode==='V')assert(links[0].actor==='bob'&&links[1].actor==='alice','crossed linked-session audit absent');
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -1123,6 +1236,12 @@ const cases=[
  ['R0251','B0252',(context,mode)=>authWorkflowVariant(context,mode,'B0252')],
  ['R0258','B0259',(context,mode)=>authWorkflowVariant(context,mode,'B0259')],
  ['R0316','B0328',(context,mode)=>authWorkflowVariant(context,mode,'B0328')],
+ ['R0260','B0260',(context,mode)=>protocolIdentityVariant(context,mode,'B0260')],
+ ['R0265','B0265',(context,mode)=>protocolIdentityVariant(context,mode,'B0265')],
+ ['R0266','B0266',(context,mode)=>protocolIdentityVariant(context,mode,'B0266')],
+ ['R0267','B0267',(context,mode)=>protocolIdentityVariant(context,mode,'B0267')],
+ ['R0269','B0269',(context,mode)=>protocolIdentityVariant(context,mode,'B0269')],
+ ['R0270','B0270',(context,mode)=>protocolIdentityVariant(context,mode,'B0270')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

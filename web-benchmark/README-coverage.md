@@ -158,4 +158,10 @@ B0186のメール大小文字衝突、B0217のMFA回復、B0222の権限昇格�
 
 B0186の初回V条件では、DBの文字列照合順序により衝突後の回復先が意図した別会員になりませんでした。失敗記録は`artifacts/diagnostic-extended-auth-seven-initial-20261005.json`と`artifacts/diagnostic-docker-smoke-auth-seven-initial-20261005.json`に保全し、ローカルfixtureの選択順を明示して再確認しました。ZAPによる検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中412変種に個別V/F/N合格記録があり、87変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### OIDC・device flow6変種の個別確認
+
+B0260の別issuer応答、B0265のdevice承認主体、B0266の短いdevice code列挙、B0267のclient secret型例外、B0269の署名変更応答、B0270の別clientによるPAR参照を、正規の発行・承認・交換と対比しました。単なるHTTP応答だけでなく、発行済みaccess token、リンクしたsession、監査イベント、別clientの交換結果を条件に応じて照合しています。V/F/N計18条件の記録は`artifacts/extended-regression-saved-identity-six-20261005.json`と`artifacts/docker-smoke-identity-six-20261005.json`です。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。
+
+B0270の初回はテスト側が誤った通常画面の入口を参照して失敗しました。`artifacts/diagnostic-extended-identity-six-initial-20261005.json`と`artifacts/diagnostic-docker-smoke-identity-six-initial-20261005.json`に保全し、正しい`/b3-par`入口で再実行しました。ZAPによる検出は未確認です。
+
+2026-10-05時点の保存記録では、500変種中418変種に個別V/F/N合格記録があり、81変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
