@@ -650,6 +650,54 @@ async function browserMessageVariant({base},mode){
   }finally{await page.close();}
  }finally{await browser.close();}
 }
+async function browserBoundaryVariant({base},mode,variant){
+ const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
+ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+ try{
+  const page=await browser.newPage({ignoreHTTPSErrors:true});
+  try{
+   const route=variant==='B0062'?'/v5-browser/page/guide/':'/v5-browser';
+   const normal=await page.goto(target+base+route);
+   assert(normal?.status()===200,'normal browser boundary page unavailable');
+   if(variant==='B0049'){
+    await page.waitForFunction(()=>document.getElementById('result')?.textContent.length>0,null,{timeout:4000});
+    assert(await page.locator('#result').textContent()==='登録済みモジュール','approved module did not load');
+    const source='data:text/javascript,export const message="unapproved-module"';
+    const attempt=await page.goto(target+base+route+'?module='+encodeURIComponent(source));
+    assert(attempt?.status()===200,'alternate module page unavailable');
+    await page.waitForFunction(()=>document.getElementById('result')?.textContent.length>0,null,{timeout:4000});
+    assert(await page.locator('#result').textContent()===(mode==='V'?'unapproved-module':'読み込み不可'),'dynamic import admission arm mismatch');
+   }else if(variant==='B0054'){
+    assert(await page.locator('#result').textContent()==='通常設定','normal browser settings unavailable');
+    const config='{"__proto__":{"allowPrivate":true}}';
+    const attempt=await page.goto(target+base+route+'?config='+encodeURIComponent(config));
+    assert(attempt?.status()===200,'prototype settings page unavailable');
+    assert(await page.locator('#result').textContent()===(mode==='V'?'管理設定が有効':'通常設定'),'prototype-backed setting arm mismatch');
+   }else if(variant==='B0056'){
+    assert(await page.locator('#result').textContent()==='通常プレビュー','normal DOM preview unavailable');
+    const config='{"__proto__":{"html":"<strong id=probe>alternate-preview</strong>"}}';
+    const attempt=await page.goto(target+base+route+'?config='+encodeURIComponent(config));
+    assert(attempt?.status()===200,'prototype DOM preview page unavailable');
+    assert((await page.locator('#probe').count())===(mode==='V'?1:0),'prototype-backed HTML sink arm mismatch');
+    assert(await page.locator('#result').textContent()===(mode==='V'?'alternate-preview':'通常プレビュー'),'prototype-backed preview text arm mismatch');
+   }else if(variant==='B0059'){
+    const plain=await page.goto(target+base+route+'?html='+encodeURIComponent('Approved preview'));
+    assert(plain?.status()===200&&await page.locator('#result').textContent()==='Approved preview','normal Trusted Types preview unavailable');
+    const html='<strong id=probe>alternate-preview</strong>';
+    const attempt=await page.goto(target+base+route+'?html='+encodeURIComponent(html));
+    assert(attempt?.status()===200,'HTML preview page unavailable');
+    assert((await page.locator('#probe').count())===(mode==='V'?1:0),'Trusted Types HTML reinterpretation arm mismatch');
+    assert(await page.locator('#result').textContent()===(mode==='V'?'alternate-preview':html),'Trusted Types preview text arm mismatch');
+   }else{
+    assert(await page.locator('.guide').textContent()==='案内文','normal guide text unavailable');
+    const color=await page.locator('.guide').evaluate(element=>getComputedStyle(element).color);
+    assert(color===(mode==='V'?'rgb(255, 0, 0)':'rgb(0, 80, 160)'),'relative stylesheet resolution arm mismatch');
+    const linked=await page.locator('link[rel="stylesheet"]').getAttribute('href');
+    assert(linked===(mode==='V'?'style.css':base+'/v5-browser/style.css'),'stylesheet link arm mismatch');
+   }
+  }finally{await page.close();}
+ }finally{await browser.close();}
+}
 async function corsVariant({base,canary},mode,variant){
  const target=process.env.BENCHMARK_VALIDATION_SECURE_ORIGIN||'https://app.benchmark.test:8443';
  const attacker=variant==='B0334'?'https://evil.benchmark.test:8444':'https://app.benchmark.test:8444';
@@ -959,6 +1007,11 @@ const cases=[
  ['R0476','B0476',(context,mode)=>artifactVariant(context,mode,'B0476')],
  ['R0479','B0479',(context,mode)=>artifactVariant(context,mode,'B0479')],
  ['R0348','B0348',browserMessageVariant],
+ ['R0048','B0049',(context,mode)=>browserBoundaryVariant(context,mode,'B0049')],
+ ['R0054','B0054',(context,mode)=>browserBoundaryVariant(context,mode,'B0054')],
+ ['R0054','B0056',(context,mode)=>browserBoundaryVariant(context,mode,'B0056')],
+ ['R0041','B0059',(context,mode)=>browserBoundaryVariant(context,mode,'B0059')],
+ ['R0062','B0062',(context,mode)=>browserBoundaryVariant(context,mode,'B0062')],
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');

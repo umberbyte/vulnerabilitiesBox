@@ -148,4 +148,8 @@ B0348ではChromium上で正規iframeの通知を受けた後、同じoriginの�
 
 最初のB0348確認は検証用ChromiumがHTTP入口をTLSへ切り替えたため画面を開けず、次の確認では別frameの送信先origin指定が誤っていました。両失敗は`artifacts/diagnostic-extended-browser-cache-two-initial-20261005.json`、`artifacts/diagnostic-docker-smoke-browser-cache-two-initial-20261005.json`、`artifacts/diagnostic-extended-browser-cache-two-https-initial-20261005.json`、`artifacts/diagnostic-docker-smoke-browser-cache-two-https-initial-20261005.json`に保全し、個別合格に算入していません。ZAPによる検出は未確認です。
 
-2026-10-05時点の保存記録では、500変種中400変種に個別V/F/N合格記録があり、99変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
+### ブラウザー信頼境界5変種の個別確認
+
+B0049では登録済みmoduleと許可外の`data:` moduleの読込結果、B0054では通常設定とprototype経由の権限設定、B0056ではprototype経由のHTML設定と実DOMへの反映をChromiumで比較しました。B0059では通常文字列とHTMLをTrusted Types下で表示し、B0062では相対CSSと固定CSSの解決結果を実際の計算済み色で照合しました。5変種のV/F/N計15条件は`artifacts/extended-regression-saved-browser-five-20261005.json`と`artifacts/docker-smoke-browser-five-20261005.json`に記録しました。検証側と対象アプリの実行ソース、対象アプリの実行前後の照合は一致しています。これはブラウザー上の成立確認であり、ZAP検出の測定ではありません。
+
+2026-10-05時点の保存記録では、500変種中405変種に個別V/F/N合格記録があり、94変種は個別記録なし、B0226の1変種には新旧の合格・失敗記録が併存します。
