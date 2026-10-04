@@ -40,6 +40,8 @@ docker compose exec -T app node src/control.mjs manifest
 
 ## 成立確認と診断
 
+2026-10-05時点の保存資料では、500変種中498変種に個別V/F/N合格記録があります。B0226は旧V失敗と修正後のV/F/N合格が併存し、B0335はブラウザーでのV成立が未確認です。監査済み台帳でZAPのV/F/N完走系列があるのは257変種、成立確認と走査時の実行ソース105ファイルが一致したのは31変種です。依存サービスの環境一致とZAPアラートの正誤は未確認です。最新の個別内訳はローカルの`artifacts/coverage-inventory.md`と`artifacts/evidence-linkage.md`を参照してください。以下にある321変種・1変種などの数値は、当時の中間記録です。
+
 検証はWindowsならPowerShellからも動く`.\verify.cmd`、macOS/Linuxなら`sh verify.sh`の一つのコマンドで実行します。PowerShellスクリプトの実行ポリシーは変更不要です。結果は人間向けの`artifacts/full-regression.md`と機械向けの`artifacts/full-regression.json`に保存します。このコマンドは単体テスト、旧210根本原因のV/F/N、追加78変種の専用V/F/N、選択10変種のV/Fを順次確認します。**現行500変種すべてのV/F/N成立確認とZAP/Burpの全体検出率測定は未実施です。** 成立確認の合格はZAP/Burpによる検出を意味しません。
 
 ```powershell
