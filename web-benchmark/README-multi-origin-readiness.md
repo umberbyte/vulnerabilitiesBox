@@ -12,6 +12,8 @@
 | `https://app.benchmark.test:8443`、`https://partner.benchmark.test:8444`、`https://evil.benchmark.test:8444` | 1 | B0333 |
 | `http://benchmark.test:8080` と `https://app:8443` | 1 | B0461 |
 
+`app:8444` を使う23変種の具体的な役割と必要な観測は [README-auxiliary-origin-roles.md](README-auxiliary-origin-roles.md) に整理した。
+
 必要originには、ZAPが要求を送る対象と、ブラウザーが通信する相手・漏えい先・監査用受信先が混在する。単純にZAPの許可originを増やして完走扱いにすると、DOM実行、Cookie送出、preflight、WebSocket frame、postMessage、Referer、SRIなどを実際に通ったか不明なままになる。診断対象・観測先・攻撃者側ページの役割を分けた計測契約を先に定義する。
 
 計測前に固定する条件は次のとおり。
