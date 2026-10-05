@@ -1,0 +1,48 @@
+{
+  "schema": "benchmark-docker-smoke-selected-0.1",
+  "scope": "selected V/F/N boundaries; no scanner or full regression",
+  "startedAt": "2026-10-05T16:41:07.166Z",
+  "origin": "http://app:8080",
+  "results": [
+    {
+      "root": "R0333",
+      "variant": "B0335",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 788
+    },
+    {
+      "root": "R0333",
+      "variant": "B0335",
+      "mode": "F",
+      "status": "failed",
+      "reason": "B0335 browser did not receive an authenticated response with the expected CORS header: [{\"kind\":\"console\",\"text\":\"Access to fetch at 'https://app.benchmark.test:8443/w/c5927db85c46/v4-csrf/report' from origin 'http://app.benchmark.test:8443' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.\"},{\"kind\":\"requestfailed\",\"url\":\"https://app.benchmark.test:8443/w/c5927db85c46/v4-csrf/report\",\"failure\":{\"errorText\":\"net::ERR_FAILED\"}},{\"kind\":\"console\",\"text\":\"Failed to load resource: net::ERR_FAILED\"},{\"kind\":\"request\",\"method\":\"GET\",\"cookiePresent\":true,\"origin\":\"http://app.benchmark.test:8443\",\"headerNames\":[\"accept\",\"cookie\",\"origin\",\"referer\",\"user-agent\",\"sec-ch-ua\",\"sec-ch-ua-mobile\",\"sec-ch-ua-platform\"]}]",
+      "elapsedMs": 639
+    },
+    {
+      "root": "R0333",
+      "variant": "B0335",
+      "mode": "N",
+      "status": "failed",
+      "reason": "B0335 browser did not receive an authenticated response with the expected CORS header: [{\"kind\":\"console\",\"text\":\"Access to fetch at 'https://app.benchmark.test:8443/w/c5927db85c46/v4-csrf/report' from origin 'http://app.benchmark.test:8443' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.\"},{\"kind\":\"requestfailed\",\"url\":\"https://app.benchmark.test:8443/w/c5927db85c46/v4-csrf/report\",\"failure\":{\"errorText\":\"net::ERR_FAILED\"}},{\"kind\":\"console\",\"text\":\"Failed to load resource: net::ERR_FAILED\"},{\"kind\":\"request\",\"method\":\"GET\",\"cookiePresent\":true,\"origin\":\"http://app.benchmark.test:8443\",\"headerNames\":[\"accept\",\"cookie\",\"origin\",\"referer\",\"user-agent\",\"sec-ch-ua\",\"sec-ch-ua-mobile\",\"sec-ch-ua-platform\"]}]",
+      "elapsedMs": 670
+    }
+  ],
+  "conditions": {
+    "B0335": {
+      "network": "internal Docker bridge 198.18.233.0/24",
+      "targetAddress": "198.18.233.2",
+      "chromiumPolicy": {
+        "BlockThirdPartyCookies": false
+      },
+      "attackOrigin": "http://app.benchmark.test:8443",
+      "targetOrigin": "https://app.benchmark.test:8443"
+    }
+  },
+  "finishedAt": "2026-10-05T16:41:09.273Z",
+  "summary": {
+    "cells": 3,
+    "passed": 1,
+    "failed": 2
+  }
+}

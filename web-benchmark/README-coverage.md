@@ -195,3 +195,7 @@ B0335はVでHTTP originに対してCORS許可ヘッダーを返し、F/Nでは�
 ### B0335 の追加確認（2026-10-06）
 
 `artifacts/docker-smoke-b0335-diagnostic-20261006.json` では、脆弱条件Vのブラウザー要求にCookieと意図したHTTP Originが含まれたが、Chromiumはローカルアドレス空間への通信をCORS評価前に遮断した。HTTPSページを先に開いて同じホストを解決させても結果は変わらず、`artifacts/docker-smoke-b0335-preload-20261006.json` はV失敗・F/N合格だった。HTTPとHTTPSを同一ホスト・同一ポートで実際に提供する検証用プロキシも試したが、`artifacts/docker-smoke-b0335-dual-scheme-20261006.json`、`artifacts/docker-smoke-b0335-preflight-20261006.json`、`artifacts/docker-smoke-b0335-permission-20261006.json` のいずれもVのブラウザー読み取りは成立しなかった。実験用コードとアプリへの事前要求処理は採用せず、コンテナを元のソースへ戻した。サーバー側のOrigin判定だけがV/F/Nで分かれる既存の診断記録は維持するが、B0335を個別V/F/N成立件数へ加算しない。
+
+### B0335 conditional V/F/N update (2026-10-06)
+
+B0335 has V/F/N individual passed records under the dedicated Docker browser condition. The earlier pending statements above describe prior default-network attempts and remain as historical evidence. See [B0335 V/F/N details](README-b0335-vfn.md) and the current artifacts/coverage-inventory.json. The 500/500 inventory is a stored-record count, not a ZAP detection count or proof of identical conditions across all variants.

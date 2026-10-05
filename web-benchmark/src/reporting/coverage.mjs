@@ -38,7 +38,8 @@ export function coverageInventory(design,reports){
     if(data.schema==='benchmark-acceptance-0.2'&&Array.isArray(data.results)&&data.results.some(cell=>cell?.error==='Uncovered root')){
       warn(path,'acceptance_root_not_implemented');continue;
     }
-    const sourceRuntimeFiles=data.source?.files?Object.fromEntries(Object.entries(data.source.files).filter(([file])=>file==='package.json'||file==='package-lock.json'||file.startsWith('src/'))):null;
+    const b0335Condition=path==='docker-smoke-b0335-vfn.json'&&data.schema==='benchmark-docker-smoke-selected-0.1'&&data.conditions?.B0335?.targetAddress==='198.18.233.2'&&data.conditions.B0335.chromiumPolicy?.BlockThirdPartyCookies===false&&data.conditions.B0335.attackOrigin==='http://app.benchmark.test:8443'&&data.conditions.B0335.targetOrigin==='https://app.benchmark.test:8443'&&['policySha256','harnessSha256','composeSha256'].every(field=>/^[a-f0-9]{64}$/.test(data.conditions.B0335[field]))&&['verifierMatch','targetMatch','verifierAfterMatch'].every(field=>data.targetRuntimeSource?.[field]?.status==='matched')&&Array.isArray(data.results)&&data.results.length===3&&data.results.every(cell=>cell.variant==='B0335')&&new Set(data.results.map(cell=>cell.mode)).size===3;
+    const sourceRuntimeFiles=data.source?.files?Object.fromEntries(Object.entries(data.source.files).filter(([file])=>file==='package.json'||file==='package-lock.json'||file.startsWith('src/'))):b0335Condition?data.targetRuntimeSource?.verifier?.files:null;
     if(['benchmark-acceptance-0.2','benchmark-extended-regression-0.2'].includes(data.schema)&&data.source){
       const stable=compareSources(data.source,data.source).status==='matched'&&data.sourceAfter?.status==='matched'&&data.sourceAfter.recordedSha256===data.source.sha256&&data.sourceAfter.currentSha256===data.source.sha256;
       if(!stable){warn(path,'source_snapshot_unstable_or_invalid');continue;}
@@ -52,7 +53,7 @@ export function coverageInventory(design,reports){
     }
     let cells,allowed=['V','F','N'];
     if(data.schema==='benchmark-acceptance-0.2')cells=data.results;
-    else if(data.schema==='benchmark-docker-smoke-selected-0.1'){cells=data.results;allowed=['V','F'];}
+    else if(data.schema==='benchmark-docker-smoke-selected-0.1'){cells=data.results;allowed=b0335Condition?['V','F','N']:['V','F'];}
     else if(data.schema==='benchmark-extended-regression-0.2'){
       if(!Array.isArray(data.results)){warn(path,'invalid_report');continue;}
       if(data.sourceAfter&&data.sourceAfter.status!=='matched'){warn(path,'source_changed_during_execution');continue;}
@@ -70,7 +71,7 @@ export function coverageInventory(design,reports){
     }
     if(invalid){warn(path,'invalid_or_duplicate_case');continue;}
     if(data.summary?.cells!==undefined&&data.summary.cells!==cells.length){warn(path,'summary_cell_count_mismatch');continue;}
-    sources.push({path,startedAt:data.started||data.startedAt,cells:accepted.length,sourceSnapshotRecorded:Boolean(data.source),...(data.source?.sha256?{sourceSha256:data.source.sha256}:{}),...(sourceRuntimeFiles?{sourceRuntimeFiles}:{}),...(data.seed?{seed:data.seed}:{})});
+    sources.push({path,startedAt:data.started||data.startedAt,cells:accepted.length,sourceSnapshotRecorded:Boolean(data.source),...(data.source?.sha256?{sourceSha256:data.source.sha256}:{}),...(sourceRuntimeFiles?{sourceRuntimeFiles}:{}),...(b0335Condition?{condition:'B0335 public-address and managed-cookie-policy',runtimeSourceSha256:data.targetRuntimeSource.verifier.sha256}:{}),...(data.seed?{seed:data.seed}:{})});
     for(const {cell,passed}of accepted){
       const row=byVariant.get(cell.variant),arms=passed?row.passedArms:row.failedArms;
       if(!arms.includes(cell.mode))arms.push(cell.mode);
@@ -86,7 +87,7 @@ export async function collectCoverage(directory,design){
   const reader=await artifactReader(directory),reports=[],unreadable=[];
   const saved=(await reader.entries()).filter(entry=>entry.isFile()&&/^(?:acceptance-saved|extended-regression-(?:saved|source-link))-[A-Za-z0-9-]+\.json$/.test(entry.name)).map(entry=>entry.name).sort();
   if(saved.length>100)throw Error('Too many saved extended-regression reports');
-  for(const path of ['acceptance.json','extended-regression.json',...saved,'docker-smoke-selected-run.json']){
+  for(const path of ['acceptance.json','extended-regression.json',...saved,'docker-smoke-selected-run.json','docker-smoke-b0335-vfn.json']){
     try{reports.push({path,data:await reader.json(path)});}catch(e){if(e.code!=='ENOENT')unreadable.push({source:path,code:'unreadable_report'});}
   }
   const inventory=coverageInventory(design,reports);inventory.issues.push(...unreadable);inventory.summary.issues=inventory.issues.length;return inventory;

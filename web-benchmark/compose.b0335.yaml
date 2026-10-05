@@ -1,0 +1,35 @@
+services:
+  app:
+    networks:
+      b0335_public:
+        ipv4_address: 198.18.233.2
+        aliases: [app, app.benchmark.test]
+  verify-b0335:
+    profiles: [b0335]
+    build: {context: ., target: verify}
+    command: ["node", "tests/docker-smoke-selected.mjs"]
+    environment:
+      BENCHMARK_CONTROL_KEY: ${BENCHMARK_CONTROL_KEY:-}
+      BENCHMARK_VALIDATION_ORIGIN: http://app:8080
+      BENCHMARK_SMOKE_VARIANTS: B0335
+      BENCHMARK_SMOKE_ARMS: V,F,N
+      BENCHMARK_SMOKE_REPORT: artifacts/docker-smoke-b0335-vfn.json
+      BENCHMARK_B0335_CONDITION: public-address-third-party-cookies
+      CONTROL_URL: http://app:8099
+    networks: [b0335_public]
+    volumes:
+      - ./artifacts:/opt/benchmark/artifacts
+      - ./tests/fixtures/b0335-chromium-policy:/etc/chromium/policies/managed:ro
+    depends_on:
+      app: {condition: service_healthy}
+    shm_size: 256m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 1g
+networks:
+  b0335_public:
+    internal: true
+    ipam:
+      config:
+        - subnet: 198.18.233.0/24

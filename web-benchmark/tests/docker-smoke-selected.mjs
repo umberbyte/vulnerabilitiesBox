@@ -1,14 +1,16 @@
 // Focused Docker smoke for selected Batch 05 boundaries. This is not the full
 // V/F/N acceptance or a scanner measurement.
 import {execFile} from 'node:child_process';
-import {createHmac} from 'node:crypto';
+import {createHmac,createHash} from 'node:crypto';
 import {promisify} from 'node:util';
-import {writeFile,mkdir} from 'node:fs/promises';
+import {writeFile,mkdir,readFile} from 'node:fs/promises';
+import {lookup} from 'node:dns/promises';
 import {request as httpRequest} from 'node:http';
 import {request as httpsRequest} from 'node:https';
 import {gzipSync} from 'node:zlib';
 import WebSocket from 'ws';
 import {chromium} from 'playwright-core';
+import {runtimeSourceProof,compareRuntimeSourceProof} from '../src/reporting/source.mjs';
 
 const runFile=promisify(execFile);
 const docker=process.env.DOCKER_EXE||'docker';
@@ -1088,6 +1090,15 @@ async function corsVariant({base,canary},mode,variant){
    assert(probe.status()===200&&(await probe.json()).privateData===canary,'authenticated CORS report fixture absent');
    assert((probe.headers()['access-control-allow-origin']===attacker)===(mode==='V'),'CORS response header arm mismatch');
    const page=await context.newPage();
+   const cdp=variant==='B0335'?await context.newCDPSession(page):null;
+   const targetRequestIds=new Set(),targetResponses=[];
+   if(cdp){
+    await cdp.send('Network.enable');
+    cdp.on('Network.requestWillBeSent',event=>{if(event.request.url===endpoint)targetRequestIds.add(event.requestId);});
+    cdp.on('Network.responseReceivedExtraInfo',event=>{
+     if(targetRequestIds.has(event.requestId))targetResponses.push({status:event.statusCode,allowOrigin:Object.entries(event.headers).find(([name])=>name.toLowerCase()==='access-control-allow-origin')?.[1]||null});
+    });
+   }
    if(variant==='B0335')await page.route(attacker+'/browser-csrf-fixture',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>Local HTTP origin fixture</title>'}));
    const navigation=await page.goto(attacker+'/browser-csrf-fixture');
    assert(navigation?.status()===200&&new URL(page.url()).origin===attacker,'CORS attacker origin unavailable');
@@ -1100,8 +1111,11 @@ async function corsVariant({base,canary},mode,variant){
     try{const response=await fetch(url,{credentials:'include'});return {status:response.status,body:await response.json()};}
     catch(error){return {blocked:String(error)};}
    },endpoint);
+   if(attackRequest){const headers=await attackRequest.allHeaders();browserEvidence.push({kind:'request',method:attackRequest.method(),cookiePresent:!!headers.cookie,origin:headers.origin||null,headerNames:Object.keys(headers)});}
    assert(attackRequest&&new URL(attackRequest.url()).origin===target&&new URL(page.url()).origin===attacker,'CORS browser request did not cross origins');
+   if(variant==='B0335')assert(targetResponses.some(item=>item.status===200&&Boolean(item.allowOrigin)===(mode==='V')),'B0335 browser request did not receive an authenticated response with the expected CORS header: '+JSON.stringify({targetResponses,browserEvidence}));
    assert(mode==='V'?result.status===200&&result.body?.privateData===canary:!!result.blocked,'browser CORS read arm mismatch: '+JSON.stringify({result,browserEvidence}));
+   if(variant==='B0335')return {browserResponse:targetResponses.at(-1),browserRead:mode==='V'?'private-canary-read':'blocked-by-cors'};
   }finally{await context.close();}
  }finally{await browser.close();}
 }
@@ -1431,13 +1445,38 @@ const cases=[
 ];
 const requested=process.env.BENCHMARK_SMOKE_VARIANTS?.split(',').map(value=>value.trim())||['B0378','B0379','B0361','B0329','B0200','B0127','B0482','B0342','B0339','B0462'];
 if(!requested.length||new Set(requested).size!==requested.length||requested.some(variant=>!cases.some(item=>item[1]===variant)))throw Error('Unknown or duplicate smoke variant');
+if(requested.includes('B0335')){
+ assert(process.env.BENCHMARK_B0335_CONDITION==='public-address-third-party-cookies','B0335 requires the explicit Docker browser condition');
+ const policyPath='/etc/chromium/policies/managed/allow-third-party-cookies.json';
+ const policyBytes=await readFile(policyPath),policy=JSON.parse(policyBytes.toString('utf8'));
+ assert(policy?.BlockThirdPartyCookies===false,'B0335 Chromium managed cookie policy is absent');
+ const targetAddress=(await lookup('app.benchmark.test',{family:4})).address;
+ assert(targetAddress==='198.18.233.2','B0335 target address differs from the isolated benchmark address space');
+ const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
+ const browserVersion=(await runFile('/usr/bin/chromium',['--version'])).stdout.trim();
+ report.conditions={B0335:{network:'internal Docker bridge 198.18.233.0/24',targetAddress,chromiumPolicy:{BlockThirdPartyCookies:false},policySha256:sha256(policyBytes),browserVersion,attackOrigin:'http://app.benchmark.test:8443',targetOrigin:'https://app.benchmark.test:8443',harnessSha256:sha256(await readFile('tests/docker-smoke-selected.mjs')),composeSha256:sha256(await readFile('compose.b0335.yaml'))}};
+ const proof={verifier:await runtimeSourceProof('.')};
+ const targetResponse=await fetch(controlUrl+'/source-proof',{headers:{'x-benchmark-key':controlKey}});
+ assert(targetResponse.ok,'B0335 target source proof unavailable');
+ proof.targetBefore=await targetResponse.json();
+ proof.verifierMatch=compareRuntimeSourceProof(proof.verifier,proof.targetBefore);
+ assert(proof.verifierMatch.status==='matched','B0335 verifier and target runtime source differ');
+ report.targetRuntimeSource=proof;
+}
 for(const [root,variant,check] of cases.filter(item=>requested.includes(item[1])))for(const mode of arms){
  const start=Date.now();
- try{const context=await reset(root,variant,mode);await check(context,mode);report.results.push({root,variant,mode,status:'passed',elapsedMs:Date.now()-start});}
+ try{const context=await reset(root,variant,mode);const evidence=await check(context,mode);report.results.push({root,variant,mode,status:'passed',...(evidence?{evidence}:{}),elapsedMs:Date.now()-start});}
  catch(error){report.results.push({root,variant,mode,status:'failed',reason:error.message,elapsedMs:Date.now()-start});}
 }
 report.finishedAt=new Date().toISOString();
+if(report.targetRuntimeSource){
+ const targetResponse=await fetch(controlUrl+'/source-proof',{headers:{'x-benchmark-key':controlKey}});
+ assert(targetResponse.ok,'B0335 final target source proof unavailable');
+ report.targetRuntimeSource.targetAfter=await targetResponse.json();
+ report.targetRuntimeSource.targetMatch=compareRuntimeSourceProof(report.targetRuntimeSource.targetBefore,report.targetRuntimeSource.targetAfter);
+ report.targetRuntimeSource.verifierAfterMatch=compareRuntimeSourceProof(report.targetRuntimeSource.verifier,await runtimeSourceProof('.'));
+}
 report.summary={cells:report.results.length,passed:report.results.filter(x=>x.status==='passed').length,failed:report.results.filter(x=>x.status==='failed').length};
 await mkdir('artifacts',{recursive:true});await writeFile(reportPath,JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(report.summary));
-if(report.summary.failed)process.exitCode=1;
+if(report.summary.failed||report.targetRuntimeSource&&(report.targetRuntimeSource.targetMatch.status!=='matched'||report.targetRuntimeSource.verifierAfterMatch.status!=='matched'))process.exitCode=1;

@@ -8,3 +8,5 @@
 web-benchmark/artifacts/*
 !web-benchmark/artifacts/README.md
 !web-benchmark/artifacts/docker-smoke-selected.json
+!web-benchmark/artifacts/docker-smoke-b0335-vfn.json
+!web-benchmark/artifacts/docker-smoke-b0335-compose-first-20261006.json
