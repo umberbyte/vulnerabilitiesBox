@@ -8,7 +8,7 @@ export function evidenceLinkage(coverage,audit){
   const rows=new Map(),acceptanceEvidence=new Map();
   for(const record of coverage.rows){
     if(!validId(record?.variant,'B')||!validId(record.root,'R')||rows.has(record.variant)||!Array.isArray(record.evidence)||record.evidence.length>10000)throw Error('Invalid coverage row');
-    rows.set(record.variant,{variant:record.variant,root:record.root,title:record.title,track:record.track,acceptanceStatus:record.status,individualVfnRecord:record.status==='vfn_records',completeScanSeries:[]});
+    rows.set(record.variant,{variant:record.variant,root:record.root,title:record.title,track:record.track,acceptanceStatus:record.status,individualVfnRecord:record.hasVfnRecords===true||record.status==='vfn_records',hasConflictingOrFailedRecords:record.status==='mixed_or_failed_records',completeScanSeries:[]});
     acceptanceEvidence.set(record.variant,record.evidence);
   }
   const issues=[];

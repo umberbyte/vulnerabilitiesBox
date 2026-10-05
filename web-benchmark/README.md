@@ -85,6 +85,7 @@ macOS/Linuxでは`sh verify.sh`を実行します。
 - [実装範囲と未実装分](README-coverage.md)
 - [ZAPの実行手順と対応範囲](README-zap.md)
 - [ZAPの検出漏れ・改善記録](README-zap-findings.md)
+- [B0226の成立確認とZAP走査](README-r0226-zap.md)
 - [順次実行の計画](README-panel.md)
 - [ZAP再計測の準備状況](README-scan-readiness.md)
 - [証拠レビューと集計](README-evaluation.md)

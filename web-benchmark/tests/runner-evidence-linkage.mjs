@@ -37,6 +37,22 @@ test('only a complete series with byte-matched individual V/F/N source is linked
   input.rows[0].evidence=input.rows[0].evidence.filter(item=>item.arm!=='N');
   assert.equal(evidenceLinkage(input,audit).summary.verifiedSourceLinked,0);
 });
+
+test('a current complete pass may be source-linked while an older failure remains visible',()=>{
+  const files={'package-lock.json':'a'.repeat(64),'package.json':'b'.repeat(64),'src/app.mjs':'c'.repeat(64)};
+  const sha='d'.repeat(64);
+  const accepted=['V','F','N'].map(arm=>({path:'current.json',arm,passed:true}));
+  const input={...coverage,sources:[{path:'current.json',sourceRuntimeFiles:files}],rows:[{...coverage.rows[0],status:'mixed_or_failed_records',hasVfnRecords:true,evidence:[{path:'older.json',arm:'V',passed:false},...accepted]}]};
+  const audit={schema:'benchmark-artifact-audit-0.1',runtimeSources:{[sha]:{files}},ledgers:[{path:'current-ledger.json',planVerified:true,series:[{...series('B0001','R0001'),runtimeSourceSha256:sha}]}]};
+  const linked=evidenceLinkage(input,audit);
+  assert.equal(linked.summary.verifiedSourceLinked,1);
+  assert.equal(linked.summary.completeScanWithoutIndividualVfn,0);
+  assert.equal(linked.variants[0].acceptanceStatus,'mixed_or_failed_records');
+  assert.equal(linked.variants[0].hasConflictingOrFailedRecords,true);
+  assert.equal(linked.variants[0].sourceLink.acceptanceReport,'current.json');
+  input.rows[0].hasVfnRecords=false;
+  assert.equal(evidenceLinkage(input,audit).variants[0].state,'individual_vfn_missing');
+});
 test('mismatched or unverified scan series cannot become completed evidence',()=>{
   const audit={schema:'benchmark-artifact-audit-0.1',ledgers:[{path:'bad-ledger.json',planVerified:false,series:[series('B0001','R0001')]},{path:'wrong-root.json',planVerified:true,series:[series('B0002','R9999')]}]};
   const result=evidenceLinkage(coverage,audit);
