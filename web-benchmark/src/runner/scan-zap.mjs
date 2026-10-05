@@ -226,7 +226,7 @@ try {
   for(const value of [manifest.credentials,...(manifest.roleProfiles||[])])onSecret(value?.password);
   metadata.inputFingerprints={publicManifestSha256:fingerprint(manifest)};
   await writeFile(output+'/public-inputs.json',JSON.stringify(manifest,null,2)+'\n');
-  metadata.targetSurface={requiredOrigins:manifest.requiredTargetOrigins??[TARGET_ORIGIN],supportedOrigins:[TARGET_ORIGIN],verified:false};
+  metadata.targetSurface={requiredOrigins:manifest.requiredTargetOrigins??[TARGET_ORIGIN],requiredObservationCapabilities:manifest.requiredObservationCapabilities===undefined?[]:manifest.requiredObservationCapabilities,supportedOrigins:[TARGET_ORIGIN],verified:false};
   metadata.targetSurface=validateTargetSurface(manifest);
   const authPlan=authenticationPlan(manifest,settings,scope);
   await configure();

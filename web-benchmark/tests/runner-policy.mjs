@@ -17,6 +17,13 @@ test('Additional declared public origins are unsupported regardless of private i
     }
   }
 });
+test('Declared WebSocket frame observation is unsupported until the adapter verifies it',()=>{
+  const surface={...manifest,requiredTargetOrigins:['https://app:8443'],requiredObservationCapabilities:['websocket_frame']};
+  assert.throws(()=>validateTargetSurface(surface),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_observation_capability'&&error.unsupported===true);
+  for(const invalid of [null,'websocket_frame',[1],['websocket_frame','websocket_frame'],['WebSocket'],['websocket-frame']]){
+    assert.throws(()=>validateTargetSurface({...surface,requiredObservationCapabilities:invalid}),error=>error instanceof TargetSurfaceError&&error.code==='invalid_observation_capability'&&error.unsupported===false);
+  }
+});
 test('Malformed, duplicate or non-origin target declarations fail closed as invalid contracts',()=>{
   for(const required of [null,[],{},'https://app:8443',[42],[''],['https://app:8443','https://app:8443'],['https://app:8443/'],['https://app:8443/path'],['https://app:8443?key=value'],['https://user:password@app:8443'],['file:///tmp/fixture']]) {
     assert.throws(()=>validateTargetSurface({...manifest,requiredTargetOrigins:required}),error=>error instanceof TargetSurfaceError&&error.code==='invalid_target_surface'&&error.unsupported===false);

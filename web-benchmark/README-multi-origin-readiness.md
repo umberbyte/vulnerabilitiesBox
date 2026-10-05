@@ -16,6 +16,8 @@
 
 `app:8444` を使う23変種の具体的な役割と必要な観測は [README-auxiliary-origin-roles.md](README-auxiliary-origin-roles.md) に整理した。
 
+この表は2026-10-04の保存済みrunの宣言を保持する。B0341の `https://app:8444` はWebSocket接続先ではなく、申告する `Origin` ヘッダー値だった。現行の公開manifestでは接続先を `https://app:8443` だけとし、`requiredObservationCapabilities: ["websocket_frame"]` を別に宣言する。現行のHTTP中心ZAP adapterはこの能力を確認できないため、B0341を `unsupported_observation_capability` として停止する。これで保存済みの「複数origin未対応32件」を遡及変更しない。
+
 必要originには、ZAPが要求を送る対象と、ブラウザーが通信する相手・漏えい先・監査用受信先が混在する。単純にZAPの許可originを増やして完走扱いにすると、DOM実行、Cookie送出、preflight、WebSocket frame、postMessage、Referer、SRIなどを実際に通ったか不明なままになる。診断対象・観測先・攻撃者側ページの役割を分けた計測契約を先に定義する。
 
 計測前に固定する条件は次のとおり。
@@ -25,7 +27,7 @@
 3. V/F/Nに同一の公開契約、認証主体、seed、ZAP画像・add-on・設定、時間・要求予算を使う。補助originへの通信も対象アプリの計測窓に含め、後続要求がdrainしたか確認する。
 4. 完走、対象操作への到達、alertと当該欠陥の対応、V/F/N成立確認を別々に評価する。非到達を偽陰性として数えない。スキャン時ソースと検証時ソースを照合し、依存サービスの環境一致は別に判定する。
 
-優先する実装単位は、(a) B0233/B0461のHTTP・HTTPS二経路、(b) `app:8444`を補助originとする23変種の役割別契約、(c) ホスト名・scheme・portが異なる7変種のブラウザー条件。B0335の実際の起点は `http://app.benchmark.test:8443` であり、旧manifestの `https://evil.benchmark.test:8444` は誤りだったため修正した。現行Composeは同じホスト名・8443番でHTTPとHTTPSを同時提供しておらず、現在のローカルChromiumでもVの秘密読取は未確認である。成立条件の解決前にスキャン系列だけを増やさない。各単位で公開manifest、adapter、対象操作の到達証拠、オフライン監査を揃えてから再計測する。
+優先する実装単位は、(a) B0233/B0461のHTTP・HTTPS二経路、(b) `app:8444`を補助originとする22変種の役割別契約とB0341のWebSocket frame観測、(c) ホスト名・scheme・portが異なる7変種のブラウザー条件。B0335の実際の起点は `http://app.benchmark.test:8443` であり、旧manifestの `https://evil.benchmark.test:8444` は誤りだったため修正した。現行Composeは同じホスト名・8443番でHTTPとHTTPSを同時提供しておらず、現在のローカルChromiumでもVの秘密読取は未確認である。成立条件の解決前にスキャン系列だけを増やさない。各単位で公開manifest、adapter、対象操作の到達証拠、オフライン監査を揃えてから再計測する。
 
 ## B0233/B0461の二経路前提確認（2026-10-05）
 

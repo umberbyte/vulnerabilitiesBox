@@ -14,6 +14,11 @@ test('CORS variants declare the browser origin used by their own acceptance path
     assert.deepEqual(definition?.requiredTargetOrigins,['https://app.benchmark.test:8443',attacker],variant);
   }
 });
+test('WebSocket Origin claim is an observation capability rather than a second target origin',()=>{
+  const socket=definitions.find(item=>item.root==='R0341');
+  assert.deepEqual(socket?.requiredTargetOrigins,['https://app:8443']);
+  assert.deepEqual(socket?.requiredObservationCapabilities,['websocket_frame']);
+});
 
 test('The representative catalog has unique roots, variants and feature contracts',()=>{
   for(const key of ['root','variant','feature'])assert.equal(new Set(cases.map(item=>item[key])).size,cases.length,key);

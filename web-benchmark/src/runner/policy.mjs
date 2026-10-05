@@ -98,6 +98,9 @@ export function validateTargetSurface(manifest) {
     if(typeof value!=='string')return true;
     try{const url=new URL(value);return !['http:','https:'].includes(url.protocol)||url.origin!==value;}catch{return true;}
   })||new Set(required).size!==required.length)throw new TargetSurfaceError('invalid_target_surface','The public contract must declare distinct canonical HTTP(S) origins.');
+  const capabilities=manifest.requiredObservationCapabilities===undefined?[]:manifest.requiredObservationCapabilities;
+  if(!Array.isArray(capabilities)||capabilities.some(value=>typeof value!=='string'||!/^[a-z][a-z0-9_]*$/.test(value))||new Set(capabilities).size!==capabilities.length)throw new TargetSurfaceError('invalid_observation_capability','The public contract must declare distinct capability identifiers.');
+  if(capabilities.length)throw new TargetSurfaceError('unsupported_observation_capability','The public contract requires an observation that this HTTP-only adapter cannot verify.',{unsupported:true});
   if(required.some(value=>value!==TARGET_ORIGIN))throw new TargetSurfaceError('unsupported_target_surface','The public contract requires a target origin that this HTTPS-only adapter cannot exercise.',{unsupported:true});
   return {requiredOrigins:[...required],supportedOrigins:[TARGET_ORIGIN],verified:true};
 }
