@@ -29,3 +29,5 @@ docker compose --profile panel run --rm panel generate artifacts/plan-budget-ses
 同じ実行ソースでの成立確認を取り直した結果、23変種すべてで個別V/F/N成立記録と完了したZAP系列のソースが一致した。B0329は代表テストに検査項目がなく初回に `Uncovered root` が出たため、その原レポートを保存して集計では「テスト対象外」と警告し、実装済みの個別変種テストで別途V/F/Nを確認した。個別変種テストの初回も送信先の指定漏れで `fetch failed` となったが、原レポートを残し、Docker内の `https://app:8443` を指定した再実行で9変種・27セルが合格した。
 
 再生成した `artifacts/evidence-linkage.json` では、500変種中250変種に完了スキャン系列があり、ソース対応付け済みは24変種（この23変種と既存のB0011）である。依存サービスの環境まで完全に対応付けられた件数は0。今回の各系列について実行中と終了後のアプリ・DB・Redis・Mongo・LDAP・executorのコンテナIDとイメージIDをローカルに保存して一致を確認したが、DB内容やRedis状態まで同一だった証明ではない。ZAPの完走は対象欠陥の検出、陰性、検出率を意味しない。評価にはalertの対象操作・要求応答・実影響のレビューが残る。
+
+保存済みの `environment-budget-*-20261005.txt` と対応する `-after-` 記録5組を改めて行単位で照合した。各組でアプリ・DB・Redis・Mongo・LDAP・executorの6行は同一で、ZAPコンテナの行だけが終了側にない。これは記録されたコンテナID・イメージID・起動時刻の前後一致であり、走査中の継続稼働、DB内容・Redis状態、個別成立確認時の依存環境まで一致した証拠にはならない。したがって `dependencyEnvironmentLinked` は0件のままとする。
