@@ -1,6 +1,6 @@
 # F/Nに残るHighアラート6変種の原本レビュー
 
-2026-10-05、保存済みコアDAST中間分析でF/N双方にHighアラートがある6変種を、各armの`alerts.json`と`messages-first-500.json`で確認した。6変種×F/N各1件で計12アラートである。新たなスキャンや対象アプリへの通信は行っていない。全6変種に個別V/F/N合格記録はあるが、これらの**走査時の対象実行ソース指紋は記録されていない**。したがって以下は保存通信のレビューであり、誤検知数や検出率の算定ではない。
+2026-10-05、保存済みコアDAST中間分析でF/N双方にHighアラートがある6変種を、各armの`alerts.json`と`messages-first-500.json`で確認した。6変種×F/N各1件で計12アラートである。この表の作成時に新たなスキャンや対象アプリへの通信は行っていない。全6変種に個別V/F/N合格記録はあるが、**以下で引用する旧走査系列には対象実行ソース指紋が記録されていない**。したがって以下は保存通信のレビューであり、誤検知数や検出率の算定ではない。
 
 | 変種 | F/NのHighアラートと原通信 | 当該欠陥への帰属に必要な追加確認 |
 |---|---|---|
@@ -12,3 +12,5 @@
 | B0472 | plugin `40012` Cross Site Scripting (Reflected)、Medium confidence。`GET /b2-nonce-panel?markup=...`でscript文字列がHTMLに反映される。F/Nの[通信原本](artifacts/zap-2026-10-04T02-14-57-042Z-eb1a1a/messages-first-500.json) / [通信原本](artifacts/zap-2026-10-04T02-15-27-776Z-c937cd/messages-first-500.json)のmessage `92`には、armごとに異なるランダムな`script-src 'nonce-…'`のCSPもある。F [run](artifacts/zap-2026-10-04T02-14-57-042Z-eb1a1a/run.json) / [alerts](artifacts/zap-2026-10-04T02-14-57-042Z-eb1a1a/alerts.json)、N [run](artifacts/zap-2026-10-04T02-15-27-776Z-c937cd/run.json) / [alerts](artifacts/zap-2026-10-04T02-15-27-776Z-c937cd/alerts.json)。 | 反映は事実だが、保存済みZAP通信にブラウザー実行の証拠はない。個別成立確認はF/Nで予測nonceによる実行が成立しないことを確認している。走査時ソースを対応付けたブラウザー再確認が必要。 |
 
 plugin `6`の4件は`evidence`欄が空で、Highは製品のrisk表示だがconfidenceはいずれもLowである。4件ともアラートの`attack`欄と、アラートが指す`sourceMessageId`の要求本文の値は一致しない。これはアラート生成時の参照関係をさらに調べる必要があることを示し、単独で誤検知と確定するものではない。B0064の式評価は応答に残るが`exposed:false`、B0472はHTML反映とCSPが共存する。いずれも保存済みアラート単独で対象変種の陽性・陰性を確定しない。F/NのHighを機械的に「誤検知」と数えず、対象操作と影響を人間が確認するレビュー待ちとして扱う。
+
+追記: その後6変種すべてに実行ソース対応済みの再走査系列を保存した。B0110は[XML系の再走査](README-xml-six-source-zap.md)、B0134・B0139は[ファイル経路系の再走査](README-path-ten-source-zap.md)にある。再走査でもこの3変種のF/Nに同種のHighアラートが残った。残るB0064、B0097、B0472も[証拠対応表](artifacts/evidence-linkage.md)で新系列を参照できる。新系列の存在は、上表に引用した旧通信のソース指紋を遡って証明するものではない。
