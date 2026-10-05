@@ -116,8 +116,8 @@ export function options(env) {
     if(!/^\d+$/.test(raw)||Number(raw)<min||Number(raw)>max)throw new Error(`${name} must be ${min}..${max}.`);
     return Number(raw);
   }
-  const concurrency=integer('SCAN_CONCURRENCY',2,2,4);
-  if(![2,4].includes(concurrency))throw new Error('SCAN_CONCURRENCY must be 2 or 4.');
+  const concurrency=integer('SCAN_CONCURRENCY',2,2,8);
+  if(![2,4,6,8].includes(concurrency))throw new Error('SCAN_CONCURRENCY must be 2, 4, 6, or 8.');
   return {profile,auth,user,seconds:integer('SCAN_SECONDS',120,10,1200),requests:integer('SCAN_REQUEST_BUDGET',300,10,3000),concurrency};
 }
 export function publicScope(manifest) {

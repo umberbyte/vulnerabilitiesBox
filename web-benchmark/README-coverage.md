@@ -191,3 +191,7 @@ B0094は通常の会員属性取得と、role・passwordの選択結果を実際
 B0335はVでHTTP originに対してCORS許可ヘッダーを返し、F/Nでは返さないサーバー応答を確認しました。しかしChromium 154のブラウザー実行では、非セキュアなHTTP originからローカルアドレスへの要求がCORS評価前に遮断され、Vで秘密bodyを読めませんでした。失敗理由と元応答は`artifacts/diagnostic-docker-smoke-final-two-second-20261005.json`および`artifacts/diagnostic-extended-final-two-second-20261005.json`に保存しています。Playwrightで実応答をブラウザーへ注入する試行はF/NでもCORS遮断を再現しなかったため、成立証拠には採用しません。現行のローカルDocker・Chromium条件でB0335のV成立は未確認であり、ブラウザー側の追加保護を含めて評価条件を再設計する必要があります。
 
 原本欠損前の保存記録では、500変種中498変種を個別V/F/N合格記録あり、B0335の1変種を個別V/F/N合格記録なし、B0226の1変種を新旧の合格・失敗記録併存と分類していました。現在の機械棚卸しは499変種をV/F/N合格記録あり、B0335の1変種を記録なし、相反・失敗記録0と表示します。旧B0226失敗の消滅を意味しません。
+
+### B0335 の追加確認（2026-10-06）
+
+`artifacts/docker-smoke-b0335-diagnostic-20261006.json` では、脆弱条件Vのブラウザー要求にCookieと意図したHTTP Originが含まれたが、Chromiumはローカルアドレス空間への通信をCORS評価前に遮断した。HTTPSページを先に開いて同じホストを解決させても結果は変わらず、`artifacts/docker-smoke-b0335-preload-20261006.json` はV失敗・F/N合格だった。HTTPとHTTPSを同一ホスト・同一ポートで実際に提供する検証用プロキシも試したが、`artifacts/docker-smoke-b0335-dual-scheme-20261006.json`、`artifacts/docker-smoke-b0335-preflight-20261006.json`、`artifacts/docker-smoke-b0335-permission-20261006.json` のいずれもVのブラウザー読み取りは成立しなかった。実験用コードとアプリへの事前要求処理は採用せず、コンテナを元のソースへ戻した。サーバー側のOrigin判定だけがV/F/Nで分かれる既存の診断記録は維持するが、B0335を個別V/F/N成立件数へ加算しない。

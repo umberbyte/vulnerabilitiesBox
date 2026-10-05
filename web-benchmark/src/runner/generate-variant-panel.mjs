@@ -4,7 +4,7 @@ import {pathToFileURL} from 'node:url';
 import {createVariantPanel} from './variant-panel.mjs';
 
 export async function main(args=process.argv.slice(2)){
- const usage='Usage: node src/runner/generate-variant-panel.mjs OUTPUT.json [--variants B0002,B0004,...] [--profile baseline|active] [--seed TEXT] [--wall-seconds 10..1200] [--requests 10..3000] [--concurrency 2|4]';
+ const usage='Usage: node src/runner/generate-variant-panel.mjs OUTPUT.json [--variants B0002,B0004,...] [--profile baseline|active] [--seed TEXT] [--wall-seconds 10..1200] [--requests 10..3000] [--concurrency 2|4|6|8]';
  if(!args[0]||args[0].startsWith('-')||args.length%2!==1)throw Error(usage);
  const options={};
  for(let i=1;i<args.length;i+=2){

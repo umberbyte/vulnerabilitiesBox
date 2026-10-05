@@ -59,8 +59,8 @@ function selection(options,catalog) {
   const replicates=integer(options.replicates,1,1,3,'replicates');
   const wallSeconds=integer(options.wallSeconds,30,10,1200,'wallSeconds');
   const requests=integer(options.requests,100,10,3000,'requests');
-  const concurrency=integer(options.concurrency,2,2,4,'concurrency');
-  if(![2,4].includes(concurrency))throw new Error('concurrency must be 2 or 4.');
+  const concurrency=integer(options.concurrency,2,2,8,'concurrency');
+  if(![2,4,6,8].includes(concurrency))throw new Error('concurrency must be 2, 4, 6, or 8.');
   const maxCells=integer(options.maxCells,MAX_PANEL_CELLS,1,MAX_PANEL_CELLS,'maxCells');
   const cellCount=roots.length*arms.length*seeds.length*replicates*profiles.length*auth.length;
   if(!Number.isSafeInteger(cellCount)||cellCount>maxCells)throw new Error(`Plan exceeds the maximum of ${maxCells} cells.`);

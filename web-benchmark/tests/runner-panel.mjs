@@ -44,6 +44,7 @@ test('The faster local condition is explicit and does not change old plan identi
   assert.notEqual(fast.planId,standard.planId);
   assert.deepEqual(validatePanel(fast,{catalog}),fast);
   assert.equal(parsePanelArgs(['generate','plans/fast.json','--roots','R0001','--seeds','fast','--concurrency','4']).options.concurrency,4);
+  for(const concurrency of [6,8]){const plan=make({concurrency});assert.equal(plan.selection.requestedConcurrency,concurrency);assert.deepEqual(validatePanel(plan,{catalog}),plan);}
   assert.throws(()=>make({concurrency:3}));
 });
 
