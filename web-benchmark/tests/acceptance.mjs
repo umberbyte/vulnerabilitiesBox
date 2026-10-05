@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium} from 'playwright-core';
 import {cases} from '../src/catalog.mjs';
@@ -28,6 +29,8 @@ const requestedRoots=process.env.BENCHMARK_TEST_ROOT?.split(',').map(value=>valu
 if(requestedRoots&&(requestedRoots.some(root=>!cases.some(item=>item.root===root))||new Set(requestedRoots).size!==requestedRoots.length))throw new Error('Acceptance root selection contains an unknown or duplicate root.');
 const outputName=process.env.BENCHMARK_ACCEPTANCE_OUTPUT||'acceptance.json';
 if(!/^(?:acceptance|acceptance-saved-[A-Za-z0-9-]+)\.json$/.test(outputName))throw new Error('Acceptance output must be a filename under artifacts.');
+const outputPath='artifacts/'+outputName;
+if(existsSync(outputPath))throw new Error('Acceptance output already exists; choose a new BENCHMARK_ACCEPTANCE_OUTPUT name.');
 const selectedCases=cases.filter(item=>!requestedRoots||requestedRoots.includes(item.root));
 async function ctl(endpoint,data) {
   const result=await fetch(control+endpoint,{method:data?'POST':'GET',headers:{'x-benchmark-key':key,'content-type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});
@@ -200,6 +203,6 @@ try {
   catch(error){report.sourceAfter={status:'unavailable',reason:error.message};}
   try{targetRuntimeSource.targetAfter=await ctl('/source-proof');targetRuntimeSource.targetMatch=compareRuntimeSourceProof(targetRuntimeSource.targetBefore,targetRuntimeSource.targetAfter);}
   catch(error){targetRuntimeSource.targetMatch={status:'unavailable',reason:error.message};}
-  await mkdir('artifacts',{recursive:true});await writeFile('artifacts/'+outputName,JSON.stringify(report,null,2));console.log(JSON.stringify(report.summary));
+  await mkdir('artifacts',{recursive:true});await writeFile(outputPath,JSON.stringify(report,null,2),{flag:'wx'});console.log(JSON.stringify(report.summary));
 }
 if(failed||report.sourceAfter.status!=='matched'||targetRuntimeSource.targetMatch.status!=='matched')process.exitCode=1;
