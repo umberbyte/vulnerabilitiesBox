@@ -11,3 +11,5 @@
 現在のオフライン棚卸しは、500変種中499変種にV/F/N合格記録、B0335に個別V/F/N合格記録なし、相反・失敗記録0と表示します。**最後の0は旧B0226-V失敗がなかったことを意味しません。**旧原本欠損のため、機械集計に旧失敗を再投入できない状態です。上書き前の棚卸しは498変種を合格記録あり、B0226を相反・失敗記録あり、B0335を記録未確認と分類していました。両時点の数字を同一の証拠集合として比較しません。
 
 `tests/acceptance.mjs`は、既存の出力ファイル名を実行開始前に拒否し、最終保存も排他的作成に変更しました。再実行には新しい`BENCHMARK_ACCEPTANCE_OUTPUT`名を指定してください。`implementation-status.json`などに残る旧`artifacts/acceptance.json`参照は歴史的な記載であり、現在その原本は存在しません。`artifacts/`内の診断・証拠ファイルは各利用者の非公開ローカル成果物で、GitHubには含みません。
+
+2026-10-05 04:08 UTC頃、3 rootの成立確認を意図して`verify`サービスの既定コマンドを起動したが、この入口は全回帰を開始するものだった。対象指定と新規出力名はコンテナーに届いていたものの、全回帰側が代表全rootを選び直すため、完了前に停止した。停止時には新規の`acceptance-saved-core-browser-next-source-20261005.json`は作成されず、既存の`full-regression.json`も変更されなかった。全回帰が共用の`full-regression-logs/unit.log`を上書きしたため、今回のログを`artifacts/diagnostic-interrupted-full-regression-unit-20261005.log`へ保存し、検証履歴アーカイブに残る元ログ（SHA-256 `ee83afc16dd7bd65a98b20245ff427c79031fa397e59a7ce6061f49a75fd4d28`）を復元した。その後、既定コマンドを使わず`node tests/acceptance.mjs`を直接実行し、対象3 rootの9セル・130チェックが合格した。[結果](artifacts/acceptance-saved-core-browser-next-source-20261005.json)を保存した。
