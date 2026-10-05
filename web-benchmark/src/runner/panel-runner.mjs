@@ -201,7 +201,7 @@ export async function main(env=process.env) {
   async function scan(condition) {
     if(interrupted)fail('worker_interrupted');
     const before=await inventory();
-    const childEnv={CONTROL_URL:control,BENCHMARK_CONTROL_KEY:controlKey,ZAP_URL:zap,ZAP_API_KEY:apiKey,ZAP_IMAGE:env.ZAP_IMAGE||'',SCAN_PROFILE:condition.profile,SCAN_AUTH:condition.authMode,SCAN_USER:condition.subject||'alice',SCAN_SECONDS:String(condition.wallSeconds),SCAN_REQUEST_BUDGET:String(condition.requestedHttpRequests),SCAN_CUSTOM_MODE:env.SCAN_CUSTOM_MODE||'none'};
+    const childEnv={CONTROL_URL:control,BENCHMARK_CONTROL_KEY:controlKey,ZAP_URL:zap,ZAP_API_KEY:apiKey,ZAP_IMAGE:env.ZAP_IMAGE||'',SCAN_PROFILE:condition.profile,SCAN_AUTH:condition.authMode,SCAN_USER:condition.subject||'alice',SCAN_SECONDS:String(condition.wallSeconds),SCAN_REQUEST_BUDGET:String(condition.requestedHttpRequests),SCAN_CONCURRENCY:String(condition.requestedConcurrency),SCAN_CUSTOM_MODE:env.SCAN_CUSTOM_MODE||'none'};
     const exitCode=await new Promise((resolve,reject)=>{
       child=spawn(process.execPath,['src/runner/scan-zap.mjs'],{cwd:'/opt/benchmark',env:childEnv,stdio:['ignore','ignore','ignore'],windowsHide:true});
       let timedOut=false;

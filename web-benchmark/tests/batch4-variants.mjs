@@ -36,6 +36,18 @@ test('an active additional-variant plan preserves its scanner conditions through
  const modified=structuredClone(plan);modified.cells[0].condition.profile='baseline';
  assert.throws(()=>validateVariantPanel(modified),/differ/);
 });
+test('The faster local variant plan is explicit while the default shape stays compatible',()=>{
+ const ids=selected.slice(0,1).map(item=>item.variant);
+ const standard=createVariantPanel({variantIds:ids,createdAt:'2026-10-04T00:00:00.000Z'});
+ const fast=createVariantPanel({variantIds:ids,concurrency:4,createdAt:'2026-10-04T00:00:00.000Z'});
+ assert.equal(standard.selection.concurrency,undefined);
+ assert.equal(fast.selection.concurrency,4);
+ assert.ok(fast.cells.every(cell=>cell.condition.requestedConcurrency===4));
+ assert.notEqual(standard.planId,fast.planId);
+ assert.deepEqual(validateVariantPanel(standard),standard);
+ assert.deepEqual(validateVariantPanel(fast),fast);
+ assert.throws(()=>createVariantPanel({variantIds:ids,concurrency:3}));
+});
 test('the Docker variant-plan command accepts explicit active scan settings',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'variant-plan-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const output=join(dir,'plan.json');
@@ -44,6 +56,10 @@ test('the Docker variant-plan command accepts explicit active scan settings',asy
  assert.equal(plan.cellCount,3);assert.equal(plan.selection.profile,'active');
  assert.equal(plan.selection.seed,'active-batch');
  assert.deepEqual(validateVariantPanel(plan),plan);
+ const fastOutput=join(dir,'fast.json');
+ await generateVariantPanel([fastOutput,'--variants',selected[0].variant,'--profile','active','--concurrency','4']);
+ const fast=JSON.parse(await readFile(fastOutput,'utf8'));
+ assert.equal(fast.selection.concurrency,4);assert.deepEqual(validateVariantPanel(fast),fast);
  await assert.rejects(generateVariantPanel([output,'--profile','active']),{code:'EEXIST'});
 });
 test('each additional variant exposes scoped normal requests and a matching OpenAPI contract',()=>{

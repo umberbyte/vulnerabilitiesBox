@@ -36,6 +36,17 @@ test('Default panel covers V/F/N without claiming any scan or diagnosis was run'
   assert.equal(new Set(panel.cells.map(cell=>cell.cellId)).size,3);
 });
 
+test('The faster local condition is explicit and does not change old plan identities',()=>{
+  const standard=make();const fast=make({concurrency:4});
+  assert.equal(standard.selection.requestedConcurrency,2);
+  assert.equal(fast.selection.requestedConcurrency,4);
+  assert.ok(fast.cells.every(cell=>cell.condition.requestedConcurrency===4));
+  assert.notEqual(fast.planId,standard.planId);
+  assert.deepEqual(validatePanel(fast,{catalog}),fast);
+  assert.equal(parsePanelArgs(['generate','plans/fast.json','--roots','R0001','--seeds','fast','--concurrency','4']).options.concurrency,4);
+  assert.throws(()=>make({concurrency:3}));
+});
+
 test('Roots and seeds must be supplied explicitly',()=>{
   for(const options of [undefined,null,{},[],{roots:['R0101']},{seeds:['seed-a']},{roots:'all'}]) {
     assert.throws(()=>createPanel(options,{catalog,createdAt}));

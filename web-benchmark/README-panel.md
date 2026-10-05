@@ -125,3 +125,5 @@ passiveの終了待ちは最大10秒で打ち切ります。queueをclearした�
 実行中は同じComposeプロジェクトを占有し、ブラウザー、`verify`、単発scan wrapper、別workerによる公開通信やresetを止めてください。起動前のprivate meter確認と各セルの検査はありますが、外部操作を原子的に排除する共通leaseはありません。同じroot＋seedのV/F/Nは同じURLを使うため、競合によるarmの変更をURLから検出することはできません。raw HTTPにはfixture credentials/session/JWTが含まれ得ます。管理者専用の計画・ledgerとともに取扱いを管理してください。
 
 MCPからの駆動、Burp比較、add-onの追加、性能採点、手動証拠レビューはこのworkerの実装範囲に含まれません。評価手順は[README-evaluation.md](README-evaluation.md)、単発runnerと認証の制限は[README-zap.md](README-zap.md)を参照してください。
+
+V/F/Nをローカルで高速確認する場合の明示的な4スレッド条件と実測結果は[README-zap-speed.md](README-zap-speed.md)を参照してください。

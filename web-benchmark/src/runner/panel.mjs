@@ -11,7 +11,7 @@ const ARMS=['V','F','N'];
 const PROFILES=SCAN_PROFILES;
 const AUTH=['anonymous','session','bearer'];
 const USERS=['alice','bob','carol','approver','admin'];
-const optionNames=['roots','seeds','arms','replicates','profiles','auth','user','wallSeconds','requests','maxCells'];
+const optionNames=['roots','seeds','arms','replicates','profiles','auth','user','wallSeconds','requests','concurrency','maxCells'];
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const compare=(a,b)=>a<b?-1:a>b?1:0;
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
@@ -59,23 +59,25 @@ function selection(options,catalog) {
   const replicates=integer(options.replicates,1,1,3,'replicates');
   const wallSeconds=integer(options.wallSeconds,30,10,1200,'wallSeconds');
   const requests=integer(options.requests,100,10,3000,'requests');
+  const concurrency=integer(options.concurrency,2,2,4,'concurrency');
+  if(![2,4].includes(concurrency))throw new Error('concurrency must be 2 or 4.');
   const maxCells=integer(options.maxCells,MAX_PANEL_CELLS,1,MAX_PANEL_CELLS,'maxCells');
   const cellCount=roots.length*arms.length*seeds.length*replicates*profiles.length*auth.length;
   if(!Number.isSafeInteger(cellCount)||cellCount>maxCells)throw new Error(`Plan exceeds the maximum of ${maxCells} cells.`);
-  return {implemented,byRoot,roots,seeds,arms,profiles,auth,user,replicates,wallSeconds,requests,maxCells,cellCount};
+  return {implemented,byRoot,roots,seeds,arms,profiles,auth,user,replicates,wallSeconds,requests,concurrency,maxCells,cellCount};
 }
 export function createPanel(options,{catalog=cases,createdAt=new Date().toISOString()}={}) {
   const selected=selection(options,catalog);
   if(typeof createdAt!=='string'||!Number.isFinite(Date.parse(createdAt)))throw new Error('createdAt must be a valid timestamp.');
-  const {implemented,byRoot,roots,seeds,arms,profiles,auth,user,replicates,wallSeconds,requests,maxCells,cellCount}=selected;
+  const {implemented,byRoot,roots,seeds,arms,profiles,auth,user,replicates,wallSeconds,requests,concurrency,maxCells,cellCount}=selected;
   const cells=[];
   for(const root of roots)for(const arm of arms)for(const seed of seeds)for(let replicate=1;replicate<=replicates;replicate++)for(const profile of profiles)for(const authMode of auth) {
     const variant=byRoot.get(root).variant;
-    const condition={profile,authMode,subject:authMode==='anonymous'?null:user,wallSeconds,requestedHttpRequests:requests,requestedConcurrency:2};
+    const condition={profile,authMode,subject:authMode==='anonymous'?null:user,wallSeconds,requestedHttpRequests:requests,requestedConcurrency:concurrency};
     const identity=[root,variant,arm,seed,replicate,condition];
     cells.push({cellId:'cell-'+hash(JSON.stringify(identity)),root,variant,arm,seed,replicate,expectedWorkspace:'/w/'+hash(seed+root).slice(0,12),condition,status:'not_run',run:null});
   }
-  const normalizedSelection={rootSelection:options.roots==='all'?'all_implemented':'explicit',roots,arms,seeds,replicates,profiles,auth,user,wallSeconds,requestedHttpRequests:requests,requestedConcurrency:2,maxCells};
+  const normalizedSelection={rootSelection:options.roots==='all'?'all_implemented':'explicit',roots,arms,seeds,replicates,profiles,auth,user,wallSeconds,requestedHttpRequests:requests,requestedConcurrency:concurrency,maxCells};
   return {schema:PANEL_SCHEMA,visibility:'private operator plan; never supply this JSON to a scanner',execution:'planning_only',status:'not_run',planId:'panel-'+hash(JSON.stringify([implemented,normalizedSelection,cells.map(cell=>cell.cellId)])),createdAt,catalogSnapshot:{implementedRootCount:implemented.length,representativeCases:implemented},selection:normalizedSelection,cellCount,cells};
 }
 export function validatePanel(panel,{catalog=cases}={}) {
@@ -85,7 +87,7 @@ export function validatePanel(panel,{catalog=cases}={}) {
   if(frozen.some(item=>implemented.get(item.root)!==item.variant))throw new Error('The plan catalog includes a root or representative variant that is not currently implemented.');
   const s=panel.selection;
   if(!['all_implemented','explicit'].includes(s.rootSelection))throw new Error('Unsupported root selection.');
-  const expected=createPanel({roots:s.rootSelection==='all_implemented'?'all':s.roots,seeds:s.seeds,arms:s.arms,replicates:s.replicates,profiles:s.profiles,auth:s.auth,user:s.user,wallSeconds:s.wallSeconds,requests:s.requestedHttpRequests,maxCells:s.maxCells},{catalog:frozen,createdAt:panel.createdAt});
+  const expected=createPanel({roots:s.rootSelection==='all_implemented'?'all':s.roots,seeds:s.seeds,arms:s.arms,replicates:s.replicates,profiles:s.profiles,auth:s.auth,user:s.user,wallSeconds:s.wallSeconds,requests:s.requestedHttpRequests,concurrency:s.requestedConcurrency,maxCells:s.maxCells},{catalog:frozen,createdAt:panel.createdAt});
   if(!isDeepStrictEqual(panel,expected))throw new Error('Plan identities, conditions, order, or unrun state do not match the generated plan.');
   return structuredClone(expected);
 }
@@ -107,9 +109,9 @@ export function parsePanelArgs(argv) {
   if(argv.length===1&&argv[0]==='list')return {command:'list'};
   if(argv[0]!=='generate'||argv.length<2)throw new Error('Use generate OUTPUT.json with explicit --roots and --seeds, or list/help.');
   const output=outputName(argv[1]);
-  const flags={'--roots':'roots','--seeds':'seeds','--arms':'arms','--replicates':'replicates','--profiles':'profiles','--auth':'auth','--user':'user','--wall-seconds':'wallSeconds','--requests':'requests','--max-cells':'maxCells'};
+  const flags={'--roots':'roots','--seeds':'seeds','--arms':'arms','--replicates':'replicates','--profiles':'profiles','--auth':'auth','--user':'user','--wall-seconds':'wallSeconds','--requests':'requests','--concurrency':'concurrency','--max-cells':'maxCells'};
   const csv=new Set(['roots','seeds','arms','profiles','auth']);
-  const numeric=new Set(['replicates','wallSeconds','requests','maxCells']);
+  const numeric=new Set(['replicates','wallSeconds','requests','concurrency','maxCells']);
   const options={};
   for(let index=2;index<argv.length;index+=2) {
     const flag=argv[index],value=argv[index+1];

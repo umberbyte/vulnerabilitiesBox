@@ -30,11 +30,12 @@ test('Malformed, duplicate or non-origin target declarations fail closed as inva
   }
 });
 test('Settings reject unsupported profiles and unbounded budgets',()=>{
-  assert.deepEqual(options({}),{profile:'baseline',auth:'anonymous',user:'alice',seconds:120,requests:300});
-  for(const env of [{SCAN_PROFILE:'full'},{SCAN_AUTH:'auto'},{SCAN_USER:'root'},{SCAN_SECONDS:'0'},{SCAN_SECONDS:'1201'},{SCAN_SECONDS:'1; bad'},{SCAN_REQUEST_BUDGET:'3001'}])assert.throws(()=>options(env));
+  assert.deepEqual(options({}),{profile:'baseline',auth:'anonymous',user:'alice',seconds:120,requests:300,concurrency:2});
+  assert.equal(options({SCAN_CONCURRENCY:'4'}).concurrency,4);
+  for(const env of [{SCAN_PROFILE:'full'},{SCAN_AUTH:'auto'},{SCAN_USER:'root'},{SCAN_SECONDS:'0'},{SCAN_SECONDS:'1201'},{SCAN_SECONDS:'1; bad'},{SCAN_REQUEST_BUDGET:'3001'},{SCAN_CONCURRENCY:'3'},{SCAN_CONCURRENCY:'8'}])assert.throws(()=>options(env));
 });
 test('active-low is an explicit additional active profile with unchanged generic budgets and authentication',()=>{
-  assert.deepEqual(options({SCAN_PROFILE:'active-low'}),{profile:'active-low',auth:'anonymous',user:'alice',seconds:120,requests:300});
+  assert.deepEqual(options({SCAN_PROFILE:'active-low'}),{profile:'active-low',auth:'anonymous',user:'alice',seconds:120,requests:300,concurrency:2});
   assert.equal(isActiveProfile('baseline'),false);assert.equal(isActiveProfile('active'),true);assert.equal(isActiveProfile('active-low'),true);
   assert.equal(isActiveProfile('active-root-special'),false);
 });
