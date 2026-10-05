@@ -11,3 +11,16 @@ web-benchmark/artifacts/*
 !web-benchmark/artifacts/docker-smoke-b0335-vfn.json
 !web-benchmark/artifacts/docker-smoke-b0335-compose-first-20261006.json
 !web-benchmark/artifacts/acceptance-saved-legacy-refresh-131-20261006.json
+!web-benchmark/artifacts/acceptance-saved-current-representatives-180-20261006.json
+!web-benchmark/artifacts/extended-regression-saved-current-source-20261006.json
+!web-benchmark/artifacts/extended-regression-saved-current-remaining-92-part-1-20261006.json
+!web-benchmark/artifacts/extended-regression-saved-current-remaining-92-part-2-20261006.json
+!web-benchmark/artifacts/extended-regression-saved-current-remaining-92-part-3-20261006.json
+!web-benchmark/artifacts/docker-smoke-current-remaining-92-part-1-20261006.json
+!web-benchmark/artifacts/docker-smoke-current-remaining-92-part-2-20261006.json
+!web-benchmark/artifacts/docker-smoke-current-remaining-92-part-3-20261006.json
+!web-benchmark/artifacts/diagnostic-acceptance-current-representatives-206-uncovered-20261006.json
+!web-benchmark/artifacts/diagnostic-extended-current-selected-helper-20261006.json
+!web-benchmark/artifacts/diagnostic-selected-vfn-current-92-browser-crash-20261006.json
+!web-benchmark/artifacts/diagnostic-selected-vfn-current-92-unsettled-20261006.json
+!web-benchmark/artifacts/vfn-current-runtime-audit-20261006.json

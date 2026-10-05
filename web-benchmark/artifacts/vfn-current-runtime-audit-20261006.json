@@ -1,0 +1,106 @@
+{
+  "excludedDiagnostics": [
+    {
+      "sha256": "6b117662166eeac298502dd3efa2c507abeced019b827e3c01376991e3ac6de2",
+      "path": "artifacts/diagnostic-acceptance-current-representatives-206-uncovered-20261006.json"
+    },
+    {
+      "sha256": "3120e949f81ccecdacdb061a3229b2a9141beb0164353a14a497c457946ad415",
+      "path": "artifacts/diagnostic-extended-current-selected-helper-20261006.json"
+    },
+    {
+      "sha256": "e0af91bc2dd8f328e7203f2c13cf29e0107569e42a11001e9d66c06e60becc1c",
+      "path": "artifacts/diagnostic-selected-vfn-current-92-browser-crash-20261006.json"
+    },
+    {
+      "sha256": "36c4ccffb052fb2bf5746db37d645d98f5f2f04ac63ee9182a3e204e8b8397f8",
+      "path": "artifacts/diagnostic-selected-vfn-current-92-unsettled-20261006.json"
+    }
+  ],
+  "designSha256": "1ce981359cc3d31f8b2a9dd0eb9981f9cc6d63df3fdb0352377283fc8fc65f3a",
+  "limitations": [
+    "V/F/N behavioral acceptance evidence; not ZAP or Burp detection evidence.",
+    "B0335 requires its dedicated browser/network condition; it is not interchangeable with standard local Docker.",
+    "The seven reports have identical application runtime source bytes, while their test-harness snapshots differ after verification-tool changes.",
+    "No single run covered all 500 variants under identical browser conditions."
+  ],
+  "runtimeSourceSha256": "b57440d816b909e0de901df20390ddbcb5206f8bb29d1c15a4f34db2dcd2ca7b",
+  "reports": [
+    {
+      "sourceSnapshotSha256": "3fe4cabca50fbe73630fbd754d07c3306c863b2ca5f1d847260a365c7b3329ff",
+      "variants": 131,
+      "passedCells": 393,
+      "path": "artifacts/acceptance-saved-legacy-refresh-131-20261006.json",
+      "condition": "standard local Docker",
+      "runtimeSourceSha256": "b57440d816b909e0de901df20390ddbcb5206f8bb29d1c15a4f34db2dcd2ca7b",
+      "sha256": "ac2bf166d460a603bc12135278aa13c0be7f5d19f90accc991e59c3b7a22bf78"
+    },
+    {
+      "sourceSnapshotSha256": "3fe4cabca50fbe73630fbd754d07c3306c863b2ca5f1d847260a365c7b3329ff",
+      "variants": 180,
+      "passedCells": 540,
+      "path": "artifacts/acceptance-saved-current-representatives-180-20261006.json",
+      "condition": "standard local Docker",
+      "runtimeSourceSha256": "b57440d816b909e0de901df20390ddbcb5206f8bb29d1c15a4f34db2dcd2ca7b",
+      "sha256": "5c4c29c65e371eb30941a0b6b02f9660c2cfb720ad522286a1b4d2de77db8269"
+    },
+    {
+      "sourceSnapshotSha256": "cf9cb364b9e04d3b9129d06f91d688b4822549ce838e8a57ecfc8435fe2d3a0c",
+      "variants": 103,
+      "passedCells": 309,
+      "path": "artifacts/extended-regression-saved-current-source-20261006.json",
+      "condition": "standard local Docker",
+      "runtimeSourceSha256": "b57440d816b909e0de901df20390ddbcb5206f8bb29d1c15a4f34db2dcd2ca7b",
+      "sha256": "39e7c1cb488b9286be1f653d17d6fcdfe580065c685e51a5646a2bd5a435cfda"
+    },
+    {
+      "sourceSnapshotSha256": "9c11e6dd121caaf68ea8dabf988c5553ba4b42558620b85f44f1178a0b6c9d17",
+      "variants": 31,
+      "passedCells": 93,
+      "path": "artifacts/extended-regression-saved-current-remaining-92-part-1-20261006.json",
+      "condition": "standard local Docker",
+      "runtimeSourceSha256": "b57440d816b909e0de901df20390ddbcb5206f8bb29d1c15a4f34db2dcd2ca7b",
+      "sha256": "7e7db51f2b3d857d7a0deb8a40713c63d09742e0bd152dfa65bebef9e2d0d45b"
+    },
+    {
+      "sourceSnapshotSha256": "9c11e6dd121caaf68ea8dabf988c5553ba4b42558620b85f44f1178a0b6c9d17",
+      "variants": 31,
+      "passedCells": 93,
+      "path": "artifacts/extended-regression-saved-current-remaining-92-part-2-20261006.json",
+      "condition": "standard local Docker",
+      "runtimeSourceSha256": "b57440d816b909e0de901df20390ddbcb5206f8bb29d1c15a4f34db2dcd2ca7b",
+      "sha256": "58822b653e168cbae837e97b4b514767dbb0270cefe91eb0e676407dea065226"
+    },
+    {
+      "sourceSnapshotSha256": "9c11e6dd121caaf68ea8dabf988c5553ba4b42558620b85f44f1178a0b6c9d17",
+      "variants": 30,
+      "passedCells": 90,
+      "path": "artifacts/extended-regression-saved-current-remaining-92-part-3-20261006.json",
+      "condition": "standard local Docker",
+      "runtimeSourceSha256": "b57440d816b909e0de901df20390ddbcb5206f8bb29d1c15a4f34db2dcd2ca7b",
+      "sha256": "6a78d981dedf62078e2183abb1f5b358c37797110058af2a6ecef0b83e7d6c28"
+    },
+    {
+      "sourceSnapshotSha256": null,
+      "variants": 1,
+      "passedCells": 3,
+      "path": "artifacts/docker-smoke-b0335-vfn.json",
+      "condition": "B0335 dedicated browser condition",
+      "runtimeSourceSha256": "b57440d816b909e0de901df20390ddbcb5206f8bb29d1c15a4f34db2dcd2ca7b",
+      "sha256": "7fc62b2d7f85ebd285e5151c463740bb12a07cca9eaaf5343752c8eb393dda4b"
+    }
+  ],
+  "schema": "benchmark-vfn-current-runtime-audit-0.1",
+  "summary": {
+    "uniquePassedCells": 1500,
+    "requiredUniqueCells": 1500,
+    "designRoots": 337,
+    "recordedPassedCells": 1521,
+    "reports": 7,
+    "duplicatePassedCells": 21,
+    "missingCells": 0,
+    "runtimeFilesExactMatch": true,
+    "designVariants": 500
+  },
+  "generatedAt": "2026-10-05T18:25:28.4931515Z"
+}

@@ -654,7 +654,8 @@ async function browserMessageVariant({base},mode){
    await page.waitForFunction(()=>document.getElementById('result')?.textContent!=='待機中',null,{timeout:4000});
    const normal=await page.locator('#result').textContent();
    assert(normal==='通知を受理','trusted iframe message did not arrive');
-   const spoof=await page.evaluate(()=>new Promise(resolve=>{
+   let probeTimer;
+   const spoof=await Promise.race([page.evaluate(()=>new Promise(resolve=>{
     const result=document.getElementById('result');result.textContent='待機中';
     const forged=document.createElement('iframe');
     forged.srcdoc='<script>parent.postMessage({action:"approve"},parent.location.origin)</script>';
@@ -662,7 +663,7 @@ async function browserMessageVariant({base},mode){
     const observer=new MutationObserver(()=>{if(result.textContent!=='待機中'){observer.disconnect();resolve(result.textContent);}});
     observer.observe(result,{childList:true,characterData:true,subtree:true});
     setTimeout(()=>{observer.disconnect();resolve(result.textContent);},600);
-   }));
+   })),new Promise((_,reject)=>{probeTimer=setTimeout(()=>reject(Error('Browser message probe deadline')),7000);})]).finally(()=>clearTimeout(probeTimer));
    assert(spoof===(mode==='V'?'通知を受理':'待機中'),'same-origin different-window message source arm mismatch');
   }finally{await page.close();}
  }finally{await browser.close();}
@@ -1465,8 +1466,9 @@ if(requested.includes('B0335')){
 }
 for(const [root,variant,check] of cases.filter(item=>requested.includes(item[1])))for(const mode of arms){
  const start=Date.now();
- try{const context=await reset(root,variant,mode);const evidence=await check(context,mode);report.results.push({root,variant,mode,status:'passed',...(evidence?{evidence}:{}),elapsedMs:Date.now()-start});}
- catch(error){report.results.push({root,variant,mode,status:'failed',reason:error.message,elapsedMs:Date.now()-start});}
+ console.log(`BEGIN ${root}/${variant} ${mode}`);
+ try{const context=await reset(root,variant,mode);const evidence=await check(context,mode);report.results.push({root,variant,mode,status:'passed',...(evidence?{evidence}:{}),elapsedMs:Date.now()-start});console.log(`PASS ${root}/${variant} ${mode}`);}
+ catch(error){report.results.push({root,variant,mode,status:'failed',reason:error.message,elapsedMs:Date.now()-start});console.log(`FAIL ${root}/${variant} ${mode}`);}
 }
 report.finishedAt=new Date().toISOString();
 if(report.targetRuntimeSource){

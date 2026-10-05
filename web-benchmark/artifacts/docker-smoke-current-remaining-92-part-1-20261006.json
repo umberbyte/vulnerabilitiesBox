@@ -1,0 +1,665 @@
+{
+  "schema": "benchmark-docker-smoke-selected-0.1",
+  "scope": "selected V/F/N boundaries; no scanner or full regression",
+  "startedAt": "2026-10-05T18:20:16.929Z",
+  "origin": "http://app:8080",
+  "results": [
+    {
+      "root": "R0377",
+      "variant": "B0379",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 287
+    },
+    {
+      "root": "R0377",
+      "variant": "B0379",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 271
+    },
+    {
+      "root": "R0377",
+      "variant": "B0379",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 238
+    },
+    {
+      "root": "R0461",
+      "variant": "B0462",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 259
+    },
+    {
+      "root": "R0461",
+      "variant": "B0462",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 249
+    },
+    {
+      "root": "R0461",
+      "variant": "B0462",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 245
+    },
+    {
+      "root": "R0371",
+      "variant": "B0372",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 248
+    },
+    {
+      "root": "R0371",
+      "variant": "B0372",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 252
+    },
+    {
+      "root": "R0371",
+      "variant": "B0372",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 279
+    },
+    {
+      "root": "R0371",
+      "variant": "B0375",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 231
+    },
+    {
+      "root": "R0371",
+      "variant": "B0375",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 231
+    },
+    {
+      "root": "R0371",
+      "variant": "B0375",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 238
+    },
+    {
+      "root": "R0371",
+      "variant": "B0386",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 241
+    },
+    {
+      "root": "R0371",
+      "variant": "B0386",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 240
+    },
+    {
+      "root": "R0371",
+      "variant": "B0386",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 244
+    },
+    {
+      "root": "R0311",
+      "variant": "B0315",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 964
+    },
+    {
+      "root": "R0311",
+      "variant": "B0315",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 935
+    },
+    {
+      "root": "R0311",
+      "variant": "B0315",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 909
+    },
+    {
+      "root": "R0311",
+      "variant": "B0327",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 945
+    },
+    {
+      "root": "R0311",
+      "variant": "B0327",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 936
+    },
+    {
+      "root": "R0311",
+      "variant": "B0327",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 947
+    },
+    {
+      "root": "R0319",
+      "variant": "B0320",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 934
+    },
+    {
+      "root": "R0319",
+      "variant": "B0320",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 958
+    },
+    {
+      "root": "R0319",
+      "variant": "B0320",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 899
+    },
+    {
+      "root": "R0333",
+      "variant": "B0334",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 632
+    },
+    {
+      "root": "R0333",
+      "variant": "B0334",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 653
+    },
+    {
+      "root": "R0333",
+      "variant": "B0334",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 614
+    },
+    {
+      "root": "R0455",
+      "variant": "B0469",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 247
+    },
+    {
+      "root": "R0455",
+      "variant": "B0469",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 246
+    },
+    {
+      "root": "R0455",
+      "variant": "B0469",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 248
+    },
+    {
+      "root": "R0271",
+      "variant": "B0277",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 267
+    },
+    {
+      "root": "R0271",
+      "variant": "B0277",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 266
+    },
+    {
+      "root": "R0271",
+      "variant": "B0277",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 250
+    },
+    {
+      "root": "R0094",
+      "variant": "B0288",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 234
+    },
+    {
+      "root": "R0094",
+      "variant": "B0288",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 260
+    },
+    {
+      "root": "R0094",
+      "variant": "B0288",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 256
+    },
+    {
+      "root": "R0095",
+      "variant": "B0297",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 301
+    },
+    {
+      "root": "R0095",
+      "variant": "B0297",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 288
+    },
+    {
+      "root": "R0095",
+      "variant": "B0297",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 316
+    },
+    {
+      "root": "R0291",
+      "variant": "B0293",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 291
+    },
+    {
+      "root": "R0291",
+      "variant": "B0293",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 238
+    },
+    {
+      "root": "R0291",
+      "variant": "B0293",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 237
+    },
+    {
+      "root": "R0046",
+      "variant": "B0215",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 259
+    },
+    {
+      "root": "R0046",
+      "variant": "B0215",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 253
+    },
+    {
+      "root": "R0046",
+      "variant": "B0215",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 286
+    },
+    {
+      "root": "R0228",
+      "variant": "B0302",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 285
+    },
+    {
+      "root": "R0228",
+      "variant": "B0302",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 284
+    },
+    {
+      "root": "R0228",
+      "variant": "B0302",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 272
+    },
+    {
+      "root": "R0208",
+      "variant": "B0209",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 311
+    },
+    {
+      "root": "R0208",
+      "variant": "B0209",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 286
+    },
+    {
+      "root": "R0208",
+      "variant": "B0209",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 358
+    },
+    {
+      "root": "R0184",
+      "variant": "B0192",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 252
+    },
+    {
+      "root": "R0184",
+      "variant": "B0192",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 260
+    },
+    {
+      "root": "R0184",
+      "variant": "B0192",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 261
+    },
+    {
+      "root": "R0208",
+      "variant": "B0231",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 727
+    },
+    {
+      "root": "R0208",
+      "variant": "B0231",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 781
+    },
+    {
+      "root": "R0208",
+      "variant": "B0231",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 684
+    },
+    {
+      "root": "R0208",
+      "variant": "B0454",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 691
+    },
+    {
+      "root": "R0208",
+      "variant": "B0454",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 692
+    },
+    {
+      "root": "R0208",
+      "variant": "B0454",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 729
+    },
+    {
+      "root": "R0271",
+      "variant": "B0343",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 259
+    },
+    {
+      "root": "R0271",
+      "variant": "B0343",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 260
+    },
+    {
+      "root": "R0271",
+      "variant": "B0343",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 256
+    },
+    {
+      "root": "R0348",
+      "variant": "B0348",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 710
+    },
+    {
+      "root": "R0348",
+      "variant": "B0348",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 1295
+    },
+    {
+      "root": "R0348",
+      "variant": "B0348",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 1292
+    },
+    {
+      "root": "R0048",
+      "variant": "B0049",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 706
+    },
+    {
+      "root": "R0048",
+      "variant": "B0049",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 734
+    },
+    {
+      "root": "R0048",
+      "variant": "B0049",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 719
+    },
+    {
+      "root": "R0041",
+      "variant": "B0059",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 713
+    },
+    {
+      "root": "R0041",
+      "variant": "B0059",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 696
+    },
+    {
+      "root": "R0041",
+      "variant": "B0059",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 660
+    },
+    {
+      "root": "R0221",
+      "variant": "B0222",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 281
+    },
+    {
+      "root": "R0221",
+      "variant": "B0222",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 253
+    },
+    {
+      "root": "R0221",
+      "variant": "B0222",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 250
+    },
+    {
+      "root": "R0258",
+      "variant": "B0259",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 266
+    },
+    {
+      "root": "R0258",
+      "variant": "B0259",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 264
+    },
+    {
+      "root": "R0258",
+      "variant": "B0259",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 286
+    },
+    {
+      "root": "R0150",
+      "variant": "B0360",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 298
+    },
+    {
+      "root": "R0150",
+      "variant": "B0360",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 255
+    },
+    {
+      "root": "R0150",
+      "variant": "B0360",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 254
+    },
+    {
+      "root": "R0117",
+      "variant": "B0120",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 256
+    },
+    {
+      "root": "R0117",
+      "variant": "B0120",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 281
+    },
+    {
+      "root": "R0117",
+      "variant": "B0120",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 277
+    },
+    {
+      "root": "R0117",
+      "variant": "B0161",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 279
+    },
+    {
+      "root": "R0117",
+      "variant": "B0161",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 265
+    },
+    {
+      "root": "R0117",
+      "variant": "B0161",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 270
+    },
+    {
+      "root": "R0117",
+      "variant": "B0173",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 251
+    },
+    {
+      "root": "R0117",
+      "variant": "B0173",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 254
+    },
+    {
+      "root": "R0117",
+      "variant": "B0173",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 259
+    },
+    {
+      "root": "R0162",
+      "variant": "B0177",
+      "mode": "V",
+      "status": "passed",
+      "elapsedMs": 257
+    },
+    {
+      "root": "R0162",
+      "variant": "B0177",
+      "mode": "F",
+      "status": "passed",
+      "elapsedMs": 277
+    },
+    {
+      "root": "R0162",
+      "variant": "B0177",
+      "mode": "N",
+      "status": "passed",
+      "elapsedMs": 253
+    }
+  ],
+  "finishedAt": "2026-10-05T18:20:56.517Z",
+  "summary": {
+    "cells": 93,
+    "passed": 93,
+    "failed": 0
+  }
+}
