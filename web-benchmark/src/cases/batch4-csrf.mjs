@@ -6,11 +6,16 @@ const ids=Object.values(groups.csrf).flat(),active=new Set(ids);
 const cors=new Set(groups.csrf.R0333);
 const normal=Object.fromEntries(ids.map(id=>[id,{action:'update',csrf:'from-session',contact:'alice.updated@example.test'}]));
 const title={B0312:'連絡先更新',B0315:'更新method',B0317:'JSON連絡先',B0318:'入力token',B0327:'添付申請',B0320:'送信元確認',B0321:'参照元確認',B0322:'参照元URL',B0334:'会員レポート',B0335:'会員レポート',B0336:'会員レポート'};
+const corsOrigins={
+ B0334:['https://app.benchmark.test:8443','https://evil.benchmark.test:8444'],
+ B0335:['https://app.benchmark.test:8443','http://app.benchmark.test:8443'],
+ B0336:['https://app.benchmark.test:8443','https://app.benchmark.test:8444']
+};
 export const variantDefinitions=Object.entries(groups.csrf).flatMap(([root,variants])=>variants.map(variant=>({
  root,variant,additionalVariant:true,title:title[variant],feature:'v4-csrf-'+variant.slice(1),family:root==='R0333'?'CORS許可origin照合':'CSRF許可境界',
  entry:'/v4-csrf',allowedPaths:['v4-csrf'],requests:[['GET','/v4-csrf',{}],...(cors.has(variant)?[['GET','/v4-csrf/report',{}]]:[['POST','/v4-csrf',normal[variant]]])],
  sessionProtectedPath:'/v4-csrf',crossOriginPostPaths:root==='R0333'?[]:['/v4-csrf'],
- ...(root==='R0333'?{requiredTargetOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8444']} :{}),
+ ...(root==='R0333'?{requiredTargetOrigins:corsOrigins[variant]} :{}),
  negativeDescription:'本人の正規更新と登録済みoriginからの閲覧を維持し、token欠落・偽装origin・別scheme/portで成功しない。',
  implementationNote:'実sessionのCSRF値、Origin/Referer、multipart parser、CORS応答headerを比較する。'
 })));

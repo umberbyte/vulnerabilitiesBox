@@ -6,7 +6,9 @@
 |---|---:|---|
 | `https://app:8443` と `https://app:8444` | 23 | B0023, B0044, B0048, B0053, B0055, B0208, B0314, B0316, B0319, B0323, B0326, B0330, B0331, B0337, B0338, B0340, B0341, B0346, B0347, B0457, B0458, B0470, B0473 |
 | `https://app.benchmark.test:8443` と `https://evil.benchmark.test:8443` | 1 | B0236 |
-| `https://app.benchmark.test:8443` と `https://evil.benchmark.test:8444` | 4 | B0234, B0334, B0335, B0336 |
+| `https://app.benchmark.test:8443` と `https://evil.benchmark.test:8444` | 2 | B0234, B0334 |
+| `https://app.benchmark.test:8443` と `http://app.benchmark.test:8443` | 1 | B0335 |
+| `https://app.benchmark.test:8443` と `https://app.benchmark.test:8444` | 1 | B0336 |
 | `https://app.benchmark.test:8443` と `http://app.benchmark.test:8080` | 1 | B0233 |
 | `https://app.benchmark.test:8443` と `https://attacker.test:8444` | 1 | B0325 |
 | `https://app.benchmark.test:8443`、`https://partner.benchmark.test:8444`、`https://evil.benchmark.test:8444` | 1 | B0333 |
@@ -23,7 +25,7 @@
 3. V/F/Nに同一の公開契約、認証主体、seed、ZAP画像・add-on・設定、時間・要求予算を使う。補助originへの通信も対象アプリの計測窓に含め、後続要求がdrainしたか確認する。
 4. 完走、対象操作への到達、alertと当該欠陥の対応、V/F/N成立確認を別々に評価する。非到達を偽陰性として数えない。スキャン時ソースと検証時ソースを照合し、依存サービスの環境一致は別に判定する。
 
-優先する実装単位は、(a) B0233/B0461のHTTP・HTTPS二経路、(b) `app:8444`を補助originとする23変種の役割別契約、(c) 異なるホスト名を使う7変種のブラウザー条件。B0335は現在のローカルChromiumでVの秘密読取が未確認なので、成立条件の解決前にスキャン系列だけを増やさない。各単位で公開manifest、adapter、対象操作の到達証拠、オフライン監査を揃えてから再計測する。
+優先する実装単位は、(a) B0233/B0461のHTTP・HTTPS二経路、(b) `app:8444`を補助originとする23変種の役割別契約、(c) ホスト名・scheme・portが異なる7変種のブラウザー条件。B0335の実際の起点は `http://app.benchmark.test:8443` であり、旧manifestの `https://evil.benchmark.test:8444` は誤りだったため修正した。現行Composeは同じホスト名・8443番でHTTPとHTTPSを同時提供しておらず、現在のローカルChromiumでもVの秘密読取は未確認である。成立条件の解決前にスキャン系列だけを増やさない。各単位で公開manifest、adapter、対象操作の到達証拠、オフライン監査を揃えてから再計測する。
 
 ## B0233/B0461の二経路前提確認（2026-10-05）
 

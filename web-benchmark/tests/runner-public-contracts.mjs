@@ -1,11 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cases} from '../src/catalog.mjs';
-import {definitions} from '../src/cases/index.mjs';
+import {definitions,variantDefinitions} from '../src/cases/index.mjs';
 import {requests,openapi} from '../src/contracts.mjs';
 
 const workspace='/w/123456abcdef';
 const normalPath=request=>request.path.replace(/\{([^}]+)\}/g,(_,name)=>encodeURIComponent(request.pathValues?.[name]??''));
+
+test('CORS variants declare the browser origin used by their own acceptance path',()=>{
+  const origins={B0334:'https://evil.benchmark.test:8444',B0335:'http://app.benchmark.test:8443',B0336:'https://app.benchmark.test:8444'};
+  for(const [variant,attacker] of Object.entries(origins)){
+    const definition=variantDefinitions.find(item=>item.variant===variant);
+    assert.deepEqual(definition?.requiredTargetOrigins,['https://app.benchmark.test:8443',attacker],variant);
+  }
+});
 
 test('The representative catalog has unique roots, variants and feature contracts',()=>{
   for(const key of ['root','variant','feature'])assert.equal(new Set(cases.map(item=>item[key])).size,cases.length,key);
