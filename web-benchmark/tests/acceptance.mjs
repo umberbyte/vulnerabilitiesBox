@@ -18,6 +18,7 @@ import {checks as batch2StorageChecks} from './batch2-storage.mjs';
 import {checks as batch3LifecycleChecks} from './batch3-lifecycle.mjs';
 import {checks as batch3ProtocolChecks} from './batch3-protocols.mjs';
 import {checks as batch3EngineChecks} from './batch3-engines-acceptance.mjs';
+import {checks as batch6LdapChecks} from './batch6-ldap-acceptance.mjs';
 import {definitions as caseDefinitions} from '../src/cases/index.mjs';
 import {sourceSnapshot,compareSources,runtimeSourceProof,compareRuntimeSourceProof} from '../src/reporting/source.mjs';
 const target=process.env.TARGET_URL||'https://app:8443';
@@ -163,7 +164,7 @@ try {
           await login();const normal=await post('/shop',{product:'book',price:1000});check((await normal.json()).charged===1000,'Normal purchase charges real price');
           const response=await post('/shop',{product:'book',price:1});check((await response.json()).charged===(v?1:1000),'Client price acceptance agrees with arm');const state=await oracle();check(state.users.find(u=>u.name==='alice').balance===(v?1999:1000),'Actual balance decrement agrees with arm');break;
         }
-        default:{const external=backendChecks[item.root]||workflowChecks[item.root]||configurationChecks[item.root]||quotaChecks[item.root]||dataHandlingChecks[item.root]||contentBoundaryChecks[item.root]||batchAuthChecks[item.root]||batchAuthorizationChecks[item.root]||batchBoundaryChecks[item.root]||batch2BrowserChecks[item.root]||batch2WorkflowChecks[item.root]||batch2StorageChecks[item.root]||batch3LifecycleChecks[item.root]||batch3ProtocolChecks[item.root]||batch3EngineChecks[item.root];if(!external)throw new Error('Uncovered root');await external({ctl,context,page,base,target,attacker,get,post,login,oracle,check,v,c,mode,record});}
+        default:{const external=backendChecks[item.root]||workflowChecks[item.root]||configurationChecks[item.root]||quotaChecks[item.root]||dataHandlingChecks[item.root]||contentBoundaryChecks[item.root]||batchAuthChecks[item.root]||batchAuthorizationChecks[item.root]||batchBoundaryChecks[item.root]||batch2BrowserChecks[item.root]||batch2WorkflowChecks[item.root]||batch2StorageChecks[item.root]||batch3LifecycleChecks[item.root]||batch3ProtocolChecks[item.root]||batch3EngineChecks[item.root]||batch6LdapChecks[item.root];if(!external)throw new Error('Uncovered root');await external({ctl,context,page,base,target,attacker,get,post,login,oracle,check,v,c,mode,record});}
       }
       if(mode==='N')record.hardNegative=negatives[item.root]||caseDefinitions.find(entry=>entry.root===item.root)?.negativeDescription;
       const denied=await fetch(control+'/oracle');check(denied.status===403,'Private listener rejects missing key');
