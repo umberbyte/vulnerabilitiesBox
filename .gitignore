@@ -10,3 +10,4 @@ web-benchmark/artifacts/*
 !web-benchmark/artifacts/docker-smoke-selected.json
 !web-benchmark/artifacts/docker-smoke-b0335-vfn.json
 !web-benchmark/artifacts/docker-smoke-b0335-compose-first-20261006.json
+!web-benchmark/artifacts/acceptance-saved-legacy-refresh-131-20261006.json

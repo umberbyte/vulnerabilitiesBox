@@ -199,3 +199,9 @@ B0335はVでHTTP originに対してCORS許可ヘッダーを返し、F/Nでは�
 ### B0335 conditional V/F/N update (2026-10-06)
 
 B0335 has V/F/N individual passed records under the dedicated Docker browser condition. The earlier pending statements above describe prior default-network attempts and remain as historical evidence. See [B0335 V/F/N details](README-b0335-vfn.md) and the current artifacts/coverage-inventory.json. The 500/500 inventory is a stored-record count, not a ZAP detection count or proof of identical conditions across all variants.
+
+### 旧記録のみだった131変種の再確認（2026-10-06）
+
+個別V/F/N合格記録が旧 `acceptance-saved-legacy-20261002.json` にしかなかった131根本原因の代表変種を、現行のローカルDockerアプリで一括再実行しました。V/F/N計393条件、8,650チェックはすべて合格し、開始・終了のソーススナップショットとアプリ／検証器の実行ソース一致も確認しました。生の個別結果は [保存レポート](artifacts/acceptance-saved-legacy-refresh-131-20261006.json) にあります。最初の起動ではComposeによるアプリ再作成で制御キーが変わり、成立確認の開始前に403で停止しました。失敗ログを `artifacts/acceptance-legacy-refresh-131-console.log` に残し、アプリを再作成しない条件で再実行しました。
+
+これで500変種の個別合格記録が揃い、B0335以外の499変種にはソーススナップショット付きの記録があります。B0335は [専用条件での実行ソース照合](README-b0335-vfn.md)を伴います。保存された結果はそれぞれの実行時点の証拠であり、全500変種を同一ソース・同一ブラウザー条件で一括再実行した結果ではありません。
