@@ -90,7 +90,10 @@ docker compose exec -T app node src/control.mjs reset R0001 V scan-example
 - `run.json`: ZAPバージョン、固定イメージ、設定、時間、状態、到達したリクエスト総数、最大同時処理数、予算超過、停止時の未完了通信・ハンドラー数、制限事項。
 - `alerts.json`: ZAP APIのアラート一覧。陽性／誤検知の採点をしていない生データ。
 - `zap-report.html`: ZAP自身のHTMLレポート。panel実行ではV/F/Nの各セルでZAPセッションを初期化したうえで保存します。レポート内の警告数を検出率へ直接換算しません。
-- `messages-first-500.json`: 最大500件のHTTPメッセージ。診断証拠の確認用。
+- `messages-first-500.json`: 先頭最大500件のHTTPメッセージ。既存の履歴相関もこの範囲を使う。
+- `messages-after-500.json`: 500件を超えた場合の後続HTTPメッセージ。新しい走査で最大5000件までページ取得し、後続があれば保存する。`run.json`の`historyArchive`に保存件数、完全性、各保存ファイルのSHA-256、取得エラーを記録する。上限に達して続きがある場合や取得に失敗した場合、未保存の通信がないものとは扱わない。旧走査に後続履歴を遡って追加するものではない。
+
+`historyArchive.complete=true`は、指定workspaceのbase URLで取得した**ZAP API履歴**が上限内で尽きたことを示す。対象アプリの公開要求メーターにはZAP履歴に載らない通信も含まれ得るため、`historyArchive.savedCount`と公開要求数の一致は要求しない。履歴に入力がない場合でも、別経路の通信まで不存在と推定しない。
 - `urls.json`: ZAPが認識したURL。
 - `scanner-settings.json`: 導入済みadd-onとルールの版・設定。`active-low`は選択した名前付きpolicyの実`activeScanners`と`activeScanPolicy`設定を保存。
 - `public-inputs.json`, `openapi-original.json`, `openapi-anonymous.json`: 正常な入力契約と、このプロファイルで実際に使った定義。

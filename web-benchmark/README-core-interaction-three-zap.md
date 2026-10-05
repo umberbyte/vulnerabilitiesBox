@@ -17,3 +17,15 @@ B0026は[再計測計画](artifacts/panel-r0026-source-retry-20261005.json)でV/
 B0026・B0027について、保存アラートの**正確なURL・入力**をV/F/Nへ再送した[ブラウザー確認](artifacts/diagnostic-core-interaction-alerts-20261005.json)では、B0026はVのリンク実クリックでのみ`alert(1)`が発生し、F/Nのリンク先は`#invalid-link`だった。B0027はページ読込時にVでのみ`alert(1)`が発生した。両変種ともF/Nのダイアログは0回、対象アプリの実行時ソース指紋は確認前後で一致した。対象欠陥に対応するアラート候補の実動作は確認したが、依存環境と正式なレビュー判定はなお保留する。
 
 B0025はV/F/N各669要求のうち、保存された先頭500通信にはそれぞれ`/button-preview`が418要求あるが、`attrName=onclick`は見当たらない。残る169要求の内容はこの保存資料からは分からず、ZAPが成立に必要な属性名と値の組を送ったか確定できない。V固有アラートがないことだけを根拠にFNとしない。個別成立確認では実クリックによるVだけのevent実行を確認している。
+
+## B0025の履歴保存を拡張した再計測
+
+履歴保存を拡張したソースで[新しい成立確認](artifacts/acceptance-saved-b0025-full-history-20261005.json)を行い、V/F/N計3セル・50チェックが合格した。[再計測計画](artifacts/panel-b0025-full-history-20261005.json)は初回と同じseed `acceptance-v1`、匿名、標準`active`、90秒・700要求・同時2要求で、[再計測台帳](artifacts/panel-b0025-full-history-20261005-ledger.json)の3セルはすべて`completed`、エラー0、通信drain済みだった。成立確認と走査の実行時ソースSHA-256は`7c752884e402a6ee0f1eca50c0719dbcde2ec70618ea1cb106b33bf0484595a7`で一致した。これは上記の旧系列とは別のソースである。
+
+| arm | ZAP HTML | 後続履歴 | 公開要求数 | ZAP API保存履歴 | 生アラート数 |
+| --- | --- | --- | ---: | ---: | ---: |
+| V | [HTML](artifacts/zap-2026-10-05T03-57-44-619Z-d04826/zap-report.html) | [501件目以降](artifacts/zap-2026-10-05T03-57-44-619Z-d04826/messages-after-500.json) | 669 | 609 | 42 |
+| F | [HTML](artifacts/zap-2026-10-05T03-58-25-405Z-92cb15/zap-report.html) | [501件目以降](artifacts/zap-2026-10-05T03-58-25-405Z-92cb15/messages-after-500.json) | 669 | 609 | 42 |
+| N | [HTML](artifacts/zap-2026-10-05T03-59-04-247Z-4812ac/zap-report.html) | [501件目以降](artifacts/zap-2026-10-05T03-59-04-247Z-4812ac/messages-after-500.json) | 669 | 609 | 42 |
+
+各runの`historyArchive.complete`はtrueで、先頭500件と後続109件のファイルSHA-256はrun記録と実ファイルで一致した。保存された**ZAP API履歴609件**にはV/F/Nとも`attrName=onclick`がなく、ルール`40012`のアラートもなかった。公開要求数669との差60件には別経路の通信が含まれ得るため、全公開要求でその入力が存在しなかったとは結論しない。B0025の成立には属性名と値の組、さらに実クリックが必要であり、今回の保存履歴ではZAPがその条件を試した根拠を確認できない。正式な到達・FN判定は保留する。

@@ -5,6 +5,7 @@ import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
 import {correlateErrorCache} from './history-correlator.mjs';
+import {captureRemainingMessages} from './history-pages.mjs';
 import {hasEnabledBenchmarkScanScript} from './script-inventory.mjs';
 import {runtimeSourceProof,compareRuntimeSourceProof} from '../reporting/source.mjs';
 
@@ -174,8 +175,18 @@ async function collect() {
   // Preserve the actual named-policy state even if a later raw-report API fails.
   await collectSettings();
   const history=await api('core','view','messages',{baseurl:scope.prefix,start:0,count:500});
-  await writeFile(output+'/messages-first-500.json',JSON.stringify(history,null,2)+'\n');
+  const firstHistoryBody=JSON.stringify(history,null,2)+'\n';
+  await writeFile(output+'/messages-first-500.json',firstHistoryBody);
   metadata.historyArtifactLimit=500;
+  const archived=await captureRemainingMessages(history,(start,count)=>api('core','view','messages',{baseurl:scope.prefix,start,count}));
+  const historyFiles=[{path:'messages-first-500.json',messages:history.messages.length,sha256:createHash('sha256').update(firstHistoryBody).digest('hex')}];
+  if(archived.remaining.length){
+    const remainingBody=JSON.stringify({start:500,messages:archived.remaining},null,2)+'\n';
+    await writeFile(output+'/messages-after-500.json',remainingBody);
+    historyFiles.push({path:'messages-after-500.json',messages:archived.remaining.length,sha256:createHash('sha256').update(remainingBody).digest('hex')});
+  }
+  metadata.historyArchive={savedCount:archived.savedCount,maxMessages:archived.maxMessages,complete:archived.complete,files:historyFiles,...(archived.error?{error:safeMessage(archived.error)}:{})};
+  if(!archived.complete)metadata.limitations.push('The saved ZAP HTTP history is incomplete; absence of a request in the saved pages is not evidence that the scanner did not send it.');
   if(process.env.SCAN_CUSTOM_MODE==='custom'||process.env.SCAN_CUSTOM_MODE==='custom-only') {
     const findings=correlateErrorCache(history.messages||[]);
     await writeFile(output+'/history-findings.json',JSON.stringify({source:'benchmark controller correlation of ZAP HTTP history',findings},null,2)+'\n');
