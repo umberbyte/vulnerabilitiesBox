@@ -18,6 +18,8 @@ B0021のVで、ZAPルール`40012`（反射型XSS、High・Medium confidence）�
 
 ZAPアラートに保存された**同じ入力**をローカルChromiumでV/F/Nに再送した[確認記録](artifacts/diagnostic-r0021-zap-alert-browser-20261005.json)では、Vのみ`alert(1)`ダイアログが1回発生し、F/Nでは0回でした。対象アプリの実行時ソースは確認前後で`a9b9714aaf6200644aff686d45e6dc81f4fe95987a8271819a7063de473299a9`のままです。これにより、B0021の対象欠陥に対応するZAPアラート候補の実動作を確認しました。正式な評価JSONの`detected`判定と集計への採用は、保存された通信・条件のレビューを経て行います。
 
+この3セルの[Vレビュー用JSON](artifacts/review-r0021-core-three-20261005-V.json)・[Fレビュー用JSON](artifacts/review-r0021-core-three-20261005-F.json)・[Nレビュー用JSON](artifacts/review-r0021-core-three-20261005-N.json)を、ネットワークなしのDocker `evaluate`サービスで元記録から作成しました。Vのルール`40012`候補には原通信・ブラウザー確認・個別成立確認の参照を添え、判定は`pending`のままです。3件とも同サービスの`validate`で原資料との照合に成功し、結果は`reachability_pending`でした。評価用CLIをホストNodeで直接起動する試行は、ホストに`saxes`がなく失敗しましたが、Docker経由では完了しています。
+
 B0001とB0005の今回の標準`active`走査には、対象SQL欠陥を示すアラートを確認できませんでした。B0005でVにだけ現れるルール`10021`は`X-Content-Type-Options`欠落のLow警告で、並び替え式のSQL欠陥とは別です。両変種のFNを確定するには、ZAPが当該入力へ送った要求と成立条件を突き合わせる必要があります。
 
 保存済みHTTP通信を読むと、B0001ではV/F/Nそれぞれ`/search`の`q`に227要求があり、B0005では保存された先頭500通信中、各armで`/catalogue`の`sort`に417要求があります。両方とも`AND '1'='1'`や`UNION ALL select NULL`を含む入力が対象パラメータへ送られています。抽出した各armの7要求では、B0001はVがHTTP 200を6件・400を1件、F/Nが200を7件、B0005はV/F/Nとも400を7件でした。これは入力箇所への到達を示しますが、対象の非公開値を利用した陽性条件の成立やZAPの検出を示すものではありません。B0005の保存通信は走査全体668要求のうち先頭500件なので、残りの内容はこの記録から判断しません。
