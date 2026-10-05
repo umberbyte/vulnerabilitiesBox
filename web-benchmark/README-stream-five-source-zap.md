@@ -2,7 +2,7 @@
 
 2026-10-05に、B0339（ローカルAPI CORS）、B0342（WebSocket frame主体信頼）、B0345（設計名はWS token URL漏えい）、B0349（SSE tenant漏れ）、B0454（ブラウザ履歴秘密）をローカルDockerで確認した。[B0342・B0345・B0349の個別V/F/N記録](artifacts/extended-regression-saved-stream-five-source-20261005.json)は同時に確認したB0348・B0350を含む5変種・15セル合格、[B0339・B0454の個別記録](artifacts/extended-regression-saved-stream-replacements-source-20261005.json)は2変種・6セル合格である。両記録の対象アプリ実行ソースSHA-256は`7c752884e402a6ee0f1eca50c0719dbcde2ec70618ea1cb106b33bf0484595a7`で、下記ZAP系列の対象前後と制御側にも一致した。依存サービスの実際のイメージID・状態までの一致は証明できていない。
 
-最初はB0342・B0345・B0348・B0349・B0350の5変種で計画生成を試みたが、`Invalid variant selection`で終了した。B0348・B0350は代表変種であり、現行の追加変種用計画生成器が参照する`variantCases`に存在しないことを確認した。両者の個別成立確認記録は保持し、新たなZAP系列やソース照合済みの成果数には含めない。B0339・B0454を追加で個別確認し、計測対象を入れ替えた。
+最初はB0342・B0345・B0348・B0349・B0350の5変種で計画生成を試みたが、`Invalid variant selection`で終了した。B0348・B0350は代表変種であり、追加変種用計画生成器が参照する`variantCases`に存在しないことを確認した。この系列ではB0339・B0454を追加で個別確認し、計測対象を入れ替えた。B0348・B0350は後続で[代表変種用計画による計測](README-representative-browser-events-source-zap.md)を完了した。
 
 [計画](artifacts/panel-stream-five-source-20261005.json)と[台帳](artifacts/panel-stream-five-source-20261005-ledger.json)に15セルを保存した。seedは`batch5-docker-smoke`、profileは`active`、上限は90秒・700リクエスト、同時2リクエスト。B0339は匿名、他4変種はaliceのセッション認証である。15セルすべて`completed`、実行エラー0、通信drain済み、ZAP API履歴の保存完了を確認した。
 
