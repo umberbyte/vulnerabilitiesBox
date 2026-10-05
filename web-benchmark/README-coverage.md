@@ -60,6 +60,8 @@ Daybreakや診断処理に依存しない評価ツールの検証は`verify.cmd 
 
 集計は旧失敗記録を消さず、B0226を「合格記録と失敗記録の併存」として表示します。これは診断ツールによる検出確認や、依存サービスを含む環境の同一性確認ではありません。報告ファイルは各利用者のローカル成果物であり、公開Gitには含めません。
 
+原本を再照合すると、旧`acceptance.json`は代表630セル中629合格で、B0226-Vだけが `History records hold genuine issuance and last-activity timestamps` に失敗した。修正後の`acceptance-saved-r0225-r0226-20261004.json`はR0225/R0226の6セルすべてが合格し、B0226の各armで23チェックを実行した。旧・新のソースsnapshot SHA-256はそれぞれ `b48a7cc814a9d5f2fd80abe3da8deaf52f7bab00ac8f1622ed6af0030fc2a6a1` と `e0f44f7a493a989b4d9186aa647e9c1eafc7af9dd07a901e11cf8f82734c0d05` で異なり、両報告とも検証側ソースは実行前後で一致する。一方、どちらにも対象アプリの `targetRuntimeSource` 記録はない。したがって修正後の合格を旧実行環境や現在の稼働アプリへそのまま移して成立済みと推定しない。
+
 ## 共有キャッシュ9変種の個別確認
 
 R0371に属するB0372、B0373、B0374、B0375、B0376、B0385、B0386、B0388、B0389について、ローカルDocker上の実アプリとRedisを使い、V/F/N計27条件を個別に再確認しました。query、method、Accept、主体、認証状態、tenant、GET body、HTTP/HTTPSの違いを確認し、全条件が合格しました。B0389の成立確認では、検証コンテナー内の専用HTTPクライアントだけが実験用HTTPS証明書の検証を省略します。検証コンテナーと対象アプリの`src/`・package manifestのバイト一致、対象アプリの実行前後の一致を含む記録は`artifacts/extended-regression-saved-cache-full-vfn-20261004.json`に、各条件の結果は`artifacts/docker-smoke-cache-full-vfn-20261004.json`に保存します。これらは利用者ごとのローカル成果物であり、公開Gitには含めません。依存サービスのイメージや内部状態の同一性までは証明しません。
