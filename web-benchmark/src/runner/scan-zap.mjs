@@ -597,6 +597,68 @@ async function browserFormDestination(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserLoginOrigin() {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-form',sessionUrl=new URL(manifest.base+'/session',scope.origin).href;
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint||manifest.login!==manifest.entry||!scope.isAllowed(sessionUrl))
+    throw new TargetSurfaceError('login_origin_contract_missing','The declared login and local auxiliary form are unavailable.');
+  const normalCredentials=manifest.credentials;
+  const foreignCredentials=(manifest.roleProfiles||[]).find(item=>item.username!==normalCredentials?.username&&item.role==='user');
+  if(!normalCredentials?.username||!normalCredentials?.password||!foreignCredentials?.username||!foreignCredentials?.password)
+    throw new TargetSurfaceError('login_origin_fixtures_missing','Two distinct declared fixture identities are required.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===endpoint||url.startsWith(endpoint+'?'))return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    const begin=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(begin?.status()!==200||await page.locator('#signin input[name=csrf]').count()!==1)
+      throw new TargetSurfaceError('login_origin_normal_form_missing','The normal login initiation form was not reachable.');
+    await page.locator('#signin input[name=username]').fill(normalCredentials.username);
+    await page.locator('#signin input[name=password]').fill(normalCredentials.password);
+    const normalPost=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#signin button').click();
+    if((await normalPost).status()!==200)throw new TargetSurfaceError('login_origin_normal_failed','The normal token-bearing login did not complete.');
+    const session=await page.goto(sessionUrl,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==normalCredentials.username)
+      throw new TargetSurfaceError('login_origin_normal_identity_missing','The normal login identity was not present in the browser session.');
+    const logoutStatus=await page.evaluate(url=>fetch(url,{method:'POST',credentials:'same-origin'}).then(response=>response.status),new URL(manifest.logout,scope.origin).href);
+    if(logoutStatus!==200)throw new TargetSurfaceError('login_origin_logout_failed','The normal fixture logout did not complete.');
+    await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    const foreignUrl=new URL(endpoint);
+    foreignUrl.searchParams.set('target',scope.entry);
+    foreignUrl.searchParams.set('fields',JSON.stringify({username:foreignCredentials.username,password:foreignCredentials.password}));
+    const foreign=await page.goto(foreignUrl.href,{waitUntil:'load',timeout:20000});
+    if(foreign?.status()!==200||await page.locator('#external-form').count()!==1)
+      throw new TargetSurfaceError('login_origin_foreign_form_missing','The local auxiliary login form was not reachable.');
+    const externalPost=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#external-form button').click();
+    const foreignStatus=(await externalPost).status();
+    if(![200,403].includes(foreignStatus))throw new TargetSurfaceError('login_origin_foreign_status_invalid','The auxiliary login form returned an unexpected status.');
+    await page.goto(sessionUrl,{waitUntil:'load',timeout:20000});
+    const foreignIdentityChanged=JSON.parse(await page.locator('body').textContent()).username===foreignCredentials.username;
+    if(foreignIdentityChanged!==(foreignStatus===200))
+      throw new TargetSurfaceError('login_origin_foreign_identity_mismatch','The auxiliary login response did not match the browser session identity.');
+    let recorded;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+foreignUrl.href+' HTTP/'));
+      if(recorded)break;
+      await sleep(250);
+    }
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded?.responseHeader)?.[1]);
+    if(!recorded?.id||status!==200)throw new TargetSurfaceError('login_origin_zap_history_missing','The auxiliary login page was absent from ZAP history.');
+    metadata.browserLoginOrigin={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-form',normalLoginStatus:200,normalIdentityVerified:true,foreignFormStatus:foreignStatus,foreignIdentityChanged,foreignResponseMessageId:recorded.id};
+    metadata.steps.push({type:'browser-login-origin',url:endpoint,foreignResponseMessageId:recorded.id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 async function browserProfileOrigin(plan) {
   const originPage=COLLECTOR_ORIGIN+'/b2-origin-page',formPage=COLLECTOR_ORIGIN+'/b2-form';
   if(observationScopes.length!==2||![originPage,formPage].every(url=>observationScopes.some(item=>item.prefix===url))||!scope.isAllowed(scope.entry))
@@ -933,6 +995,11 @@ try {
     metadata.phase='browser-profile-origin';
     await browserProfileOrigin(authPlan);
     metadata.limitations.push('The same authenticated profile was exercised by normal form, auxiliary-origin navigation, and auxiliary-origin form through ZAP. Browser state changes are separate from ZAP alert detection; auxiliary pages are excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-login-origin') {
+    metadata.phase='browser-login-origin';
+    await browserLoginOrigin();
+    metadata.limitations.push('Normal login and the auxiliary-origin login form were exercised by Chromium through ZAP. Browser session identity is an observation separate from ZAP alert detection; the auxiliary page is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});

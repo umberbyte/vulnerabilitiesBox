@@ -123,6 +123,13 @@ test('The declared profile observes only its two local auxiliary browser pages',
   assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_profile_origin_auth');
   assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_profile_origin_contract');
 });
+test('The declared login initiation observes only the local auxiliary form',()=>{
+  const required=['https://app:8443',COLLECTOR_ORIGIN],entry=manifest.base+'/b2-signin';
+  const supplied={...manifest,entry,login:entry,requiredTargetOrigins:required,requests:[{method:'GET',path:entry}]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'anonymous'}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-form',verified:false,adapter:'browser-login-origin'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_login_origin_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_login_origin_contract');
+});
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{
   const supplied={...manifest,entry:'/w/123456abcdef/b3-transport',requests:[
     {method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'fixture'}},

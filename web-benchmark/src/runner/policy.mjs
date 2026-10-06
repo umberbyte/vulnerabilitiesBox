@@ -120,6 +120,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(entry===manifest.base+'/b2-signin') {
+      if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_login_origin_auth','The login operation requires an anonymous scanner profile.',{unsupported:true});
+      if(manifest.login!==entry||!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===entry))
+        throw new TargetSurfaceError('unsupported_login_origin_contract','The public contract lacks the normal login initiation.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-form',verified:false,adapter:'browser-login-origin'};
+    }
     if(entry===manifest.base+'/b2-profile') {
       if(auth!=='session')throw new TargetSurfaceError('unsupported_profile_origin_auth','The cross-origin profile operation requires a verified fixture session.',{unsupported:true});
       if(!['GET','POST'].every(method=>(manifest.requests||[]).some(request=>request.method===method&&request.path===entry)))

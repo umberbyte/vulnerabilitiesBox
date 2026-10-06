@@ -315,6 +315,15 @@ test('Profile origin completion requires both browser pages and matching form st
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('Login origin completion requires normal identity and saved auxiliary form',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-form',adapter:'browser-login-origin',verified:true};
+  const adapt=(result,changed)=>{result.run.targetSurface=structuredClone(pair);result.run.browserLoginOrigin={origin:'https://app:8444',path:'/b2-form',normalLoginStatus:200,normalIdentityVerified:true,foreignFormStatus:changed?200:403,foreignIdentityChanged:changed,foreignResponseMessageId:'16'};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',prefix:'https://app:8444/b2-form',complete:true,savedCount:1}];return result;};
+  for(const changed of [true,false])assert.equal((await harness(plan(),{result:result=>adapt(result,changed)}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserLoginOrigin.foreignIdentityChanged=false;},run=>{run.browserLoginOrigin.foreignResponseMessageId=null;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result,true);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
