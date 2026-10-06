@@ -149,10 +149,20 @@ export function seedUrls(manifest,scope,{auth='anonymous'}={}) {
 export function authStatePath(path,manifest={}) {
   return [manifest.login,manifest.logout].filter(Boolean).includes(path)||/\/(?:login|logout|signin|signout|connect|callback|idp\/authorize)$/.test(path);
 }
+// A successful fixture example that promotes the current session would change
+// the scanner's authenticated subject merely by importing the OpenAPI file.
+// Use the public normal-operation contract, never the private arm or oracle.
+export function identityChangingExamples(manifest) {
+  return (manifest.requests||[]).filter(request=>
+    request.method==='POST'&&request.values?.operation==='elevate'&&
+    typeof request.values?.adminPassword==='string'&&request.values.adminPassword.length>0
+  ).map(request=>({method:'post',path:request.path}));
+}
 // No configured login in the anonymous smoke profile. Imported POSTs cannot use
 // the supplied successful fixture credentials to silently authenticate ZAP.
 export function anonymousSchema(input,scope,{auth='anonymous',manifest={}}={}) {
   const result=structuredClone(input);result.servers=[{url:scope.origin}];result.paths={};
+  const unsafe=auth==='anonymous'?[]:identityChangingExamples(manifest);
   for(const [path,methods]of Object.entries(input.paths||{})) {
     if(!scope.isAllowed(path))continue;
     if(auth!=='anonymous'&&authStatePath(path,manifest))continue;
@@ -160,6 +170,7 @@ export function anonymousSchema(input,scope,{auth='anonymous',manifest={}}={}) {
     for(const [method,operation]of Object.entries(methods)) {
       if(!['get','post','put','patch','delete','head','options'].includes(method))continue;
       if(method!=='get'&&/\/(?:login|logout|signin|signout|idp\/authorize)$/.test(path))continue;
+      if(unsafe.some(request=>request.method===method&&request.path===path))continue;
       filtered[method]=structuredClone(operation);
     }
     if(Object.keys(filtered).length)result.paths[path]=filtered;

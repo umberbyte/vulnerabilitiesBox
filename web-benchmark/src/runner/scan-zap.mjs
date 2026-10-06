@@ -1,6 +1,6 @@
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
-import {options,publicScope,seedUrls,anonymousSchema,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
+import {options,publicScope,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
@@ -259,13 +259,15 @@ try {
   if(!response?.responseBody)throw new Error('OpenAPI response body is unavailable from ZAP accessUrl.');
   const originalSchema=JSON.parse(response.responseBody);
   const importedSchema=anonymousSchema(originalSchema,scope,{auth:settings.auth,manifest});
+  const identityExclusions=settings.auth==='anonymous'?[]:identityChangingExamples(manifest);
   metadata.inputFingerprints.originalOpenapiSha256=fingerprint(originalSchema);
   metadata.inputFingerprints.importedOpenapiSha256=fingerprint(importedSchema);
   await writeFile(output+'/openapi-original.json',JSON.stringify(originalSchema,null,2)+'\n');
   await writeFile(output+'/openapi-anonymous.json',JSON.stringify(importedSchema,null,2)+'\n');
   if(settings.auth!=='anonymous')await writeFile(output+'/openapi-authenticated.json',JSON.stringify(importedSchema,null,2)+'\n');
   await writeFile('/scan-input/openapi.json',JSON.stringify(importedSchema));
-  metadata.openapi={originalPathCount:Object.keys(originalSchema.paths||{}).length,importedPathCount:Object.keys(importedSchema.paths).length,filter:settings.auth==='anonymous'?'login/logout/IdP credential POST excluded; unchanged normal examples for other operations':'login/logout/identity-changing routes excluded for all methods; unchanged normal examples for other operations'};
+  metadata.openapi={originalPathCount:Object.keys(originalSchema.paths||{}).length,importedPathCount:Object.keys(importedSchema.paths).length,identityChangingExampleExclusions:identityExclusions,filter:settings.auth==='anonymous'?'login/logout/IdP credential POST excluded; unchanged normal examples for other operations':'login/logout routes and credentialed session-elevation POST examples excluded; unchanged normal examples for other operations'};
+  if(identityExclusions.length)metadata.limitations.push('Credentialed session-elevation POST examples are omitted from authenticated OpenAPI import to keep the selected subject stable; this scan does not exercise or score that workflow.');
   for(const url of seedUrls(manifest,scope,settings)) {
     if(!await guard())break;
     await access(url);metadata.steps.push({type:'normal-get',url});

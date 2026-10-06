@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {options,publicScope,seedUrls,anonymousSchema,validateTargetSurface,TargetSurfaceError,isActiveProfile} from '../src/runner/policy.mjs';
+import {options,publicScope,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile} from '../src/runner/policy.mjs';
 
 const manifest={base:'/w/123456abcdef',entry:'/w/123456abcdef/search?q=Apple',openapi:'/w/123456abcdef/openapi.json',requests:[{method:'GET',path:'/w/123456abcdef/documents/{id}',pathValues:{id:101},values:{}},{method:'GET',path:'/w/123456abcdef/search',values:{q:'Apple & Banana'}},{method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'Fixture-alice-2026!'}},{method:'GET',path:'http://app:8099/oracle',values:{}},{method:'GET',path:'https://app:8444/attack',values:{}}]};
 test('Legacy and declared HTTPS-only target surfaces remain supported without modifying the contract',()=>{
@@ -50,6 +50,20 @@ test('Authenticated discovery omits identity-changing routes while preserving bu
   assert.ok(urls.every(value=>!/\/(?:login|logout|signin|signout|connect)(?:\?|$)/.test(value)));
   const result=anonymousSchema({paths:{[base+'/signin']:{get:{},post:{}},[base+'/signout']:{post:{}},[base+'/callback']:{get:{}},[base+'/shop']:{post:{}}}},scope,{auth:'bearer',manifest:supplied});
   assert.deepEqual(Object.keys(result.paths),[base+'/shop']);
+});
+test('Authenticated OpenAPI import does not replay a credentialed session-elevation example',()=>{
+  const path=manifest.base+'/v5-auth';
+  const example={method:'POST',path,values:{operation:'elevate',adminPassword:'fixture-example'}};
+  const supplied={...manifest,requests:[...manifest.requests,example]};
+  const input={paths:{[path]:{get:{},post:{requestBody:{example:example.values}}},[manifest.base+'/business']:{post:{requestBody:{example:{amount:100}}}}}};
+  assert.deepEqual(identityChangingExamples(supplied),[{method:'post',path}]);
+  const authenticated=anonymousSchema(input,publicScope(supplied),{auth:'session',manifest:supplied});
+  assert.ok(authenticated.paths[path].get);
+  assert.equal(authenticated.paths[path].post,undefined);
+  assert.ok(authenticated.paths[manifest.base+'/business'].post);
+  const anonymous=anonymousSchema(input,publicScope(supplied),{auth:'anonymous',manifest:supplied});
+  assert.ok(anonymous.paths[path].post);
+  assert.ok(input.paths[path].post,'The public schema remains unchanged');
 });
 test('Workspace scope excludes control, sibling origin, other roots and traversal',()=>{
   const scope=publicScope(manifest);const re=new RegExp(scope.regex);
