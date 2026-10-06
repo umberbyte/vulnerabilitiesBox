@@ -1,4 +1,4 @@
-# ZAP再計測の状況（2026-10-05）
+# ZAP再計測の状況（2026-10-06）
 
 この文書は保存済みのローカルDocker資料を照合した作業用スナップショットです。最新値は`artifacts/coverage-inventory.json`、`artifacts/evidence-linkage.json`、`artifacts/artifact-audit.json`を`reports.cmd`または`reports.sh`で再生成して確認してください。履歴の`artifacts/core-dast-*-20261004.*`は作業PCのローカル成果物で、公開Gitには含めません。新しいチェックアウトに履歴がなければ、履歴に基づく件数を現在の計測結果として使わないでください。ここにある件数を検出率や製品比較の分母にしません。
 
@@ -6,19 +6,19 @@
 
 ## 現在の証拠
 
-現在の機械棚卸しでは500変種中499変種に個別V/F/N合格記録があります。B0335はVでCORS許可ヘッダーの差があるものの、ローカルChromiumが非セキュアoriginからローカルアドレスへの要求を先に遮断するため、ブラウザーでの秘密情報読取は未確認です。B0226の旧失敗は残存ログと欠損前の棚卸しで確認でき、現在の機械集計には含まれません。詳細は[成立確認の記録](README-coverage.md)を参照してください。
+現在の機械棚卸しでは500変種すべてに個別V/F/N合格記録があり、1,500条件の欠損は0件です。通常のローカルDocker条件で499変種、B0335は専用のDockerネットワークとChromium設定で確認しました。これはZAP検出を示すものではありません。B0226の旧失敗は履歴として保持し、今回の採用記録には含めていません。詳細は[現行ソースの完走記録](README-vfn-completion.md)を参照してください。
 
-保存済みの監査済みZAP台帳では、258変種にV/F/N完走系列があります。そのうち219変種は個別成立確認と診断の実行ソースを照合できました（従来の31変種、B0226、B0001、B0005、B0021、[B0022・B0029・B0031](README-core-browser-three-zap.md)、[B0025・B0026・B0027](README-core-interaction-three-zap.md)、[B0034・B0043・B0047](README-core-browser-next-zap.md)、[B0050・B0061・B0065](README-core-data-next-zap.md)、[B0054・B0056・B0059・B0062](README-browser-four-source-zap.md)、[B0372～B0376](README-cache-five-source-zap.md)、[B0385・B0386・B0388・B0389](README-cache-next-four-source-zap.md)、[B0343・B0344・B0378・B0379・B0381](README-cache-ws-five-source-zap.md)、[B0339・B0342・B0345・B0349・B0454](README-stream-five-source-zap.md)、[B0348・B0350](README-representative-browser-events-source-zap.md)、[B0165・B0166・B0173・B0174・B0175](README-local-fetch-five-source-zap.md)、[B0120・B0161・B0177・B0180](README-local-fetch-next-four-source-zap.md)、[B0049・B0127・B0150・B0459・B0462](README-mixed-five-source-zap.md)、[B0094・B0209・B0212・B0242・B0250](README-auth-five-source-zap.md)、[B0463・B0466・B0480](README-internal-three-source-zap.md)、[B0471](README-nosniff-source-zap.md)、[B0003・B0006・B0041・B0057・B0060](README-representative-five-source-zap.md)、[B0121・B0123・B0124・B0126・B0135](README-path-five-source-zap.md)、[B0105](README-xpath-b0105-source-zap.md)、[B0099～B0102](README-ldap-four-source-zap.md)、[B0063・B0064・B0066・B0067・B0068](README-engine-five-source-zap.md)、[B0107・B0108・B0111・B0113・B0118](README-xml-five-source-zap.md)、[B0162・B0163・B0164・B0167・B0168](README-ssrf-five-source-zap.md)、[B0169・B0170・B0171・B0172・B0178](README-ssrf-next-five-source-zap.md)、[B0071・B0076・B0084・B0086・B0089](README-command-five-source-zap.md)、[B0243・B0244・B0246・B0247・B0248](README-jwt-five-source-zap.md)、[B0382・B0383・B0384・B0387・B0390](README-cache-final-five-source-zap.md)、[B0132・B0138・B0249・B0371・B0377](README-mixed-boundaries-five-source-zap.md)、[B0446・B0447・B0448・B0452・B0456](README-storage-final-five-source-zap.md)、[B0464・B0465・B0472・B0497・B0498](README-public-final-five-source-zap.md)、[B0232・B0477・B0478・B0499・B0500](README-browser-boundary-five-source-zap.md)、[B0145・B0179・B0313・B0453・B0455](README-client-state-five-source-zap.md)、[B0137・B0241・B0311・B0332・B0380](README-auth-browser-five-source-zap.md)、[B0091・B0092・B0093・B0095・B0096・B0097・B0098](README-mongo-seven-source-zap.md)、[B0079・B0081・B0083・B0085・B0087・B0088・B0090](README-cli-boundaries-seven-source-zap.md)、[B0106・B0110・B0112・B0114・B0115・B0119](README-xml-six-source-zap.md)、[B0122・B0125・B0128・B0129・B0130・B0131・B0134・B0136・B0139・B0140](README-path-ten-source-zap.md)、[SQL系14変種](README-sql-fourteen-source-zap.md)）。残る39変種は個別成立記録があってもソース対応が未確認です。依存サービスの実際のイメージID、DB・Redis等の状態、ホスト資源まで一致を証明できた系列はありません。完走は到達・検出・脆弱性成立を示しません。現在の系列単位の理由は`artifacts/evidence-linkage.md`にあります。
+保存済みの監査済みZAP台帳では、262変種にV/F/N完走系列があり、238変種は未完走です。完走したうち223変種は個別成立確認と診断の実行ソースを照合できました。従来の219変種に、8スレッドで完走したB0148・B0190・B0191・B0193を加えた数です。残る39変種は個別成立記録があってもソース対応が未確認です。依存サービスの実際のイメージID、DB・Redis等の状態、ホスト資源まで一致を証明できた系列はありません。完走は到達・検出・脆弱性成立を示しません。系列単位の状態はローカルの`artifacts/evidence-linkage.md`にあります。
 
 31変種の環境資料を台帳の系列別に棚卸しすると、再計測23変種に対応する5台帳には、アプリ・DB・Redis・Mongo・LDAP・executorのコンテナID・イメージID・起動時刻を記した前後の記録があります。5組とも6サービスの記録は一致し、終了側にはZAPコンテナがありません。[前後記録の照合範囲](README-budget-retry.md)を参照してください。失敗再計測7変種とB0011には、この5組に相当する前後の依存環境記録を確認できません。23変種についても、記録された時点間のコンテナ同一性だけでは走査中の状態や個別成立確認時との環境一致を証明できません。したがって、31変種とも環境対応付け済みとは数えません。
 
 ## 2026-10-04時点で未完了だった62変種の扱い
 
-2026-10-04の[コアDAST分析](artifacts/core-dast-analysis-20261004.md)で、追加計測した271変種のうち209変種はV/F/Nが完走し、62変種は未完了でした。この62変種のうち61変種には現在、個別V/F/N成立記録があります。例外はB0335です。未完了の理由は次のとおりです。
+2026-10-04の[コアDAST分析](artifacts/core-dast-analysis-20261004.md)で、追加計測した271変種のうち209変種はV/F/Nが完走し、62変種は未完了でした。この62変種にも現在はすべて個別V/F/N成立記録があります。B0335の成立確認だけは専用のDocker・ブラウザー条件です。未完了の理由は次のとおりです。
 
 | 状態 | 変種数 | 次の条件整備 |
 |---|---:|---|
-| 対象面が未対応 | 32 | 保存済みrunでは全件が複数originを要求した。originの役割と実操作の証拠を[計測条件の棚卸し](README-multi-origin-readiness.md)に整理した。B0335は先に成立条件を見直す。 |
+| 対象面が未対応 | 32 | 保存済みrunでは全件が複数originを要求した。originの役割と実操作の証拠を[計測条件の棚卸し](README-multi-origin-readiness.md)に整理した。B0335は専用条件で成立確認済みだが、ZAPの複数origin計測は未対応。 |
 | 予算停止 | 23 | 別系列で上限を拡張し、23変種のV/F/N完走を確認した。旧停止runは保持し、新しい系列と区別する。詳細は[再計測結果](README-budget-retry.md)。 |
 | 実行失敗 | 7 | 原因別の新しい計画でV/F/N計21セルが完走した。旧失敗runは保持した。詳細は[実行失敗7変種の再計測](README-failed-seven-retry.md)。 |
 
