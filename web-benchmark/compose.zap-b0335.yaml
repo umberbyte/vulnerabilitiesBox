@@ -1,0 +1,11 @@
+services:
+  zap:
+    networks: [b0335_public]
+    extra_hosts: ["app.benchmark.test:198.18.233.2"]
+  scan-controller:
+    environment:
+      BENCHMARK_B0335_CONDITION: public-address-third-party-cookies
+    networks: [b0335_public]
+    extra_hosts: ["app.benchmark.test:198.18.233.2"]
+    volumes:
+      - ./tests/fixtures/b0335-chromium-policy:/etc/chromium/policies/managed:ro

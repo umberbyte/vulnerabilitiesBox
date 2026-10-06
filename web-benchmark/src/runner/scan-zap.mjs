@@ -1,6 +1,7 @@
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
+import {lookup} from 'node:dns/promises';
 import {randomBytes,createHash} from 'node:crypto';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,COOKIE_ATTACKER_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,COOKIE_ATTACKER_ORIGIN,CORS_HTTP_SCHEME_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom,requestHeader} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
@@ -1315,6 +1316,85 @@ async function browserProfileOrigin(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserCorsScheme(plan) {
+  const report=new URL(manifest.base+'/v4-csrf/report',scope.origin).href;
+  const fixture=CORS_HTTP_SCHEME_ORIGIN+'/browser-csrf-fixture';
+  if(scope.origin!==COOKIE_HTTPS_ORIGIN||!scope.isAllowed(report)||metadata.targetSurface.browserFixtureOrigin!==CORS_HTTP_SCHEME_ORIGIN||
+     process.env.BENCHMARK_B0335_CONDITION!=='public-address-third-party-cookies')
+    throw new TargetSurfaceError('cors_scheme_condition_missing','The explicit local mixed-scheme browser condition is unavailable.');
+  const policyBytes=await readFile('/etc/chromium/policies/managed/allow-third-party-cookies.json');
+  const policy=JSON.parse(policyBytes);
+  const address=(await lookup('app.benchmark.test',{family:4})).address;
+  if(policy.BlockThirdPartyCookies!==false||address!=='198.18.233.2')
+    throw new TargetSurfaceError('cors_scheme_environment_mismatch','The managed cookie policy or isolated target address differs from the verified condition.');
+  const [composeBytes,scanComposeBytes]=await Promise.all([readFile('compose.b0335.yaml'),readFile('compose.zap-b0335.yaml')]);
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  const fixtureBody='<!doctype html><title>Local HTTP origin fixture</title>';
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const browserVersion=await browser.version();
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('cors_scheme_login_failed','The fixture browser login failed.');
+    const identity=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(identity?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('cors_scheme_identity_failed','The browser did not retain the fixture identity.');
+    const normal=await page.goto(report,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('cors_scheme_normal_failed','The normal authenticated report was unavailable.');
+    const privateData=JSON.parse(await page.locator('body').textContent()).privateData;
+    if(typeof privateData!=='string'||!privateData)throw new TargetSurfaceError('cors_scheme_normal_invalid','The normal report lacks private data.');
+    onSecret(privateData);
+    const cdp=await context.newCDPSession(page);
+    const requestIds=new Set(),networkResponses=[];
+    await cdp.send('Network.enable');
+    cdp.on('Network.requestWillBeSent',event=>{if(event.request.url===report)requestIds.add(event.requestId);});
+    cdp.on('Network.responseReceivedExtraInfo',event=>{
+      if(requestIds.has(event.requestId))networkResponses.push({status:event.statusCode,allowOrigin:Object.entries(event.headers).find(([name])=>name.toLowerCase()==='access-control-allow-origin')?.[1]||null});
+    });
+    await page.route(fixture,route=>route.fulfill({status:200,contentType:'text/html',body:fixtureBody}));
+    const navigation=await page.goto(fixture,{waitUntil:'load',timeout:20000});
+    if(navigation?.status()!==200||new URL(page.url()).origin!==CORS_HTTP_SCHEME_ORIGIN)
+      throw new TargetSurfaceError('cors_scheme_fixture_failed','The local HTTP origin fixture did not load.');
+    let attackRequest;
+    page.on('request',request=>{if(request.url()===report)attackRequest=request;});
+    const browserRead=await page.evaluate(async url=>{
+      try {const response=await fetch(url,{credentials:'include'});return {readable:true,status:response.status,body:await response.text()};}
+      catch(error){return {readable:false,status:null,error:String(error)};}
+    },report);
+    for(let attempt=0;attempt<10&&!networkResponses.some(item=>item.status===200);attempt++)await sleep(250);
+    const attackHeaders=attackRequest?await attackRequest.allHeaders():{};
+    if(!attackRequest||attackHeaders.origin!==CORS_HTTP_SCHEME_ORIGIN||!attackHeaders.cookie||!networkResponses.some(item=>item.status===200))
+      throw new TargetSurfaceError('cors_scheme_browser_request_missing','The browser did not send an authenticated mixed-scheme report request with an HTTP 200 response.');
+    if(browserRead.readable&&(browserRead.status!==200||JSON.parse(browserRead.body).privateData!==privateData))
+      throw new TargetSurfaceError('cors_scheme_browser_read_invalid','The browser read an unexpected cross-origin response.');
+    let reportMessage;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:report,start:0,count:100});
+      reportMessage=(history.messages||[]).findLast(message=>message.requestHeader?.startsWith('GET '+report+' HTTP/')&&requestHeader(message,'Origin')===CORS_HTTP_SCHEME_ORIGIN)||null;
+      if(reportMessage)break;
+      await sleep(250);
+    }
+    const reportStatus=Number(/^HTTP\/\S+\s+(\d+)/.exec(reportMessage?.responseHeader)?.[1]);
+    const allowOrigin=/^Access-Control-Allow-Origin:\s*(.+)\r?$/im.exec(reportMessage?.responseHeader)?.[1]||null;
+    if(!reportMessage?.id||reportStatus!==200||!requestHeader(reportMessage,'Cookie')||
+       browserRead.readable!==(allowOrigin===CORS_HTTP_SCHEME_ORIGIN)||
+       !networkResponses.some(item=>item.status===200&&item.allowOrigin===allowOrigin))
+      throw new TargetSurfaceError('cors_scheme_history_mismatch','The browser result and ZAP authenticated HTTP response disagree.');
+    const archive={schema:'benchmark-browser-cors-scheme-0.1',fixture:{origin:CORS_HTTP_SCHEME_ORIGIN,url:fixture,status:200,body:fixtureBody,source:'Playwright route.fulfill; no network server at the HTTP origin'},browserVersion,policySha256:createHash('sha256').update(policyBytes).digest('hex'),composeSha256:createHash('sha256').update(composeBytes).digest('hex'),scanComposeSha256:createHash('sha256').update(scanComposeBytes).digest('hex'),targetAddress:address,networkResponses,browserResult:{readable:browserRead.readable,status:browserRead.status,bodySha256:browserRead.readable?createHash('sha256').update(browserRead.body).digest('hex'):null},zapReportMessageId:reportMessage.id,allowOrigin};
+    const bytes=Buffer.from(JSON.stringify(archive,null,2)+'\n');
+    await writeFile(output+'/browser-cors-scheme.json',bytes);
+    metadata.browserCorsScheme={browser:'Chromium via ZAP proxy',browserVersion,policySha256:archive.policySha256,composeSha256:archive.composeSha256,scanComposeSha256:archive.scanComposeSha256,targetAddress:address,fixtureOrigin:CORS_HTTP_SCHEME_ORIGIN,fixtureUrl:fixture,fixtureStatus:200,reportStatus,reportMessageId:reportMessage.id,credentialCookieObserved:true,allowOrigin,readable:browserRead.readable,archive:{path:'browser-cors-scheme.json',sha256:createHash('sha256').update(bytes).digest('hex')},identityVerified:true};
+    metadata.steps.push({type:'browser-cors-scheme',reportMessageId:reportMessage.id,archive:'browser-cors-scheme.json'});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 async function browserWebSocketFrame(plan) {
   const clientUrl=COLLECTOR_ORIGIN+'/b3-socket-client';
   const socketUrl=scope.origin.replace(/^https:/,'wss:')+manifest.base+'/b3-socket';
@@ -1614,6 +1694,11 @@ try {
     metadata.phase='browser-websocket-frame';
     await browserWebSocketFrame(authPlan);
     metadata.limitations.push('Chromium exercised same-origin and auxiliary-origin WebSocket frames through ZAP. Saved WebSocket frames and browser delivery are separate from HTTP active-scan alerts; the auxiliary client is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-cors-scheme') {
+    metadata.phase='browser-cors-scheme';
+    await browserCorsScheme(authPlan);
+    metadata.limitations.push('The HTTP origin page is a local Playwright fulfilled document because port 8443 serves HTTPS; its route body and Chromium managed policy are archived. The authenticated cross-origin report HTTP request passes through ZAP, while browser readability remains separate from ZAP alert detection.');
   }
   if(metadata.targetSurface.adapter==='browser-event-collector') {
     metadata.phase='browser-event-collector';

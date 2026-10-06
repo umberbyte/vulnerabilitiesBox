@@ -270,6 +270,17 @@ test('WebSocket-frame completion requires ZAP frame archive and auxiliary client
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('B0335 completion requires the explicit browser condition and ZAP report evidence',async()=>{
+  const base=plan({auth:['session']});
+  const app='https://app.benchmark.test:8443',http='http://app.benchmark.test:8443';
+  const pair={requiredOrigins:[app,http],supportedOrigins:[app,http],scanOrigins:[app],observationOrigins:[],browserFixtureOrigin:http,adapter:'browser-cors-scheme',verified:true};
+  const adapt=result=>{result.run.targetOrigin=app;result.run.targetSurface=structuredClone(pair);result.run.browserCorsScheme={targetAddress:'198.18.233.2',fixtureOrigin:http,fixtureUrl:http+'/browser-csrf-fixture',fixtureStatus:200,reportStatus:200,reportMessageId:'12',credentialCookieObserved:true,identityVerified:true,readable:false,allowOrigin:null,policySha256:'a'.repeat(64),composeSha256:'b'.repeat(64),scanComposeSha256:'c'.repeat(64),archive:{path:'browser-cors-scheme.json',sha256:'d'.repeat(64)}};return result;};
+  assert.equal((await harness(base,{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.browserCorsScheme.targetAddress='172.18.0.2';},run=>{run.browserCorsScheme.credentialCookieObserved=false;},run=>{run.browserCorsScheme.allowOrigin=http;},run=>{run.browserCorsScheme.archive.sha256=null;}]) {
+    const rejected=harness(base,{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Event collector completion requires the separate ZAP history and browser evidence',async()=>{
   const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],adapter:'browser-event-collector',verified:true};

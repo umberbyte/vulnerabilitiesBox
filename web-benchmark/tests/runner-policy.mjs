@@ -236,6 +236,13 @@ test('Declared member WebSocket frame uses a browser client on the auxiliary loc
   assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error.code==='unsupported_websocket_auth');
   assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error.code==='unsupported_websocket_contract');
 });
+test('B0335 mixed-scheme CORS uses the isolated HTTP browser fixture',()=>{
+  const entry=manifest.base+'/v4-csrf';
+  const supplied={...manifest,entry,requests:[{method:'GET',path:entry},{method:'GET',path:entry+'/report'}],requiredTargetOrigins:['https://app.benchmark.test:8443','http://app.benchmark.test:8443']};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:supplied.requiredTargetOrigins,supportedOrigins:supplied.requiredTargetOrigins,scanOrigins:['https://app.benchmark.test:8443'],observationOrigins:[],browserFixtureOrigin:'http://app.benchmark.test:8443',verified:false,adapter:'browser-cors-scheme'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error.code==='unsupported_cors_scheme_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error.code==='unsupported_cors_scheme_contract');
+});
 test('Malformed, duplicate or non-origin target declarations fail closed as invalid contracts',()=>{
   for(const required of [null,[],{},'https://app:8443',[42],[''],['https://app:8443','https://app:8443'],['https://app:8443/'],['https://app:8443/path'],['https://app:8443?key=value'],['https://user:password@app:8443'],['file:///tmp/fixture']]) {
     assert.throws(()=>validateTargetSurface({...manifest,requiredTargetOrigins:required}),error=>error instanceof TargetSurfaceError&&error.code==='invalid_target_surface'&&error.unsupported===false);

@@ -11,6 +11,7 @@ export const CORS_EVIL_ORIGIN='https://evil.benchmark.test:8444';
 export const COOKIE_EVIL_ORIGIN='https://evil.benchmark.test:8443';
 export const COOKIE_ATTACKER_ORIGIN='https://attacker.test:8444';
 export const CORS_ALT_PORT_ORIGIN='https://app.benchmark.test:8444';
+export const CORS_HTTP_SCHEME_ORIGIN='http://app.benchmark.test:8443';
 export const SCAN_PROFILES=Object.freeze(['baseline','active','active-low']);
 export const LOW_SCAN_POLICY='benchmark-active-low-v1';
 export const LOW_POLICY_VERSION='benchmark-active-low-0.1';
@@ -129,6 +130,13 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   if(required.length===2&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.includes(COOKIE_HTTP_ORIGIN)) {
     if(auth!=='session')throw new TargetSurfaceError('unsupported_cookie_transport_auth','The browser cookie-transport adapter requires a verified fixture session.',{unsupported:true});
     return {requiredOrigins:[...required],supportedOrigins:[...required],verified:false,adapter:'browser-cookie-transport'};
+  }
+  if(required.length===2&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.includes(CORS_HTTP_SCHEME_ORIGIN)&&
+     new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname===manifest.base+'/v4-csrf') {
+    if(auth!=='session')throw new TargetSurfaceError('unsupported_cors_scheme_auth','The mixed-scheme CORS observation requires a verified fixture session.',{unsupported:true});
+    if(!['GET '+manifest.base+'/v4-csrf','GET '+manifest.base+'/v4-csrf/report'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
+      throw new TargetSurfaceError('unsupported_cors_scheme_contract','The public contract lacks the normal report operations.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:[],browserFixtureOrigin:CORS_HTTP_SCHEME_ORIGIN,verified:false,adapter:'browser-cors-scheme'};
   }
   if(required.length===2&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.includes(CORS_EVIL_ORIGIN)&&
      new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname===manifest.base+'/b3-account') {
