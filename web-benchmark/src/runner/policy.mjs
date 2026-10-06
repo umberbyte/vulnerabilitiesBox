@@ -120,6 +120,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(entry===manifest.base+'/b3-recover') {
+      if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_recovery_referer_auth','The recovery page requires an anonymous scanner profile.',{unsupported:true});
+      if(!['POST '+entry,'GET '+manifest.base+'/b3-reset','POST '+manifest.base+'/b3-reset'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
+        throw new TargetSurfaceError('unsupported_recovery_referer_contract','The public contract lacks the normal recovery operations.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b3-pixel',verified:false,adapter:'browser-recovery-referer'};
+    }
     if(entry===manifest.base+'/b2-signin') {
       if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_login_origin_auth','The login operation requires an anonymous scanner profile.',{unsupported:true});
       if(manifest.login!==entry||!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===entry))

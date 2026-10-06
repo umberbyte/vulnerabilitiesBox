@@ -95,6 +95,11 @@ export function validateCellResult(cell,result,{manifestSha256}={}) {
     run.targetSurface.requiredOrigins.includes(TARGET_ORIGIN)&&run.targetSurface.requiredOrigins.includes(COLLECTOR_ORIGIN)&&
     Array.isArray(run.targetSurface.scanOrigins)&&run.targetSurface.scanOrigins.length===1&&run.targetSurface.scanOrigins[0]===TARGET_ORIGIN&&
     Array.isArray(run.targetSurface.observationOrigins)&&run.targetSurface.observationOrigins.length===1&&run.targetSurface.observationOrigins[0]===COLLECTOR_ORIGIN&&run.targetSurface.observationPath==='/b2-form';
+  const recoveryRefererPair=run.targetOrigin===TARGET_ORIGIN&&run.targetSurface?.adapter==='browser-recovery-referer'&&
+    Array.isArray(run.targetSurface.requiredOrigins)&&run.targetSurface.requiredOrigins.length===2&&
+    run.targetSurface.requiredOrigins.includes(TARGET_ORIGIN)&&run.targetSurface.requiredOrigins.includes(COLLECTOR_ORIGIN)&&
+    Array.isArray(run.targetSurface.scanOrigins)&&run.targetSurface.scanOrigins.length===1&&run.targetSurface.scanOrigins[0]===TARGET_ORIGIN&&
+    Array.isArray(run.targetSurface.observationOrigins)&&run.targetSurface.observationOrigins.length===1&&run.targetSurface.observationOrigins[0]===COLLECTOR_ORIGIN&&run.targetSurface.observationPath==='/b3-pixel';
   if(run.workspace!==cell.expectedWorkspace||run.targetOrigin!==TARGET_ORIGIN&&!cookiePair)fail('artifact_workspace_mismatch');
   if(run.profile!==c.authMode+'-'+c.profile)fail('artifact_profile_mismatch');
   for(const name of ['wallSeconds','requestedHttpRequests','requestedConcurrency'])if(run.budgets?.[name]!==c[name])fail('artifact_budget_mismatch');
@@ -114,6 +119,7 @@ export function validateCellResult(cell,result,{manifestSha256}={}) {
     if(run.targetSurface?.adapter==='browser-form-destination'&&(!formDestinationPair||run.targetSurface.verified!==true||!object(run.browserFormDestination)||run.browserFormDestination.normalTransferStatus!==200||typeof run.browserFormDestination.foreignFormSubmitted!=='boolean'||Boolean(run.browserFormDestination.foreignResponseMessageId)!==run.browserFormDestination.foreignFormSubmitted||run.browserFormDestination.privateFieldMatchedInHistory!==(run.browserFormDestination.foreignFormSubmitted?true:null)||run.browserFormDestination.origin!==COLLECTOR_ORIGIN||run.browserFormDestination.path!=='/b2-collect'||!run.secondaryHistoryArchives?.some(item=>item.origin===COLLECTOR_ORIGIN&&item.complete===true&&item.savedCount>=(run.browserFormDestination.foreignFormSubmitted?1:0))))fail('artifact_target_surface_unverified');
     if(run.targetSurface?.adapter==='browser-profile-origin'&&(!profileOriginPair||run.targetSurface.verified!==true||!object(run.browserProfileOrigin)||run.browserProfileOrigin.normalSaveStatus!==200||run.browserProfileOrigin.navigationStatus!==200||typeof run.browserProfileOrigin.navigationChanged!=='boolean'||![200,403].includes(run.browserProfileOrigin.externalFormStatus)||run.browserProfileOrigin.externalFormChanged!==(run.browserProfileOrigin.externalFormStatus===200)||run.browserProfileOrigin.identityVerified!==true||run.browserProfileOrigin.origin!==COLLECTOR_ORIGIN||!Array.isArray(run.browserProfileOrigin.auxiliaryMessageIds)||run.browserProfileOrigin.auxiliaryMessageIds.length!==2||run.browserProfileOrigin.auxiliaryMessageIds.some(id=>!id)||!['/b2-origin-page','/b2-form'].every(path=>run.secondaryHistoryArchives?.some(item=>item.origin===COLLECTOR_ORIGIN&&item.prefix===COLLECTOR_ORIGIN+path&&item.complete===true&&item.savedCount>0))))fail('artifact_target_surface_unverified');
     if(run.targetSurface?.adapter==='browser-login-origin'&&(!loginOriginPair||run.targetSurface.verified!==true||!object(run.browserLoginOrigin)||run.browserLoginOrigin.normalLoginStatus!==200||run.browserLoginOrigin.normalIdentityVerified!==true||![200,403].includes(run.browserLoginOrigin.foreignFormStatus)||run.browserLoginOrigin.foreignIdentityChanged!==(run.browserLoginOrigin.foreignFormStatus===200)||!run.browserLoginOrigin.foreignResponseMessageId||run.browserLoginOrigin.origin!==COLLECTOR_ORIGIN||run.browserLoginOrigin.path!=='/b2-form'||!run.secondaryHistoryArchives?.some(item=>item.origin===COLLECTOR_ORIGIN&&item.prefix===COLLECTOR_ORIGIN+'/b2-form'&&item.complete===true&&item.savedCount>0)))fail('artifact_target_surface_unverified');
+    if(run.targetSurface?.adapter==='browser-recovery-referer'&&(!recoveryRefererPair||run.targetSurface.verified!==true||!object(run.browserRecoveryReferer)||run.browserRecoveryReferer.initiationStatus!==200||run.browserRecoveryReferer.recoveryPageStatus!==200||run.browserRecoveryReferer.completionStatus!==200||typeof run.browserRecoveryReferer.tokenInReferer!=='boolean'||!digest(run.browserRecoveryReferer.tokenSha256)||run.browserRecoveryReferer.pixelHttpArchive?.path!=='browser-recovery-pixel-http.json'||!digest(run.browserRecoveryReferer.pixelHttpArchive?.sha256)||run.browserRecoveryReferer.origin!==COLLECTOR_ORIGIN||run.browserRecoveryReferer.path!=='/b3-pixel'||!run.secondaryHistoryArchives?.some(item=>item.origin===COLLECTOR_ORIGIN&&item.prefix===COLLECTOR_ORIGIN+'/b3-pixel'&&item.complete===true)))fail('artifact_target_surface_unverified');
     if(run.trafficSettled!==true||run.drainTimedOut!==false||!pendingState(run.pendingAtMeasurementStop||{}).settled||!pendingState(run.drainPendingState||{}).settled)fail('artifact_traffic_unsettled');
     if(!object(run.measurement))fail('artifact_measurement_missing');
     if(c.authMode!=='anonymous'&&(auth.identityVerified!==true||auth.postScanVerified!==true||auth.selfChecks?.presentCookiePreserved!==true))fail('artifact_authentication_unverified');
@@ -286,6 +292,16 @@ export async function main(env=process.env) {
       const settingsFile=await insideArtifacts(path.join(artifacts,added[0],'scanner-settings.json'),artifacts,{existing:true});
       const settings=(await limitedJson(settingsFile)).value;
       if(run.scannerSettingsSha256!==semanticSha(settings)||run.normalizationVersion!==CONFIGURATION_NORMALIZATION||run.scannerConfigurationSha256!==configurationFingerprint(settings,run.workspace))fail('scanner_configuration_artifact_mismatch');
+      if(run.targetSurface?.adapter==='browser-recovery-referer') {
+        const archive=run.browserRecoveryReferer?.pixelHttpArchive;
+        if(archive?.path!=='browser-recovery-pixel-http.json'||!digest(archive.sha256))fail('browser_recovery_http_archive_invalid');
+        const pixelFile=await insideArtifacts(path.join(artifacts,added[0],archive.path),artifacts,{existing:true});
+        const {raw:pixelRaw,value:pixel}=await limitedJson(pixelFile);
+        if(sha(pixelRaw)!==archive.sha256||pixel?.request?.method!=='GET'||pixel.request.url!==COLLECTOR_ORIGIN+'/b3-pixel'||pixel.response?.status!==200||!/^image\/svg\+xml\b/i.test(pixel.response.headers?.['content-type']||''))fail('browser_recovery_http_archive_invalid');
+        const referer=pixel.request.headers?.referer||'';
+        let token=null;try{token=new URL(referer).searchParams.get('token');}catch{}
+        if(run.browserRecoveryReferer.tokenInReferer!==Boolean(token&&sha(token)===run.browserRecoveryReferer.tokenSha256))fail('browser_recovery_referer_mismatch');
+      }
     }
     return {run,path:'artifacts/'+added[0]+'/run.json',sha256:sha(raw),exitCode};
   }

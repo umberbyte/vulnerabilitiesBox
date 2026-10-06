@@ -324,6 +324,15 @@ test('Login origin completion requires normal identity and saved auxiliary form'
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('Recovery Referer completion requires a redeemed token and browser pixel archive',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b3-pixel',adapter:'browser-recovery-referer',verified:true};
+  const adapt=(result,leaked)=>{result.run.targetSurface=structuredClone(pair);result.run.browserRecoveryReferer={origin:'https://app:8444',path:'/b3-pixel',initiationStatus:200,recoveryPageStatus:200,completionStatus:200,pixelResponseMessageId:null,pixelHttpArchive:{path:'browser-recovery-pixel-http.json',sha256:'a'.repeat(64)},tokenSha256:'b'.repeat(64),tokenInReferer:leaked};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',prefix:'https://app:8444/b3-pixel',complete:true,savedCount:0}];return result;};
+  for(const leaked of [true,false])assert.equal((await harness(plan(),{result:result=>adapt(result,leaked)}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserRecoveryReferer.completionStatus=403;},run=>{run.browserRecoveryReferer.pixelHttpArchive.sha256=null;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result,true);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[

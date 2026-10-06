@@ -597,6 +597,70 @@ async function browserFormDestination(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserRecoveryReferer() {
+  const pixel=COLLECTOR_ORIGIN+'/b3-pixel',reset=new URL(manifest.base+'/b3-reset',scope.origin).href;
+  const recovery=(manifest.requests||[]).find(item=>item.method==='POST'&&item.path===manifest.base+'/b3-recover');
+  const completion=(manifest.requests||[]).find(item=>item.method==='POST'&&item.path===manifest.base+'/b3-reset');
+  const username=recovery?.values?.username,password=completion?.values?.password;
+  if(observationScopes.length!==1||observationScopes[0].prefix!==pixel||!scope.isAllowed(reset)||typeof username!=='string'||typeof password!=='string'||password.length<16)
+    throw new TargetSurfaceError('recovery_referer_contract_missing','The declared recovery and local auxiliary pixel are unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===pixel)return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    const entry=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(entry?.status()!==200)throw new TargetSurfaceError('recovery_referer_entry_unreachable','The normal recovery entry was not reachable.');
+    const initiation=await page.evaluate(async ({url,name})=>{
+      const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:name})});
+      return response.status;
+    },{url:scope.entry,name:username});
+    if(initiation!==200)throw new TargetSurfaceError('recovery_referer_initiation_failed','The normal recovery request did not complete.');
+    const mail=await ctl('/mail/'+encodeURIComponent(username));
+    const latest=Array.isArray(mail)?mail.at(-1):null,token=latest?.token;
+    if(typeof token!=='string'||!token||latest.purpose!=='recovery')
+      throw new TargetSurfaceError('recovery_referer_mail_missing','The operator mailbox lacked the issued normal recovery token.');
+    onSecret(token);
+    const resetUrl=new URL(reset);resetUrl.searchParams.set('token',token);
+    const pixelResponse=page.waitForResponse(response=>response.url()===pixel&&response.request().method()==='GET',{timeout:20000});
+    const recoveryPage=await page.goto(resetUrl.href,{waitUntil:'load',timeout:20000});
+    const observedPixel=await pixelResponse;
+    if(recoveryPage?.status()!==200||observedPixel.status()!==200||await page.locator('form input[name=token]').inputValue()!==token)
+      throw new TargetSurfaceError('recovery_referer_page_failed','The normal recovery page or its declared pixel did not load.');
+    const pixelHttp={source:'Playwright Chromium with configured ZAP proxy',request:{method:observedPixel.request().method(),url:observedPixel.url(),headers:await observedPixel.request().allHeaders()},response:{status:observedPixel.status(),headers:await observedPixel.allHeaders()}};
+    const pixelBody=JSON.stringify(pixelHttp,null,2)+'\n';
+    await writeFile(output+'/browser-recovery-pixel-http.json',pixelBody);
+    const pixelArchive={path:'browser-recovery-pixel-http.json',sha256:createHash('sha256').update(pixelBody).digest('hex')};
+    let recorded;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:pixel,start:0,count:100});
+      recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+pixel+' HTTP/'));
+      if(recorded)break;
+      await sleep(250);
+    }
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded?.responseHeader)?.[1]);
+    if(recorded&&status!==200)throw new TargetSurfaceError('recovery_referer_zap_history_status','The auxiliary pixel response in ZAP history was not successful.');
+    const referer=pixelHttp.request.headers.referer||'';
+    if(recorded&&(/^(?:Referer):\s*(.*)$/im.exec(recorded.requestHeader)?.[1]||'')!==referer)
+      throw new TargetSurfaceError('recovery_referer_proxy_history_mismatch','The browser and ZAP pixel request headers disagree.');
+    const tokenInReferer=referer.includes(token);
+    await page.locator('form input[name=password]').fill(password);
+    const finish=page.waitForResponse(response=>(response.url()===reset||response.url().startsWith(reset+'?'))&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await finish).status()!==200)throw new TargetSurfaceError('recovery_referer_completion_failed','The issued single-use recovery token did not complete the normal operation.');
+    metadata.browserRecoveryReferer={browser:'Chromium with configured ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b3-pixel',initiationStatus:200,recoveryPageStatus:200,completionStatus:200,pixelResponseMessageId:recorded?.id||null,pixelHttpArchive:pixelArchive,tokenSha256:createHash('sha256').update(token).digest('hex'),tokenInReferer};
+    metadata.steps.push({type:'browser-recovery-referer',url:pixel,pixelResponseMessageId:recorded?.id||null,pixelHttpArchive:pixelArchive.path});
+    if(!recorded)metadata.limitations.push('ZAP omitted the auxiliary SVG image from its HTTP history. The browser request and response headers are saved separately; this does not prove ZAP stored or analyzed the image.');
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 async function browserLoginOrigin() {
   const endpoint=COLLECTOR_ORIGIN+'/b2-form',sessionUrl=new URL(manifest.base+'/session',scope.origin).href;
   if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint||manifest.login!==manifest.entry||!scope.isAllowed(sessionUrl))
@@ -1000,6 +1064,11 @@ try {
     metadata.phase='browser-login-origin';
     await browserLoginOrigin();
     metadata.limitations.push('Normal login and the auxiliary-origin login form were exercised by Chromium through ZAP. Browser session identity is an observation separate from ZAP alert detection; the auxiliary page is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-recovery-referer') {
+    metadata.phase='browser-recovery-referer';
+    await browserRecoveryReferer();
+    metadata.limitations.push('The fixture recovery link and its auxiliary pixel were loaded by Chromium with the ZAP proxy configured. Referer content is a browser observation separate from ZAP alert detection; the pixel is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});
