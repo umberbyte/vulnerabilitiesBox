@@ -6,6 +6,9 @@ export const HTTP_TRANSPORT_ORIGIN='http://benchmark.test:8080';
 export const HTTP_FORWARD_ORIGIN='http://app:8080';
 export const COOKIE_HTTPS_ORIGIN='https://app.benchmark.test:8443';
 export const COOKIE_HTTP_ORIGIN='http://app.benchmark.test:8080';
+export const CORS_PARTNER_ORIGIN='https://partner.benchmark.test:8444';
+export const CORS_EVIL_ORIGIN='https://evil.benchmark.test:8444';
+export const CORS_ALT_PORT_ORIGIN='https://app.benchmark.test:8444';
 export const SCAN_PROFILES=Object.freeze(['baseline','active','active-low']);
 export const LOW_SCAN_POLICY='benchmark-active-low-v1';
 export const LOW_POLICY_VERSION='benchmark-active-low-0.1';
@@ -118,6 +121,16 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
     if(auth!=='session')throw new TargetSurfaceError('unsupported_cookie_transport_auth','The browser cookie-transport adapter requires a verified fixture session.',{unsupported:true});
     return {requiredOrigins:[...required],supportedOrigins:[...required],verified:false,adapter:'browser-cookie-transport'};
   }
+  const corsAuxiliaries=[CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN];
+  const corsEntry=new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname;
+  if(required.length>=2&&required.length<=3&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.filter(value=>value!==COOKIE_HTTPS_ORIGIN).every(value=>corsAuxiliaries.includes(value))&&
+     [manifest.base+'/v4-csrf',manifest.base+'/b2-report'].includes(corsEntry)) {
+    if(auth!=='session')throw new TargetSurfaceError('unsupported_cors_allowlist_auth','The declared CORS report requires a verified fixture session.',{unsupported:true});
+    const reportPath=corsEntry===manifest.base+'/b2-report'?corsEntry:corsEntry+'/report';
+    if(!['GET '+corsEntry,'GET '+reportPath].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
+      throw new TargetSurfaceError('unsupported_cors_allowlist_contract','The public contract lacks the normal report operations.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:required.filter(value=>value!==COOKIE_HTTPS_ORIGIN),observationPath:'/browser-csrf-fixture',verified:false,adapter:'browser-cors-allowlist'};
+  }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
     if(entry===manifest.base+'/b2-css') {
@@ -229,7 +242,7 @@ export function options(env) {
 }
 export function publicScope(manifest,{origin=TARGET_ORIGIN}={}) {
   if(!/^\/w\/[a-f0-9]{12}$/.test(manifest.base))throw new Error('Unsupported public workspace path.');
-  if(![TARGET_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN].includes(origin))throw new Error('Unsupported local target origin.');
+  if(![TARGET_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN].includes(origin))throw new Error('Unsupported local target origin.');
   const prefix=origin+manifest.base;
   const isAllowed=value=>{
     try {const url=new URL(value,origin);return url.origin===origin&&!url.username&&!url.password&&(url.pathname===manifest.base||url.pathname.startsWith(manifest.base+'/'));}catch{return false;}

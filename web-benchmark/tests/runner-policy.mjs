@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,COLLECTOR_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN} from '../src/runner/policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,COLLECTOR_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN} from '../src/runner/policy.mjs';
 
 const manifest={base:'/w/123456abcdef',entry:'/w/123456abcdef/search?q=Apple',openapi:'/w/123456abcdef/openapi.json',requests:[{method:'GET',path:'/w/123456abcdef/documents/{id}',pathValues:{id:101},values:{}},{method:'GET',path:'/w/123456abcdef/search',values:{q:'Apple & Banana'}},{method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'Fixture-alice-2026!'}},{method:'GET',path:'http://app:8099/oracle',values:{}},{method:'GET',path:'https://app:8444/attack',values:{}}]};
 test('Legacy and declared HTTPS-only target surfaces remain supported without modifying the contract',()=>{
@@ -48,6 +48,32 @@ test('The fixed browser cookie pair requires session authentication and stays wi
     assert.ok(scope.isAllowed(COOKIE_HTTP_ORIGIN+manifest.base+'/search'));
     assert.equal(scope.isAllowed(COOKIE_HTTPS_ORIGIN+manifest.base+'/search'),false);
   }
+});
+
+test('Declared HTTPS CORS report origins keep auxiliary pages out of active scanning',()=>{
+  for(const auxiliaries of [[CORS_EVIL_ORIGIN],[CORS_ALT_PORT_ORIGIN],[CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN]]) {
+    const entry=manifest.base+'/v4-csrf';
+    const supplied={...manifest,entry,requests:[{method:'GET',path:entry},{method:'GET',path:entry+'/report'}],requiredTargetOrigins:[COOKIE_HTTPS_ORIGIN,...auxiliaries]};
+    const result=validateTargetSurface(supplied,{auth:'session'});
+    assert.deepEqual(result,{requiredOrigins:supplied.requiredTargetOrigins,supportedOrigins:supplied.requiredTargetOrigins,scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:auxiliaries,observationPath:'/browser-csrf-fixture',verified:false,adapter:'browser-cors-allowlist'});
+    for(const origin of auxiliaries) {
+      const scope=publicScope(supplied,{origin});
+      assert.ok(scope.isAllowed(origin+entry));
+      assert.equal(scope.isAllowed(COOKIE_HTTPS_ORIGIN+entry),false);
+    }
+    assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error.code==='unsupported_cors_allowlist_auth');
+    assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error.code==='unsupported_cors_allowlist_contract');
+  }
+});
+
+test('Three-origin browser report uses the same verified observation boundary',()=>{
+  const entry=manifest.base+'/b2-report';
+  const supplied={...manifest,entry,requests:[{method:'GET',path:entry}],requiredTargetOrigins:[COOKIE_HTTPS_ORIGIN,CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN]};
+  const surface=validateTargetSurface(supplied,{auth:'session'});
+  assert.deepEqual(surface.scanOrigins,[COOKIE_HTTPS_ORIGIN]);
+  assert.deepEqual(surface.observationOrigins,[CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN]);
+  assert.equal(surface.observationPath,'/browser-csrf-fixture');
+  assert.equal(surface.adapter,'browser-cors-allowlist');
 });
 
 test('The local event collector is observation-only for its two declared browser operations',()=>{

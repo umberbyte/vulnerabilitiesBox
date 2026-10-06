@@ -730,6 +730,78 @@ async function browserCorsReport(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserCorsAllowlist(plan) {
+  const auxiliaries=metadata.targetSurface.observationOrigins;
+  const entryPath=new URL(manifest.entry,scope.origin).pathname;
+  const reportPath=entryPath===manifest.base+'/b2-report'?entryPath:entryPath+'/report';
+  const report=new URL(reportPath,scope.origin).href;
+  if(scope.origin!==COOKIE_HTTPS_ORIGIN||!scope.isAllowed(report)||observationScopes.length!==auxiliaries.length||
+     !auxiliaries.every(origin=>observationScopes.some(item=>item.prefix===origin+'/browser-csrf-fixture')))
+    throw new TargetSurfaceError('cors_allowlist_contract_missing','The declared local CORS report or auxiliary origins are unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('cors_allowlist_login_failed','The browser fixture login failed.');
+    const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('cors_allowlist_identity_failed','The browser did not retain the selected fixture identity.');
+    const normal=await page.goto(report,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('cors_allowlist_normal_failed','The normal authenticated report was unavailable.');
+    const normalBody=JSON.parse(await page.locator('body').textContent());
+    if(typeof normalBody?.report!=='string'&&typeof normalBody?.privateData!=='string')
+      throw new TargetSurfaceError('cors_allowlist_normal_invalid','The normal report lacks the declared private field.');
+    onSecret(normalBody.report||normalBody.privateData);
+    const observations=[];
+    for(const origin of auxiliaries) {
+      if(!await guard())return;
+      const auxiliary=origin+'/browser-csrf-fixture';
+      const document=await page.goto(auxiliary,{waitUntil:'load',timeout:20000});
+      if(!document||document.status()!==200||new URL(page.url()).origin!==origin)
+        throw new TargetSurfaceError('cors_allowlist_auxiliary_failed','The declared local auxiliary origin did not load.');
+      const browserRead=await page.evaluate(async url=>{
+        try {const response=await fetch(url,{credentials:'include'});return {readable:true,status:response.status,body:await response.text()};}
+        catch{return {readable:false,status:null,body:null};}
+      },report);
+      if(browserRead.readable&&browserRead.status!==200)
+        throw new TargetSurfaceError('cors_allowlist_report_status','The browser read an unexpected cross-origin report status.');
+      if(browserRead.readable) {
+        const parsed=JSON.parse(browserRead.body);
+        if(typeof parsed?.report!=='string'&&typeof parsed?.privateData!=='string')
+          throw new TargetSurfaceError('cors_allowlist_report_invalid','The browser read a report without the declared private field.');
+        onSecret(parsed.report||parsed.privateData);
+      }
+      let auxiliaryMessage=null,reportMessage=null;
+      for(let attempt=0;attempt<10;attempt++) {
+        const auxiliaryHistory=await api('core','view','messages',{baseurl:auxiliary,start:0,count:100});
+        auxiliaryMessage=(auxiliaryHistory.messages||[]).findLast(message=>message.requestHeader?.startsWith('GET '+auxiliary+' HTTP/'))||null;
+        const reportHistory=await api('core','view','messages',{baseurl:report,start:0,count:100});
+        reportMessage=(reportHistory.messages||[]).findLast(message=>message.requestHeader?.startsWith('GET '+report+' HTTP/')&&requestHeader(message,'Origin')===origin)||null;
+        if(auxiliaryMessage&&reportMessage)break;
+        await sleep(250);
+      }
+      const auxiliaryStatus=Number(/^HTTP\/\S+\s+(\d+)/.exec(auxiliaryMessage?.responseHeader)?.[1]);
+      const reportStatus=Number(/^HTTP\/\S+\s+(\d+)/.exec(reportMessage?.responseHeader)?.[1]);
+      if(!auxiliaryMessage?.id||!reportMessage?.id||auxiliaryStatus!==200||reportStatus!==200||!requestHeader(reportMessage,'Cookie'))
+        throw new TargetSurfaceError('cors_allowlist_zap_history_missing','The auxiliary page or authenticated cross-origin report request was absent from ZAP HTTP history.');
+      const allowOrigin=/^Access-Control-Allow-Origin:\s*(.+)\r?$/im.exec(reportMessage.responseHeader)?.[1]||null;
+      if(browserRead.readable!==(allowOrigin===origin))
+        throw new TargetSurfaceError('cors_allowlist_browser_history_mismatch','Browser visibility and the saved CORS response header disagree.');
+      observations.push({origin,auxiliaryPath:'/browser-csrf-fixture',auxiliaryStatus,auxiliaryMessageId:auxiliaryMessage.id,reportMessageId:reportMessage.id,reportHttpStatus:reportStatus,credentialCookieObserved:true,allowOrigin,readable:browserRead.readable,browserStatus:browserRead.status,bodySha256:typeof browserRead.body==='string'?createHash('sha256').update(browserRead.body).digest('hex'):null});
+    }
+    metadata.browserCorsAllowlist={browser:'Chromium via ZAP proxy',targetOrigin:scope.origin,reportPath,normalReportStatus:200,loginStatus:200,identityVerified:true,observations};
+    metadata.steps.push({type:'browser-cors-allowlist',origins:observations.map(item=>({origin:item.origin,auxiliaryMessageId:item.auxiliaryMessageId,reportMessageId:item.reportMessageId}))});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 async function browserCorsPolicy(plan) {
   const auxiliary=COLLECTOR_ORIGIN+'/b2-origin-page';
   const report=new URL(manifest.base+'/b2-report',scope.origin).href;
@@ -1223,7 +1295,7 @@ try {
   await writeFile(output+'/public-inputs.json',JSON.stringify(manifest,null,2)+'\n');
   metadata.targetSurface={requiredOrigins:manifest.requiredTargetOrigins??[TARGET_ORIGIN],requiredObservationCapabilities:manifest.requiredObservationCapabilities===undefined?[]:manifest.requiredObservationCapabilities,supportedOrigins:[TARGET_ORIGIN],verified:false};
   metadata.targetSurface=validateTargetSurface(manifest,settings);
-  scope=publicScope(manifest,{origin:metadata.targetSurface.supportedOrigins.includes(TARGET_ORIGIN)?TARGET_ORIGIN:COOKIE_HTTPS_ORIGIN});
+  scope=publicScope(manifest,{origin:(metadata.targetSurface.scanOrigins||metadata.targetSurface.supportedOrigins)[0]});
   metadata.targetOrigin=scope.origin;
   scopes=(metadata.targetSurface.scanOrigins||metadata.targetSurface.supportedOrigins).map(origin=>publicScope(manifest,{origin}));
   observationScopes=metadata.targetSurface.observationOrigins?.flatMap(origin=>(metadata.targetSurface.observationPaths||[metadata.targetSurface.observationPath||'/collect-events']).map(path=>({origin,prefix:origin+path,regex:'^'+escapeRegex(origin+path)+'(?:\\?.*|$)'})))||[];
@@ -1303,6 +1375,11 @@ try {
     metadata.phase='browser-cors-report';
     await browserCorsReport(authPlan);
     metadata.limitations.push('The normal report and declared local cross-origin browser fetches were measured through ZAP. Browser CORS visibility is separate from ZAP alert detection; the auxiliary page is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-cors-allowlist') {
+    metadata.phase='browser-cors-allowlist';
+    await browserCorsAllowlist(authPlan);
+    metadata.limitations.push('The declared HTTPS origins and credentialed browser report reads were measured through ZAP. Browser CORS visibility is separate from ZAP alert detection; auxiliary pages are excluded from spider and active scan.');
   }
   if(metadata.targetSurface.adapter==='browser-cors-policy') {
     metadata.phase='browser-cors-policy';
