@@ -121,6 +121,13 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
     if(auth!=='session')throw new TargetSurfaceError('unsupported_cookie_transport_auth','The browser cookie-transport adapter requires a verified fixture session.',{unsupported:true});
     return {requiredOrigins:[...required],supportedOrigins:[...required],verified:false,adapter:'browser-cookie-transport'};
   }
+  if(required.length===2&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.includes(CORS_EVIL_ORIGIN)&&
+     new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname===manifest.base+'/b3-account') {
+    if(auth!=='session')throw new TargetSurfaceError('unsupported_cookie_domain_auth','The cookie-domain observation requires a verified fixture session.',{unsupported:true});
+    if(!['GET '+manifest.base+'/b3-account','POST '+manifest.base+'/b3-account'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
+      throw new TargetSurfaceError('unsupported_cookie_domain_contract','The public contract lacks the normal account operations.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:[CORS_EVIL_ORIGIN],observationPath:'/b3-cookie-collector',verified:false,adapter:'browser-cookie-domain'};
+  }
   const corsAuxiliaries=[CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN];
   const corsEntry=new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname;
   if(required.length>=2&&required.length<=3&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.filter(value=>value!==COOKIE_HTTPS_ORIGIN).every(value=>corsAuxiliaries.includes(value))&&

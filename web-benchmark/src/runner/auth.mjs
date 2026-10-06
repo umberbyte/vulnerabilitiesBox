@@ -1,5 +1,5 @@
 import {writeFile,unlink,chmod} from 'node:fs/promises';
-import {authStatePath,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN} from './policy.mjs';
+import {authStatePath,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN} from './policy.mjs';
 
 export class AuthenticationError extends Error {
   constructor(code,message,{unsupported=false}={}) {super(message);this.code=code;this.unsupported=unsupported;}
@@ -12,12 +12,17 @@ export function authenticationPlan(manifest,settings,scope) {
   const profile=(manifest.roleProfiles||[]).find(value=>value.username===settings.user)||
     (manifest.credentials?.username===settings.user?manifest.credentials:null);
   if(!profile||typeof profile.password!=='string'||!profile.password||/[\r\n]/.test(profile.username))fail('unsupported_fixture_subject','No normal credentials exist for the selected fixture subject.',true);
-  const dedicatedCookie=scope.origin===COOKIE_HTTPS_ORIGIN&&
+  const browserCookieTransport=scope.origin===COOKIE_HTTPS_ORIGIN&&
     Array.isArray(manifest.requiredTargetOrigins)&&manifest.requiredTargetOrigins.length===2&&
     manifest.requiredTargetOrigins.includes(COOKIE_HTTPS_ORIGIN)&&manifest.requiredTargetOrigins.includes(COOKIE_HTTP_ORIGIN);
+  const browserCookieDomain=scope.origin===COOKIE_HTTPS_ORIGIN&&
+    Array.isArray(manifest.requiredTargetOrigins)&&manifest.requiredTargetOrigins.length===2&&
+    manifest.requiredTargetOrigins.includes(COOKIE_HTTPS_ORIGIN)&&manifest.requiredTargetOrigins.includes(CORS_EVIL_ORIGIN)&&
+    manifest.entry===manifest.base+'/b3-account';
+  const dedicatedCookie=browserCookieTransport||browserCookieDomain;
   const session=(manifest.requests||[]).find(value=>value.method==='GET'&&value.path===(dedicatedCookie?manifest.entry:manifest.base+'/session'));
   if(!scope.isAllowed(manifest.login)||!session)fail('unsupported_auth_contract','The manifest lacks a scoped normal login/session contract.',true);
-  const plan={mode:settings.auth,subject:profile.username,role:profile.role||'unspecified',credentials:{username:profile.username,password:profile.password},login:new URL(manifest.login,scope.origin).href,session:new URL(session.path,scope.origin).href,cookieName:dedicatedCookie?'memberSession':'sid',invalidCookieStatus:dedicatedCookie?401:200};
+  const plan={mode:settings.auth,subject:profile.username,role:profile.role||'unspecified',credentials:{username:profile.username,password:profile.password},login:new URL(manifest.login,scope.origin).href,session:new URL(session.path,scope.origin).href,cookieName:browserCookieDomain?'pb_auth':browserCookieTransport?'memberSession':'sid',invalidCookieStatus:dedicatedCookie?401:200};
   if(settings.auth==='session') {
     const declared=manifest.authentication?.sessionProtectedOperation;
     if(declared!==undefined&&(!declared||declared.method!=='GET'||typeof declared.path!=='string'||!scope.isAllowed(declared.path)||(manifest.requests||[]).every(value=>value.method!=='GET'||value.path!==declared.path)))fail('unsupported_protected_contract','The declared protected operation is not a scoped normal GET.',true);
@@ -53,7 +58,7 @@ export function jsonBody(message) {
   return value;
 }
 export function sessionCookie(message,name='sid') {
-  if(!['sid','memberSession'].includes(name))fail('auth_cookie_name_invalid','The selected fixture cookie name is unsupported.');
+  if(!['sid','memberSession','pb_auth'].includes(name))fail('auth_cookie_name_invalid','The selected fixture cookie name is unsupported.');
   const found=[...message.responseHeader.matchAll(new RegExp('^set-cookie:[ \\t]*'+name+'=([^;\\r\\n]*)(?:;|\\r?$)','gim'))];
   if(found.length!==1||!/^[a-f0-9]{48}$/.test(found[0][1]))fail('auth_cookie_missing','Normal login did not issue exactly one supported fixture session cookie.');
   return name+'='+found[0][1];

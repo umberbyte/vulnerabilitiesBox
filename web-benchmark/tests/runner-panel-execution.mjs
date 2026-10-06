@@ -226,6 +226,15 @@ test('Fixed browser cookie pair is accepted only with verified target evidence',
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('Sibling-host cookie observation requires complete browser and ZAP HTTP evidence',async()=>{
+  const pair={requiredOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8444'],supportedOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8444'],scanOrigins:['https://app.benchmark.test:8443'],observationOrigins:['https://evil.benchmark.test:8444'],observationPath:'/b3-cookie-collector',adapter:'browser-cookie-domain',verified:true};
+  const adapt=result=>{result.run.targetOrigin='https://app.benchmark.test:8443';result.run.targetSurface=structuredClone(pair);result.run.browserCookieDomain={loginStatus:200,accountBeforeStatus:200,accountAfterStatus:200,identityVerified:true,collectorOrigin:'https://evil.benchmark.test:8444',collectorPath:'/b3-cookie-collector',collectorStatus:200,collectorMessageId:'7',collectorCookieSent:true};result.run.secondaryHistoryArchives=[{origin:'https://evil.benchmark.test:8444',prefix:'https://evil.benchmark.test:8444/b3-cookie-collector',complete:true,savedCount:1}];return result;};
+  assert.equal((await harness(plan({auth:['session']}),{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserCookieDomain.collectorMessageId=null;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan({auth:['session']}),{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Event collector completion requires the separate ZAP history and browser evidence',async()=>{
   const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],adapter:'browser-event-collector',verified:true};

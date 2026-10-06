@@ -50,6 +50,14 @@ test('The fixed browser cookie pair requires session authentication and stays wi
   }
 });
 
+test('Cookie domain observation scans the account host and archives the sibling collector only',()=>{
+  const entry=manifest.base+'/b3-account';
+  const supplied={...manifest,entry,requests:[{method:'GET',path:entry},{method:'POST',path:entry}],requiredTargetOrigins:[COOKIE_HTTPS_ORIGIN,CORS_EVIL_ORIGIN]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:supplied.requiredTargetOrigins,supportedOrigins:supplied.requiredTargetOrigins,scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:[CORS_EVIL_ORIGIN],observationPath:'/b3-cookie-collector',verified:false,adapter:'browser-cookie-domain'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error.code==='unsupported_cookie_domain_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error.code==='unsupported_cookie_domain_contract');
+});
+
 test('Declared HTTPS CORS report origins keep auxiliary pages out of active scanning',()=>{
   for(const auxiliaries of [[CORS_EVIL_ORIGIN],[CORS_ALT_PORT_ORIGIN],[CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN]]) {
     const entry=manifest.base+'/v4-csrf';

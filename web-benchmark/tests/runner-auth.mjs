@@ -25,6 +25,16 @@ const errorIs=(code,unsupported=false)=>error=>error instanceof AuthenticationEr
 const validSid='a'.repeat(48);
 const fixtureToken='eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZSJ9.c2lnbmF0dXJl';
 
+test('Declared sibling-host cookie account uses its dedicated cookie for scanner authentication',()=>{
+  const entry=base+'/b3-account';
+  const input={...manifest,entry,login:base+'/b3-signin',requests:[{method:'GET',path:entry},{method:'POST',path:entry}],requiredTargetOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8444']};
+  const plan=authenticationPlan(input,{auth:'session',user:'alice'},publicScope(input,{origin:'https://app.benchmark.test:8443'}));
+  assert.equal(plan.cookieName,'pb_auth');
+  assert.equal(plan.session,'https://app.benchmark.test:8443'+entry);
+  assert.equal(plan.protectedUrl,plan.session);
+  assert.equal(plan.invalidCookieStatus,401);
+});
+
 function scriptContext(source) {
   const context=vm.createContext({Java:{type(name){
     assert.equal(name,'java.util.regex.Pattern');
@@ -121,6 +131,7 @@ test('Malformed JSON/status errors do not echo credential or token contents',()=
 test('Fixture cookie parsing accepts exactly one supported sid and ignores unrelated cookies',()=>{
   const message=response({},undefined,200,'Set-Cookie: theme=dark; Path=/\r\nSeT-CoOkIe: sid='+validSid+'; Path=/; Secure\r\n');
   assert.equal(sessionCookie(message),'sid='+validSid);
+  assert.equal(sessionCookie(response({},undefined,200,'Set-Cookie: pb_auth='+validSid+'; Domain=benchmark.test; Path=/; Secure\r\n'),'pb_auth'),'pb_auth='+validSid);
   for(const extra of [
     '',
     'Set-Cookie: sid=short; Path=/\r\n',

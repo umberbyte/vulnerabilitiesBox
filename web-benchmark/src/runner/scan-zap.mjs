@@ -1,6 +1,6 @@
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom,requestHeader} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
@@ -139,6 +139,58 @@ async function browserCookieTransport(plan) {
     if(status!==observed?.status())throw new TargetSurfaceError('cookie_browser_status_mismatch','The ZAP HTTP response differed from the browser result.');
     metadata.browserCookieTransport={browser:'Chromium via ZAP proxy',loginStatus:200,httpsAccountBefore:before.status(),httpsAccountAfter:after.status(),cookieSecure:cookie.secure,httpCookieSent:Boolean(member),httpObservationStatus:status,httpMessageId:recorded.id||null};
     metadata.steps.push({type:'browser-cookie-http-observation',url:observationUrl,status,messageId:recorded.id||null});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
+async function browserCookieDomain(plan) {
+  const collector=CORS_EVIL_ORIGIN+'/b3-cookie-collector';
+  if(scope.origin!==COOKIE_HTTPS_ORIGIN||plan.cookieName!=='pb_auth'||!scope.isAllowed(plan.session)||
+     observationScopes.length!==1||observationScopes[0].prefix!==collector)
+    throw new TargetSurfaceError('cookie_domain_contract_missing','The declared account and sibling-host collector are unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      return scope.isAllowed(url)||url===collector?route.continue():route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    await Promise.all([page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000}),page.locator('form button').click()]);
+    const login=JSON.parse(await page.locator('body').textContent());
+    if(login.loggedIn!==true||login.username!==plan.subject)throw new TargetSurfaceError('cookie_domain_login_failed','Browser login did not establish the fixture account.');
+    const cookie=(await context.cookies(scope.origin)).find(item=>item.name===plan.cookieName);
+    if(!cookie?.value||!cookie.secure||!cookie.httpOnly)throw new TargetSurfaceError('cookie_domain_session_missing','Browser did not store the secure dedicated fixture session cookie.');
+    onSecret(cookie.value);onSecret(plan.cookieName+'='+cookie.value);
+    const before=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(before?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('cookie_domain_identity_failed','Browser did not reach the own-host account.');
+    const observed=await page.goto(collector,{waitUntil:'load',timeout:20000});
+    const after=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(after?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('cookie_domain_identity_lost','Own-host account was lost after the sibling-host visit.');
+    let recorded;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:collector,start:0,count:100});
+      recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+collector+' HTTP/'));
+      if(recorded)break;
+      await sleep(250);
+    }
+    if(!recorded)throw new TargetSurfaceError('cookie_domain_history_missing','The sibling-host browser request was absent from ZAP history.');
+    const sent=requestHeader(recorded,'Cookie')||'';
+    const member=sent.split(';').map(value=>value.trim()).find(value=>value.startsWith(plan.cookieName+'='));
+    const sharedDomain=cookie.domain.replace(/^\./,'')==='benchmark.test';
+    if(Boolean(member)!==sharedDomain||(member&&member!==plan.cookieName+'='+cookie.value))
+      throw new TargetSurfaceError('cookie_domain_history_mismatch','ZAP Cookie header does not match the browser cookie scope.');
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded.responseHeader)?.[1]);
+    if(status!==200||status!==observed?.status())throw new TargetSurfaceError('cookie_domain_status_mismatch','The sibling-host collector response differs from the browser result.');
+    metadata.browserCookieDomain={browser:'Chromium via ZAP proxy',targetOrigin:scope.origin,collectorOrigin:CORS_EVIL_ORIGIN,collectorPath:'/b3-cookie-collector',loginStatus:200,accountBeforeStatus:before.status(),accountAfterStatus:after.status(),identityVerified:true,cookieDomain:cookie.domain,collectorCookieSent:Boolean(member),collectorStatus:status,collectorMessageId:recorded.id||null};
+    metadata.steps.push({type:'browser-cookie-domain',url:collector,status,messageId:recorded.id||null});
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
@@ -1310,6 +1362,11 @@ try {
   if(metadata.targetSurface.adapter==='browser-cookie-transport') {
     metadata.phase='browser-cookie-transport';
     await browserCookieTransport(authPlan);
+  }
+  if(metadata.targetSurface.adapter==='browser-cookie-domain') {
+    metadata.phase='browser-cookie-domain';
+    await browserCookieDomain(authPlan);
+    metadata.limitations.push('The browser request to the declared sibling host was observed through ZAP. Cookie delivery is a browser observation separate from ZAP alert detection; the collector is excluded from spider and active scan.');
   }
   if(metadata.targetSurface.adapter==='browser-event-collector') {
     metadata.phase='browser-event-collector';
