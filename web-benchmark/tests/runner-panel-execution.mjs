@@ -277,6 +277,16 @@ test('External window completion requires the popup response and matching opener
   }
 });
 
+test('Framed approval completion requires an authenticated normal POST and matching frame result',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-frame',adapter:'browser-frame-approval',verified:true};
+  const adapt=(result,loaded)=>{result.run.targetSurface=structuredClone(pair);result.run.browserFrameApproval={origin:'https://app:8444',path:'/b2-frame',frameResponseStatus:200,frameResponseMessageId:'11',normalApprovalStatus:200,frameLoaded:loaded,framedApprovalStatus:loaded?200:null};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',complete:true,savedCount:1}];return result;};
+  for(const loaded of [true,false])assert.equal((await harness(plan({auth:['session']}),{result:result=>adapt(result,loaded)}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserFrameApproval.normalApprovalStatus=403;},run=>{run.browserFrameApproval.framedApprovalStatus=null;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan({auth:['session']}),{result:result=>{adapt(result,true);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
+
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
     result=>{result.path='/artifacts/'+result.run.runId+'/run.json';},

@@ -120,6 +120,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(entry===manifest.base+'/b2-approval') {
+      if(auth!=='session')throw new TargetSurfaceError('unsupported_frame_approval_auth','The framed approval operation requires a verified fixture session.',{unsupported:true});
+      if(!['GET','POST'].every(method=>(manifest.requests||[]).some(request=>request.method===method&&request.path===entry)))
+        throw new TargetSurfaceError('unsupported_frame_approval_contract','The public contract lacks the normal approval operations.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-frame',verified:false,adapter:'browser-frame-approval'};
+    }
     if(entry===manifest.base+'/b2-external') {
       if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_external_window_auth','The external window operation requires an anonymous scanner profile.',{unsupported:true});
       if(!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===manifest.base+'/b2-link-home'))

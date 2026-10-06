@@ -95,6 +95,13 @@ test('The declared external window page observes only the fixed local popup',()=
   assert.throws(()=>validateTargetSurface(supplied,{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_external_window_auth');
   assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_external_window_contract');
 });
+test('The declared framed approval page requires a session and its normal operations',()=>{
+  const required=['https://app:8443',COLLECTOR_ORIGIN],entry=manifest.base+'/b2-approval';
+  const supplied={...manifest,entry,requiredTargetOrigins:required,requests:[{method:'GET',path:entry},{method:'POST',path:entry}]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-frame',verified:false,adapter:'browser-frame-approval'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_frame_approval_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_frame_approval_contract');
+});
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{
   const supplied={...manifest,entry:'/w/123456abcdef/b3-transport',requests:[
     {method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'fixture'}},

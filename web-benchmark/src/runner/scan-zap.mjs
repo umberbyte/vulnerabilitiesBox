@@ -401,6 +401,62 @@ async function browserExternalWindow() {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserFrameApproval(plan) {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-frame';
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint)
+    throw new TargetSurfaceError('frame_approval_contract_missing','The declared local framing page is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url(),parsed=new URL(url);
+      if(scopes.some(item=>item.isAllowed(url))||parsed.origin===COLLECTOR_ORIGIN&&parsed.pathname==='/b2-frame')return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('frame_approval_login_failed','The browser fixture login failed.');
+    const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('frame_approval_identity_failed','The browser did not retain the selected fixture identity.');
+    const normal=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('frame_approval_entry_unreachable','The normal approval form was not reachable.');
+    const normalPost=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#approve').click();
+    if((await normalPost).status()!==200)throw new TargetSurfaceError('frame_approval_normal_failed','The normal authenticated approval did not complete.');
+    const frameUrl=new URL(endpoint);
+    frameUrl.searchParams.set('target',scope.entry);
+    const foreign=await page.goto(frameUrl.href,{waitUntil:'networkidle',timeout:20000});
+    if(foreign?.status()!==200)throw new TargetSurfaceError('frame_approval_foreign_unreachable','The local auxiliary framing page was not reachable.');
+    const frameLoaded=await page.frameLocator('#checkout').locator('#approve').count()===1;
+    let framedPostStatus=null;
+    if(frameLoaded) {
+      const framedPost=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+      await page.frameLocator('#checkout').locator('#approve').click();
+      framedPostStatus=(await framedPost).status();
+      if(framedPostStatus!==200)throw new TargetSurfaceError('frame_approval_framed_failed','The framed approval did not complete.');
+    }
+    let recorded;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+frameUrl.href+' HTTP/'));
+      if(recorded)break;
+      await sleep(250);
+    }
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded?.responseHeader)?.[1]);
+    if(!recorded?.id||status!==200)throw new TargetSurfaceError('frame_approval_zap_history_missing','The auxiliary framing page response was not preserved in ZAP history.');
+    metadata.browserFrameApproval={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-frame',frameResponseMessageId:recorded.id,frameResponseStatus:status,normalApprovalStatus:200,frameLoaded,framedApprovalStatus:framedPostStatus,identityVerified:true};
+    metadata.steps.push({type:'browser-frame-approval',url:frameUrl.href,frameResponseMessageId:recorded.id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -634,6 +690,11 @@ try {
     metadata.phase='browser-external-window';
     await browserExternalWindow();
     metadata.limitations.push('The declared auxiliary popup and its opener-driven navigation were observed through the local ZAP proxy. Browser behavior is separate from ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-frame-approval') {
+    metadata.phase='browser-frame-approval';
+    await browserFrameApproval(authPlan);
+    metadata.limitations.push('The local auxiliary page framed the authenticated approval form through ZAP. Frame loading and button submission are browser observations, not ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});
