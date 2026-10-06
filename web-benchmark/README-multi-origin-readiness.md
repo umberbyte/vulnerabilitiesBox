@@ -35,4 +35,10 @@
 
 ZAP自身の前提確認は、Windowsでは`probe-transport.cmd`、Linux/macOSでは`./probe-transport.sh`で実行する。スクリプトはローカルDockerの対象とZAPを起動し、固定した二経路の正常GETだけを各armで送り、ZAPを停止する。結果は新規の`artifacts/dual-transport-probe-*.json`に保存される。最終確認では6セルすべてが両originへ到達し、各セルの対象要求数は2、終了時の処理中要求は0だった。B0233のHTTP側はVで200・F/Nで426、B0461のHTTP側はVで200・F/Nで308を記録した。実行前後の対象ソース一致も確認した。
 
-この前提確認はログイン、Cookie再送、フォームPOST、ブラウザー動作、spider、active scan、alert判定を実行しない。したがってB0233/B0461はまだ「V/F/NのZAPスキャン完走」に加えない。次に必要なのは、HTTPとHTTPSを分けて計測しつつブラウザーの正常操作を再生し、その通信とZAPの観測結果を結び付けるadapterである。
+この前提確認はログイン、Cookie再送、フォームPOST、ブラウザー動作、spider、active scan、alert判定を実行しない。前提確認だけではB0233/B0461を「V/F/NのZAPスキャン完走」に加えない。その後のB0461の実測系列は次節に記録する。B0233にはCookie再送を含むブラウザー操作とZAP観測結果を結び付けるadapterがなお必要である。
+
+## B0461の両経路ZAP系列（2026-10-06）
+
+匿名の固定二経路`http://benchmark.test:8080`と`https://app:8443`に限定したrunnerを追加した。公開manifestの各originに対し通常GETを送り、HTTP上の正常な認証POSTもZAP経由で送信する。context、spider、active scanには両originのworkspaceだけを含め、各originの生HTTP履歴を別ファイルに保存する。`panel-b0461-dual-c8-20261006-ledger.json`ではV/F/Nの全3セルが完了し、HTTP GETは200/308/308、HTTP POSTは200/426/426だった。両originのHTTP履歴は全件保存され、終了時の保留通信は0である。
+
+これはZAP経由の直接HTTP診断であり、Chromiumが実際にどのフォームへ遷移・送信したかを示す証拠ではない。旧個別成立確認との実行ソースも一致しないため、診断完走と脆弱性の成立・検出を分けて扱う。B0233のCookie境界、B0367の認証付きHTTP、その他の補助origin・ブラウザー・WebSocket観測には今回のadapterを適用しない。

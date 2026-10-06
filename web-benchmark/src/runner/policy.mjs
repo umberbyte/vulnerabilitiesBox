@@ -1,6 +1,7 @@
 import {isDeepStrictEqual} from 'node:util';
 
 export const TARGET_ORIGIN='https://app:8443';
+export const HTTP_TRANSPORT_ORIGIN='http://benchmark.test:8080';
 export const SCAN_PROFILES=Object.freeze(['baseline','active','active-low']);
 export const LOW_SCAN_POLICY='benchmark-active-low-v1';
 export const LOW_POLICY_VERSION='benchmark-active-low-0.1';
@@ -92,7 +93,7 @@ export class TargetSurfaceError extends Error {
 }
 // Target surfaces are declared by the same public normal-operation contract in
 // every arm. Never select them by private root, variant, or oracle information.
-export function validateTargetSurface(manifest) {
+export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   const required=manifest.requiredTargetOrigins===undefined?[TARGET_ORIGIN]:manifest.requiredTargetOrigins;
   if(!Array.isArray(required)||required.length===0||required.some(value=>{
     if(typeof value!=='string')return true;
@@ -101,6 +102,10 @@ export function validateTargetSurface(manifest) {
   const capabilities=manifest.requiredObservationCapabilities===undefined?[]:manifest.requiredObservationCapabilities;
   if(!Array.isArray(capabilities)||capabilities.some(value=>typeof value!=='string'||!/^[a-z][a-z0-9_]*$/.test(value))||new Set(capabilities).size!==capabilities.length)throw new TargetSurfaceError('invalid_observation_capability','The public contract must declare distinct capability identifiers.');
   if(capabilities.length)throw new TargetSurfaceError('unsupported_observation_capability','The public contract requires an observation that this HTTP-only adapter cannot verify.',{unsupported:true});
+  if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(HTTP_TRANSPORT_ORIGIN)) {
+    if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_authenticated_transport','The dual-transport adapter cannot verify authenticated HTTP behavior.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],verified:false,adapter:'dual-http-transport'};
+  }
   if(required.some(value=>value!==TARGET_ORIGIN))throw new TargetSurfaceError('unsupported_target_surface','The public contract requires a target origin that this HTTPS-only adapter cannot exercise.',{unsupported:true});
   return {requiredOrigins:[...required],supportedOrigins:[TARGET_ORIGIN],verified:true};
 }
@@ -120,9 +125,9 @@ export function options(env) {
   if(![2,4,6,8].includes(concurrency))throw new Error('SCAN_CONCURRENCY must be 2, 4, 6, or 8.');
   return {profile,auth,user,seconds:integer('SCAN_SECONDS',120,10,1200),requests:integer('SCAN_REQUEST_BUDGET',300,10,10000),concurrency};
 }
-export function publicScope(manifest) {
+export function publicScope(manifest,{origin=TARGET_ORIGIN}={}) {
   if(!/^\/w\/[a-f0-9]{12}$/.test(manifest.base))throw new Error('Unsupported public workspace path.');
-  const origin=TARGET_ORIGIN;
+  if(![TARGET_ORIGIN,HTTP_TRANSPORT_ORIGIN].includes(origin))throw new Error('Unsupported local target origin.');
   const prefix=origin+manifest.base;
   const isAllowed=value=>{
     try {const url=new URL(value,origin);return url.origin===origin&&!url.username&&!url.password&&(url.pathname===manifest.base||url.pathname.startsWith(manifest.base+'/'));}catch{return false;}

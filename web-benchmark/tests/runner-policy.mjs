@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {options,publicScope,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile} from '../src/runner/policy.mjs';
+import {options,publicScope,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,HTTP_TRANSPORT_ORIGIN} from '../src/runner/policy.mjs';
 
 const manifest={base:'/w/123456abcdef',entry:'/w/123456abcdef/search?q=Apple',openapi:'/w/123456abcdef/openapi.json',requests:[{method:'GET',path:'/w/123456abcdef/documents/{id}',pathValues:{id:101},values:{}},{method:'GET',path:'/w/123456abcdef/search',values:{q:'Apple & Banana'}},{method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'Fixture-alice-2026!'}},{method:'GET',path:'http://app:8099/oracle',values:{}},{method:'GET',path:'https://app:8444/attack',values:{}}]};
 test('Legacy and declared HTTPS-only target surfaces remain supported without modifying the contract',()=>{
@@ -11,10 +11,21 @@ test('Legacy and declared HTTPS-only target surfaces remain supported without mo
   }
 });
 test('Additional declared public origins are unsupported regardless of private identifiers or input order',()=>{
-  for(const required of [['http://benchmark.test:8080'],['http://benchmark.test:8080','https://app:8443'],['https://app:8443','http://benchmark.test:8080'],['https://app:8444']]) {
+  for(const required of [['http://benchmark.test:8080'],['http://app:8080','https://app:8443'],['https://app:8443','http://app:8080'],['https://app:8444']]) {
     for(const privateLabels of [{},{root:'R0461',arm:'V'},{root:'R0001',arm:'F'}]) {
       assert.throws(()=>validateTargetSurface({...manifest,...privateLabels,requiredTargetOrigins:required}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_target_surface'&&error.unsupported===true);
     }
+  }
+});
+test('The fixed anonymous HTTP transport pair is supported but requires measured reachability',()=>{
+  for(const required of [[HTTP_TRANSPORT_ORIGIN,'https://app:8443'],['https://app:8443',HTTP_TRANSPORT_ORIGIN]]){
+    const supplied={...manifest,requiredTargetOrigins:required};
+    assert.deepEqual(validateTargetSurface(supplied,{auth:'anonymous'}),{requiredOrigins:required,supportedOrigins:required,verified:false,adapter:'dual-http-transport'});
+    assert.throws(()=>validateTargetSurface(supplied,{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_authenticated_transport');
+    const http=publicScope(supplied,{origin:HTTP_TRANSPORT_ORIGIN});
+    assert.ok(http.isAllowed(HTTP_TRANSPORT_ORIGIN+manifest.base+'/search'));
+    assert.equal(http.isAllowed('https://app:8443'+manifest.base+'/search'),false);
+    assert.equal(http.isAllowed('http://app:8099'+manifest.base+'/search'),false);
   }
 });
 test('Declared WebSocket frame observation is unsupported until the adapter verifies it',()=>{

@@ -2,7 +2,7 @@ import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
 import {options,publicScope,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
-import {authenticationPlan,establishAuthentication,AuthenticationError} from './auth.mjs';
+import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
 import {correlateErrorCache} from './history-correlator.mjs';
 import {captureRemainingMessages} from './history-pages.mjs';
@@ -29,7 +29,7 @@ if(settings.profile==='active-low') {
 metadata.imageDigest=process.env.ZAP_IMAGE?.split('@')[1]||null;
 metadata.controllerRuntime={platform:process.platform,architecture:process.arch};
 const fingerprint=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
-let deadline=Infinity,measurementStarted=false,reason=null,scope,authentication,manifest,lowPolicy,lowPolicySnapshotSaved=false;
+let deadline=Infinity,measurementStarted=false,reason=null,scope,scopes=[],authentication,manifest,lowPolicy,lowPolicySnapshotSaved=false;
 const secrets=new Set([controlKey,apiKey]);
 const onSecret=value=>{if(typeof value==='string'&&value)secrets.add(value);};
 function safeMessage(value) {let result=String(value);for(const secret of secrets)result=result.replaceAll(secret,'[redacted]');return result;}
@@ -85,17 +85,24 @@ async function excludeAuthOperations() {
 }
 async function verifyAuthentication() {if(authentication&&settings.auth!=='anonymous')await authentication.verify();}
 async function access(url) {
-  if(!scope.isAllowed(url))throw new Error('Refused out-of-workspace seed.');
+  if(!scopes.some(item=>item.isAllowed(url)))throw new Error('Refused out-of-workspace seed.');
   return api('core','action','accessUrl',{url,followRedirects:false},Math.min(15000,Math.max(1000,deadline-Date.now())));
 }
+function measuredMessage(value,name,method,url) {
+  const message=messageFrom(value,name);
+  const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
+  if(request?.[1]!==url)throw new TargetSurfaceError('target_origin_not_reached','ZAP did not send the expected local public request.');
+  return {url,status:message.status,messageId:message.id||null};
+}
+const escapeRegex=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 async function configure() {
   const context='benchmark-'+runId;
   metadata.context=context;
   const result=await api('context','action','newContext',{contextName:context});metadata.contextId=result.contextId;
-  await api('context','action','includeInContext',{contextName:context,regex:scope.regex});
+  for(const item of scopes)await api('context','action','includeInContext',{contextName:context,regex:item.regex});
   await api('context','action','setContextInScope',{contextName:context,booleanInScope:true});
   await api('core','action','setMode',{mode:'protect'});
-  await api('core','action','excludeFromProxy',{regex:'^(?!https://app:8443(?:/|$)).*'});
+  await api('core','action','excludeFromProxy',{regex:'^(?!(?:'+scopes.map(item=>escapeRegex(item.origin)+'(?:/|$)').join('|')+')).*'});
   await api('pscan','action','setScanOnlyInScope',{onlyInScope:true});
   await api('spider','action','setOptionThreadCount',{Integer:settings.concurrency});
   await api('spider','action','setOptionMaxDuration',{Integer:1});
@@ -111,8 +118,8 @@ async function configure() {
   await api('network','action','setConnectionTimeout',{timeout:5});
   await api('network','action','setUseGlobalHttpState',{use:false});
   // Hardening the scanner's discovery scope is independent of the vulnerable arm.
-  await api('spider','action','excludeFromScan',{regex:'^(?!'+scope.prefix.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:/|\\?|$)).*'});
-  metadata.scope={includeRegex:scope.regex,entry:scope.entry,openapi:scope.openapi,excludedOrigins:['http://app:8099','https://app:8444','http://app:8080'],protectionMode:'protect'};
+  await api('spider','action','excludeFromScan',{regex:'^(?!(?:'+scopes.map(item=>escapeRegex(item.prefix)+'(?:/|\\?|$)').join('|')+')).*'});
+  metadata.scope={includeRegex:scope.regex,includeRegexes:scopes.map(item=>item.regex),entry:scope.entry,openapi:scope.openapi,excludedOrigins:['http://app:8099','https://app:8444','http://app:8080'],protectionMode:'protect'};
 }
 async function stop() {
   await optional('spider','action','stopAllScans');
@@ -189,6 +196,23 @@ async function collect() {
   }
   metadata.historyArchive={savedCount:archived.savedCount,maxMessages:archived.maxMessages,complete:archived.complete,files:historyFiles,...(archived.error?{error:safeMessage(archived.error)}:{})};
   if(!archived.complete)metadata.limitations.push('The saved ZAP HTTP history is incomplete; absence of a request in the saved pages is not evidence that the scanner did not send it.');
+  metadata.secondaryHistoryArchives=[];
+  for(const [index,item] of scopes.entries()) {
+    if(item.origin===scope.origin)continue;
+    const first=await api('core','view','messages',{baseurl:item.prefix,start:0,count:500});
+    const prefix='messages-origin-'+index;
+    const firstBody=JSON.stringify(first,null,2)+'\n';
+    await writeFile(output+'/'+prefix+'-first-500.json',firstBody);
+    const rest=await captureRemainingMessages(first,(start,count)=>api('core','view','messages',{baseurl:item.prefix,start,count}));
+    const files=[{path:prefix+'-first-500.json',messages:first.messages.length,sha256:createHash('sha256').update(firstBody).digest('hex')}];
+    if(rest.remaining.length) {
+      const body=JSON.stringify({start:500,messages:rest.remaining},null,2)+'\n';
+      await writeFile(output+'/'+prefix+'-after-500.json',body);
+      files.push({path:prefix+'-after-500.json',messages:rest.remaining.length,sha256:createHash('sha256').update(body).digest('hex')});
+    }
+    metadata.secondaryHistoryArchives.push({origin:item.origin,savedCount:rest.savedCount,maxMessages:rest.maxMessages,complete:rest.complete,files,...(rest.error?{error:safeMessage(rest.error)}:{})});
+    if(!rest.complete)metadata.limitations.push('The saved ZAP HTTP history is incomplete for '+item.origin+'.');
+  }
   if(process.env.SCAN_CUSTOM_MODE==='custom'||process.env.SCAN_CUSTOM_MODE==='custom-only') {
     const findings=correlateErrorCache(history.messages||[]);
     await writeFile(output+'/history-findings.json',JSON.stringify({source:'benchmark controller correlation of ZAP HTTP history',findings},null,2)+'\n');
@@ -204,15 +228,24 @@ async function collect() {
       });
     }
   }
-  const alerts=[];
-  for(let start=0;start<100000;start+=500) {
-    const value=await api('core','view','alerts',{baseurl:scope.prefix,start,count:500});
-    const items=value.alerts||[];alerts.push(...items);if(items.length<500)break;
+  const alerts=[];metadata.alertsByOrigin=[];
+  for(const [index,item] of scopes.entries()) {
+    const group=[];
+    for(let start=0;start<100000;start+=500) {
+      const value=await api('core','view','alerts',{baseurl:item.prefix,start,count:500});
+      const items=value.alerts||[];group.push(...items);if(items.length<500)break;
+    }
+    alerts.push(...group);metadata.alertsByOrigin.push({origin:item.origin,count:group.length});
+    if(item.origin!==scope.origin)await writeFile(output+'/alerts-origin-'+index+'.json',JSON.stringify({alerts:group},null,2)+'\n');
   }
   await writeFile(output+'/alerts.json',JSON.stringify({alerts},null,2)+'\n');
   metadata.rawAlertInstances=alerts.length;
   const inventory=await api('core','view','urls',{baseurl:scope.prefix});
   await writeFile(output+'/urls.json',JSON.stringify(inventory,null,2)+'\n');
+  for(const [index,item] of scopes.entries())if(item.origin!==scope.origin) {
+    const secondary=await api('core','view','urls',{baseurl:item.prefix});
+    await writeFile(output+'/urls-origin-'+index+'.json',JSON.stringify(secondary,null,2)+'\n');
+  }
   // This HTML is generated by ZAP itself. The panel starts a fresh ZAP session
   // for every cell, so the report describes only that cell's scanner history.
   const reportResponse=await fetch(new URL('/OTHER/core/other/htmlreport/',zap),{
@@ -240,7 +273,8 @@ try {
   metadata.inputFingerprints={publicManifestSha256:fingerprint(manifest)};
   await writeFile(output+'/public-inputs.json',JSON.stringify(manifest,null,2)+'\n');
   metadata.targetSurface={requiredOrigins:manifest.requiredTargetOrigins??[TARGET_ORIGIN],requiredObservationCapabilities:manifest.requiredObservationCapabilities===undefined?[]:manifest.requiredObservationCapabilities,supportedOrigins:[TARGET_ORIGIN],verified:false};
-  metadata.targetSurface=validateTargetSurface(manifest);
+  metadata.targetSurface=validateTargetSurface(manifest,settings);
+  scopes=metadata.targetSurface.supportedOrigins.map(origin=>publicScope(manifest,{origin}));
   const authPlan=authenticationPlan(manifest,settings,scope);
   await configure();
   if(settings.profile==='active-low') {
@@ -268,30 +302,76 @@ try {
   await writeFile('/scan-input/openapi.json',JSON.stringify(importedSchema));
   metadata.openapi={originalPathCount:Object.keys(originalSchema.paths||{}).length,importedPathCount:Object.keys(importedSchema.paths).length,identityChangingExampleExclusions:identityExclusions,filter:settings.auth==='anonymous'?'login/logout/IdP credential POST excluded; unchanged normal examples for other operations':'login/logout routes and credentialed session-elevation POST examples excluded; unchanged normal examples for other operations'};
   if(identityExclusions.length)metadata.limitations.push('Credentialed session-elevation POST examples are omitted from authenticated OpenAPI import to keep the selected subject stable; this scan does not exercise or score that workflow.');
-  for(const url of seedUrls(manifest,scope,settings)) {
-    if(!await guard())break;
-    await access(url);metadata.steps.push({type:'normal-get',url});
+  metadata.originReachability=[];
+  for(const item of scopes) {
+    for(const url of seedUrls(manifest,item,settings)) {
+      if(!await guard())break;
+      const response=await access(url);
+      if(url===item.entry)metadata.originReachability.push({origin:item.origin,...measuredMessage(response,'accessUrl','GET',url)});
+      metadata.steps.push({type:'normal-get',url});
+    }
+    if(reason)break;
+  }
+  if(!reason&&metadata.targetSurface.adapter==='dual-http-transport') {
+    const http=scopes.find(item=>item.origin.startsWith('http:'));
+    const credentialPost=(manifest.requests||[]).find(request=>request.method==='POST'&&
+      typeof request.values?.username==='string'&&typeof request.values?.password==='string'&&http.isAllowed(request.path));
+    if(!credentialPost)throw new TargetSurfaceError('transport_example_missing','The public contract has no normal credential form POST for the HTTP transport.');
+    if(await guard()) {
+      const url=new URL(credentialPost.path,http.origin).href;
+      const response=await api('core','action','sendRequest',{request:rawRequest(url,{method:'POST',body:credentialPost.values}),followRedirects:false},Math.min(15000,Math.max(1000,deadline-Date.now())));
+      metadata.normalTransportPost=measuredMessage(response,'sendRequest','POST',url);
+      metadata.steps.push({type:'normal-http-transport-post',url,status:metadata.normalTransportPost.status});
+    }
+    metadata.targetSurface.verified=!reason&&metadata.originReachability.length===scopes.length&&Boolean(metadata.normalTransportPost);
+    if(!reason&&!metadata.targetSurface.verified)throw new TargetSurfaceError('target_origin_not_reached','The declared HTTP and HTTPS target surfaces were not both reached.');
+    metadata.limitations.push('The normal HTTP credential POST is sent through ZAP and preserved in raw HTTP history; browser form navigation and secure-context behavior are not reproduced by this adapter.');
   }
   if(!reason)await guard();
   if(!reason&&isActiveProfile(settings.profile)) {
     await verifyAuthentication();
     metadata.phase='openapi-import';
-    await api('openapi','action','importFile',{file:'/scan-input/openapi.json',target:scope.origin,contextId:metadata.contextId,maxMessages:50},Math.min(30000,Math.max(1000,deadline-Date.now())));
-    await guard();
+    metadata.openapi.imports=[];
+    for(const [index,item] of scopes.entries()) {
+      if(!await guard())break;
+      const primary=item.origin===scope.origin;
+      const filename=primary?'/scan-input/openapi.json':'/scan-input/openapi-origin-'+index+'.json';
+      if(!primary) {
+        const schema=anonymousSchema(originalSchema,item,{auth:settings.auth,manifest});
+        await writeFile(filename,JSON.stringify(schema));
+        await writeFile(output+'/openapi-origin-'+index+'.json',JSON.stringify(schema,null,2)+'\n');
+      }
+      await api('openapi','action','importFile',{file:filename,target:item.origin,contextId:metadata.contextId,maxMessages:50},Math.min(30000,Math.max(1000,deadline-Date.now())));
+      metadata.openapi.imports.push({origin:item.origin,file:filename,completed:true});
+    }
   }
   if(!reason) {
     await verifyAuthentication();
     metadata.phase='spider';
-    const scan=await api('spider','action','scan',{url:scope.entry,maxChildren:15,recurse:true,contextName:metadata.context,subtreeOnly:true});
-    metadata.spiderId=scan.scan;metadata.spiderCompleted=await waitScan('spider',scan.scan);
+    metadata.spiderScans=[];
+    for(const item of scopes) {
+      if(!await guard())break;
+      const scan=await api('spider','action','scan',{url:item.entry,maxChildren:15,recurse:true,contextName:metadata.context,subtreeOnly:true});
+      const completed=await waitScan('spider',scan.scan);
+      metadata.spiderScans.push({origin:item.origin,id:scan.scan,completed});
+      if(item.origin===scope.origin)metadata.spiderId=scan.scan;
+    }
+    metadata.spiderCompleted=metadata.spiderScans.length===scopes.length&&metadata.spiderScans.every(scan=>scan.completed);
   }
   if(!reason)await guard();
   if(!reason&&isActiveProfile(settings.profile)) {
     await verifyAuthentication();
     metadata.phase='active';
-    const scan=await api('ascan','action','scan',activeScanParameters(settings.profile,{url:scope.prefix,recurse:true,inScopeOnly:true,contextId:metadata.contextId},lowPolicy));
-    if(settings.profile==='active-low')metadata.activeScanPolicy.activeScanInvoked=true;
-    metadata.activeScanId=scan.scan;metadata.activeScanCompleted=await waitScan('ascan',scan.scan);
+    metadata.activeScans=[];
+    for(const item of scopes) {
+      if(!await guard())break;
+      const scan=await api('ascan','action','scan',activeScanParameters(settings.profile,{url:item.prefix,recurse:true,inScopeOnly:true,contextId:metadata.contextId},lowPolicy));
+      if(settings.profile==='active-low')metadata.activeScanPolicy.activeScanInvoked=true;
+      const completed=await waitScan('ascan',scan.scan);
+      metadata.activeScans.push({origin:item.origin,id:scan.scan,completed});
+      if(item.origin===scope.origin)metadata.activeScanId=scan.scan;
+    }
+    metadata.activeScanCompleted=metadata.activeScans.length===scopes.length&&metadata.activeScans.every(scan=>scan.completed);
   }
   if(!reason) {
     metadata.phase='passive';
