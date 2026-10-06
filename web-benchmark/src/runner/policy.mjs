@@ -120,6 +120,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(entry===manifest.base+'/b2-message-hub') {
+      if(auth!=='session')throw new TargetSurfaceError('unsupported_message_auth','The message boundary operation requires a verified fixture session.',{unsupported:true});
+      if(!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===manifest.base+'/b2-message-client'))
+        throw new TargetSurfaceError('unsupported_message_contract','The public contract lacks the normal same-origin message client.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-origin-page',verified:false,adapter:'browser-message-boundary'};
+    }
     if(entry===manifest.base+'/b2-approval') {
       if(auth!=='session')throw new TargetSurfaceError('unsupported_frame_approval_auth','The framed approval operation requires a verified fixture session.',{unsupported:true});
       if(!['GET','POST'].every(method=>(manifest.requests||[]).some(request=>request.method===method&&request.path===entry)))

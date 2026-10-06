@@ -102,6 +102,13 @@ test('The declared framed approval page requires a session and its normal operat
   assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_frame_approval_auth');
   assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_frame_approval_contract');
 });
+test('The declared postMessage hub observes only the local auxiliary receiver',()=>{
+  const required=['https://app:8443',COLLECTOR_ORIGIN];
+  const supplied={...manifest,entry:manifest.base+'/b2-message-hub',requiredTargetOrigins:required,requests:[{method:'GET',path:manifest.base+'/b2-message-client'}]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-origin-page',verified:false,adapter:'browser-message-boundary'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_message_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_message_contract');
+});
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{
   const supplied={...manifest,entry:'/w/123456abcdef/b3-transport',requests:[
     {method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'fixture'}},

@@ -457,6 +457,83 @@ async function browserFrameApproval(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserMessageBoundary(plan) {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-origin-page';
+  const client=new URL(manifest.base+'/b2-message-client',scope.origin).href;
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint||!scope.isAllowed(client))
+    throw new TargetSurfaceError('message_boundary_contract_missing','The declared local message client or auxiliary page is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===endpoint)return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('message_boundary_login_failed','The browser fixture login failed.');
+    const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('message_boundary_identity_failed','The browser did not retain the selected fixture identity.');
+    const normal=await page.goto(client,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('message_boundary_client_unreachable','The normal message client was not reachable.');
+    const opened=page.waitForEvent('popup',{timeout:20000});
+    await page.locator('#open-hub').click();
+    const popup=await opened;
+    await popup.waitForLoadState('load',{timeout:20000});
+    if(popup.url()!==scope.entry)throw new TargetSurfaceError('message_boundary_hub_unreachable','The normal message hub did not open.');
+    await page.locator('#request').click();
+    await popup.waitForFunction(()=>document.querySelector('#hub-status')?.textContent!=='Waiting',null,{timeout:10000});
+    const hubStatus=await popup.locator('#hub-status').textContent();
+    if(!['Sent','Registered'].includes(hubStatus))throw new TargetSurfaceError('message_boundary_normal_failed','The normal message operation did not complete.');
+    if(hubStatus==='Registered')await popup.locator('#send-report').click();
+    await page.waitForFunction(()=>document.querySelector('#message-result')?.textContent!=='Waiting',null,{timeout:10000});
+    let report;
+    try{report=JSON.parse(await page.locator('#message-result').textContent())?.report;}catch{}
+    if(typeof report!=='string'||!report)throw new TargetSurfaceError('message_boundary_normal_report_missing','The normal same-origin report was not received.');
+    let receiver=page;
+    if(hubStatus==='Sent') {
+      await popup.close();
+      const foreign=await page.goto(endpoint,{waitUntil:'load',timeout:20000});
+      if(foreign?.status()!==200)throw new TargetSurfaceError('message_boundary_foreign_unreachable','The local auxiliary page was not reachable.');
+      const externalOpened=page.waitForEvent('popup',{timeout:20000});
+      await page.evaluate(url=>{window.hub=window.open(url,'external-report-hub');},scope.entry);
+      const externalHub=await externalOpened;
+      await externalHub.waitForLoadState('load',{timeout:20000});
+      await page.evaluate(origin=>window.hub.postMessage({kind:'read-report'},origin),scope.origin);
+      await page.waitForTimeout(300);
+      await externalHub.close();
+    } else {
+      const foreign=await page.goto(endpoint,{waitUntil:'load',timeout:20000});
+      if(foreign?.status()!==200)throw new TargetSurfaceError('message_boundary_foreign_unreachable','The local auxiliary page was not reachable.');
+      await popup.locator('#send-report').click();
+      await page.waitForTimeout(300);
+    }
+    let foreignReport;
+    try{foreignReport=JSON.parse(await receiver.locator('#received').textContent())?.report;}catch{}
+    const externalReceived=foreignReport===report;
+    let recorded;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+endpoint+' HTTP/'));
+      if(recorded)break;
+      await sleep(250);
+    }
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded?.responseHeader)?.[1]);
+    if(!recorded?.id||status!==200)throw new TargetSurfaceError('message_boundary_zap_history_missing','The auxiliary receiver response was not preserved in ZAP history.');
+    metadata.browserMessageBoundary={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-origin-page',mode:hubStatus==='Sent'?'sender-origin':'recipient-navigation',receiverResponseMessageId:recorded.id,receiverResponseStatus:status,normalReportReceived:true,externalReportReceived:externalReceived,identityVerified:true};
+    metadata.steps.push({type:'browser-message-boundary',url:endpoint,mode:metadata.browserMessageBoundary.mode,receiverResponseMessageId:recorded.id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -695,6 +772,11 @@ try {
     metadata.phase='browser-frame-approval';
     await browserFrameApproval(authPlan);
     metadata.limitations.push('The local auxiliary page framed the authenticated approval form through ZAP. Frame loading and button submission are browser observations, not ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-message-boundary') {
+    metadata.phase='browser-message-boundary';
+    await browserMessageBoundary(authPlan);
+    metadata.limitations.push('The declared local message receiver and same-origin report exchange were observed through ZAP. Cross-origin delivery is a browser observation, not ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});
