@@ -1315,6 +1315,77 @@ async function browserProfileOrigin(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserWebSocketFrame(plan) {
+  const clientUrl=COLLECTOR_ORIGIN+'/b3-socket-client';
+  const socketUrl=scope.origin.replace(/^https:/,'wss:')+manifest.base+'/b3-socket';
+  if(scope.origin!==TARGET_ORIGIN||observationScopes.length!==1||observationScopes[0].prefix!==clientUrl||!scope.isAllowed(scope.entry)||!scope.isAllowed(plan.session))
+    throw new TargetSurfaceError('websocket_contract_missing','The declared member panel and auxiliary browser client are unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      return scope.isAllowed(url)||url===clientUrl?route.continue():route.abort();
+    });
+    const own=await context.newPage();
+    const ownFrames=[];
+    own.on('websocket',socket=>{if(socket.url()===socketUrl)socket.on('framereceived',frame=>ownFrames.push(String(frame.payload)));});
+    await own.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await own.locator('input[name=username]').fill(plan.credentials.username);
+    await own.locator('input[name=password]').fill(plan.credentials.password);
+    const loginResponse=own.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await own.locator('form button').click();
+    if((await loginResponse).status()!==200)throw new TargetSurfaceError('websocket_browser_login_failed','The browser fixture login failed.');
+    const identity=await own.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(identity?.status()!==200||JSON.parse(await own.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('websocket_browser_identity_failed','The browser did not retain the fixture identity.');
+    const normal=await own.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('websocket_panel_missing','The same-origin member panel was not reachable.');
+    await own.waitForFunction(()=>document.querySelector('#result')?.textContent!=='waiting',null,{timeout:8000});
+    const ownResult=(await own.locator('#result').textContent()).trim();
+    if(!ownResult.includes('Alice private document')||!ownFrames.some(frame=>frame.includes('Alice private document')))
+      throw new TargetSurfaceError('websocket_normal_frame_missing','The same-origin browser did not receive its member report frame.');
+    const foreign=await context.newPage();
+    const foreignFrames=[];
+    foreign.on('websocket',socket=>{if(socket.url()===socketUrl)socket.on('framereceived',frame=>foreignFrames.push(String(frame.payload)));});
+    const client=await foreign.goto(clientUrl,{waitUntil:'load',timeout:20000});
+    if(client?.status()!==200)throw new TargetSurfaceError('websocket_client_missing','The local auxiliary browser client was not reachable.');
+    await foreign.waitForFunction(()=>document.querySelector('#result')?.textContent!=='waiting',null,{timeout:8000});
+    const foreignResult=(await foreign.locator('#result').textContent()).trim();
+    const foreignReceived=foreignFrames.some(frame=>frame.includes('Alice private document'));
+    if(![true,false].includes(foreignReceived)||
+       foreignReceived!==foreignResult.includes('Alice private document')||
+       !foreignReceived&&foreignResult!=='blocked')
+      throw new TargetSurfaceError('websocket_foreign_frame_mismatch','The auxiliary browser result disagreed with its received frames.');
+    const [channels,messages]=await Promise.all([
+      api('websocket','view','channels'),
+      api('websocket','view','messages',{start:0,count:200,payloadPreviewLength:4096})
+    ]);
+    const archive={channels,messages};
+    const archiveBytes=Buffer.from(JSON.stringify(archive,null,2)+'\n');
+    await writeFile(output+'/websocket-frames.json',archiveBytes);
+    const recorded=Array.isArray(messages.messages)?messages.messages:[];
+    const responseFrames=recorded.filter(frame=>JSON.stringify(frame).includes('Alice private document'));
+    if(!Array.isArray(channels.channels)||channels.channels.length<1||responseFrames.length<(foreignReceived?2:1))
+      throw new TargetSurfaceError('websocket_zap_frames_missing','ZAP did not retain the browser WebSocket report frames.');
+    let clientMessage;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:clientUrl,start:0,count:100});
+      clientMessage=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+clientUrl+' HTTP/'));
+      if(clientMessage)break;
+      await sleep(250);
+    }
+    if(!clientMessage?.id||Number(/^HTTP\/\S+\s+(\d+)/.exec(clientMessage.responseHeader)?.[1])!==200)
+      throw new TargetSurfaceError('websocket_auxiliary_history_missing','The auxiliary browser client was absent from ZAP HTTP history.');
+    metadata.browserWebSocketFrame={browser:'Chromium via ZAP proxy',normalPanelStatus:200,normalReportReceived:true,auxiliaryOrigin:COLLECTOR_ORIGIN,auxiliaryPath:'/b3-socket-client',auxiliaryStatus:200,auxiliaryMessageId:clientMessage.id,foreignReportReceived:foreignReceived,zapFrameArchive:{path:'websocket-frames.json',sha256:createHash('sha256').update(archiveBytes).digest('hex'),messageCount:recorded.length,responseFrameCount:responseFrames.length},identityVerified:true};
+    metadata.steps.push({type:'browser-websocket-frame',url:clientUrl,auxiliaryMessageId:clientMessage.id,frameArchive:'websocket-frames.json'});
+    metadata.targetSurface.verified=true;
+    await foreign.close();await own.close();
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -1538,6 +1609,11 @@ try {
     metadata.phase='browser-fresh-cookie';
     await browserFreshCookie(authPlan);
     metadata.limitations.push('The local external form and fresh member cookie were exercised by Chromium through ZAP. Browser cookie delivery and state changes are separate from ZAP alert detection; the external page is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-websocket-frame') {
+    metadata.phase='browser-websocket-frame';
+    await browserWebSocketFrame(authPlan);
+    metadata.limitations.push('Chromium exercised same-origin and auxiliary-origin WebSocket frames through ZAP. Saved WebSocket frames and browser delivery are separate from HTTP active-scan alerts; the auxiliary client is excluded from spider and active scan.');
   }
   if(metadata.targetSurface.adapter==='browser-event-collector') {
     metadata.phase='browser-event-collector';

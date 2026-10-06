@@ -229,6 +229,13 @@ test('Declared WebSocket frame observation is unsupported until the adapter veri
     assert.throws(()=>validateTargetSurface({...surface,requiredObservationCapabilities:invalid}),error=>error instanceof TargetSurfaceError&&error.code==='invalid_observation_capability'&&error.unsupported===false);
   }
 });
+test('Declared member WebSocket frame uses a browser client on the auxiliary local origin',()=>{
+  const entry=manifest.base+'/b3-socket-panel';
+  const supplied={...manifest,entry,requests:[{method:'GET',path:entry},{method:'GET',path:manifest.base+'/b3-socket-client'}],requiredTargetOrigins:['https://app:8443','https://app:8444'],requiredObservationCapabilities:['websocket_frame']};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:supplied.requiredTargetOrigins,supportedOrigins:supplied.requiredTargetOrigins,scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b3-socket-client',verified:false,adapter:'browser-websocket-frame'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error.code==='unsupported_websocket_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error.code==='unsupported_websocket_contract');
+});
 test('Malformed, duplicate or non-origin target declarations fail closed as invalid contracts',()=>{
   for(const required of [null,[],{},'https://app:8443',[42],[''],['https://app:8443','https://app:8443'],['https://app:8443/'],['https://app:8443/path'],['https://app:8443?key=value'],['https://user:password@app:8443'],['file:///tmp/fixture']]) {
     assert.throws(()=>validateTargetSurface({...manifest,requiredTargetOrigins:required}),error=>error instanceof TargetSurfaceError&&error.code==='invalid_target_surface'&&error.unsupported===false);

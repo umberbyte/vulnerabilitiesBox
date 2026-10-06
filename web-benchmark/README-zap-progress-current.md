@@ -1,6 +1,6 @@
 # ZAP V/F/N走査の進捗（2026-10-06）
 
-ローカルDockerの既存500変種について、保存済みの計画・台帳・runを`reports.cmd`で再集計した。2026-10-06の最新集計はV/F/Nの3セルが同一系列で完了した変種が498/500（99.6%）、未完走が2/500（0.4%）で、集計issueは0件。直近のB0325は[fresh Cookieの専用記録](README-fresh-cookie-zap.md)、B0236は[同名Cookieの専用記録](README-cookie-shadow-zap.md)、B0234は[Cookie Domainの専用記録](README-cookie-domain-zap.md)にブラウザー観測と走査の経過を記した。B0333・B0334・B0336は[許可originの専用記録](README-cors-allowlist-zap.md)、B0340は[許可表の専用記録](README-cors-policy-zap.md)、B0331・B0337・B0338のpreflightを伴う系列は[CORSレポート記録](README-cors-report-zap.md)にある。ローカルの`artifacts/index.html`も参照する。以下の表は470変種到達時点の台帳であり、その後の系列は各専用記録とオフライン集計に反映した。
+ローカルDockerの既存500変種について、保存済みの計画・台帳・runを`reports.cmd`で再集計した。2026-10-06の最新集計はV/F/Nの3セルが同一系列で完了した変種が499/500（99.8%）、未完走が1/500（0.2%）で、集計issueは0件。直近のB0341は[WebSocketの専用記録](README-websocket-frame-zap.md)、B0325は[fresh Cookieの専用記録](README-fresh-cookie-zap.md)、B0236は[同名Cookieの専用記録](README-cookie-shadow-zap.md)、B0234は[Cookie Domainの専用記録](README-cookie-domain-zap.md)にブラウザー観測と走査の経過を記した。B0333・B0334・B0336は[許可originの専用記録](README-cors-allowlist-zap.md)、B0340は[許可表の専用記録](README-cors-policy-zap.md)、B0331・B0337・B0338のpreflightを伴う系列は[CORSレポート記録](README-cors-report-zap.md)にある。ローカルの`artifacts/index.html`も参照する。以下の表は470変種到達時点の台帳であり、その後の系列は各専用記録とオフライン集計に反映した。
 
 | 系列の台帳（ローカル`artifacts/`） | 新規完走変種 | 完了セル |
 | --- | ---: | ---: |
@@ -20,7 +20,7 @@
 
 B0233の実ブラウザーによるHTTP Cookie送出と保存済みZAP要求の照合、初回台帳失敗の経緯は[専用の走査記録](README-b0233-browser-zap.md)を参照する。
 
-未完走2変種はともにコアDASTで、B0335、B0341。[個別の一覧](artifacts/evidence-linkage.md)はローカルで再生成される。特殊なブラウザー状態、WebSocket frameなどの観測条件を確認してから順次走査する。
+未完走はコアDASTのB0335、1変種。[個別の一覧](artifacts/evidence-linkage.md)はローカルで再生成される。混在schemeのブラウザー状態とローカルアドレス制限を再現した計測条件を確認してから走査する。
 
 B0222の旧8・6スレッド系列では、OpenAPIの正常な昇格POST例の再生後に認証主体が変わり、`auth_identity_mismatch`で停止した。公開manifestにある認証付きの昇格例をOpenAPI自動取込から除外し、アプリとcontrollerを同じソースで再構築した6スレッド系列では、V/F/Nすべて227要求で完了した。昇格POST自体は今回のZAP系列で実行・採点していない。失敗した旧台帳と、ソース不一致で走査前に止まった最初の再試行台帳も保持する。B0231の8スレッド系列はV/F/N各448要求で完了した。両系列ともZAP終了時の通信残は0だが、旧個別成立確認との実行ソースハッシュは一致していないため、成立・検出・誤検出を推定しない。
 
@@ -30,4 +30,4 @@ B0367では固定した`http://app:8080`と`https://app:8443`を対象とし、H
 
 B0002の8・6・4スレッドの旧系列は、Vセルの走査が終わっても30秒のdrain上限時に`pendingHandlers=1`で停止した。旧原票を保持し、runnerの終了時drain上限を90秒にして対象アプリを同じソースから再構築した。独立した4スレッド系列ではV/F/Nが完了し、Vのdrainは32.144秒、F/Nは各約1秒、終了時の保留処理は各0だった。これは30秒上限を超えた処理の収束を記録した結果であり、B0002の欠陥をZAPが検出したという判定ではない。
 
-500変種すべてに個別V/F/N成立確認記録があるが、走査と成立確認の実行ソースを照合できた完走変種は263。残る完走235変種は旧系列にソース記録がない39と、成立確認時とのハッシュ不一致196である。依存サービス・状態・ホスト環境まで一致を証明した件数は0。走査完了は欠陥への到達、ZAPの検出、真陽性・誤陽性の判定を意味しない。集計原本、HTMLレポート、runは作業PCの`artifacts/`にあり、公開Gitには含めない。
+500変種すべてに個別V/F/N成立確認記録があるが、走査と成立確認の実行ソースを照合できた完走変種は263。残る完走236変種は旧系列にソース記録がない39と、成立確認時とのハッシュ不一致197である。依存サービス・状態・ホスト環境まで一致を証明した件数は0。走査完了は欠陥への到達、ZAPの検出、真陽性・誤陽性の判定を意味しない。集計原本、HTMLレポート、runは作業PCの`artifacts/`にあり、公開Gitには含めない。

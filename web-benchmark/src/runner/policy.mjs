@@ -110,6 +110,13 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   })||new Set(required).size!==required.length)throw new TargetSurfaceError('invalid_target_surface','The public contract must declare distinct canonical HTTP(S) origins.');
   const capabilities=manifest.requiredObservationCapabilities===undefined?[]:manifest.requiredObservationCapabilities;
   if(!Array.isArray(capabilities)||capabilities.some(value=>typeof value!=='string'||!/^[a-z][a-z0-9_]*$/.test(value))||new Set(capabilities).size!==capabilities.length)throw new TargetSurfaceError('invalid_observation_capability','The public contract must declare distinct capability identifiers.');
+  if(capabilities.length===1&&capabilities[0]==='websocket_frame'&&required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)&&
+     new URL(manifest.entry,TARGET_ORIGIN).pathname===manifest.base+'/b3-socket-panel') {
+    if(auth!=='session')throw new TargetSurfaceError('unsupported_websocket_auth','The WebSocket frame observation requires a verified fixture session.',{unsupported:true});
+    if(!['GET '+manifest.base+'/b3-socket-panel','GET '+manifest.base+'/b3-socket-client'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
+      throw new TargetSurfaceError('unsupported_websocket_contract','The public contract lacks the normal panel and auxiliary client operations.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b3-socket-client',verified:false,adapter:'browser-websocket-frame'};
+  }
   if(capabilities.length)throw new TargetSurfaceError('unsupported_observation_capability','The public contract requires an observation that this HTTP-only adapter cannot verify.',{unsupported:true});
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(HTTP_TRANSPORT_ORIGIN)) {
     if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_authenticated_transport','The dual-transport adapter cannot verify authenticated HTTP behavior.',{unsupported:true});

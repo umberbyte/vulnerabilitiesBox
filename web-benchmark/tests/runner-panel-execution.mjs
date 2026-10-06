@@ -259,6 +259,17 @@ test('Fresh-cookie completion requires cross-site browser HTTP and an auxiliary 
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('WebSocket-frame completion requires ZAP frame archive and auxiliary client HTTP',async()=>{
+  const base=plan({auth:['session']});
+  const app='https://app:8443',aux='https://app:8444';
+  const pair={requiredOrigins:[app,aux],supportedOrigins:[app,aux],scanOrigins:[app],observationOrigins:[aux],observationPath:'/b3-socket-client',adapter:'browser-websocket-frame',verified:true};
+  const adapt=result=>{result.run.targetSurface=structuredClone(pair);result.run.browserWebSocketFrame={normalPanelStatus:200,normalReportReceived:true,auxiliaryOrigin:aux,auxiliaryPath:'/b3-socket-client',auxiliaryStatus:200,auxiliaryMessageId:'8',foreignReportReceived:false,zapFrameArchive:{path:'websocket-frames.json',sha256:'a'.repeat(64),messageCount:2,responseFrameCount:1},identityVerified:true};result.run.secondaryHistoryArchives=[{origin:aux,prefix:aux+'/b3-socket-client',complete:true,savedCount:1}];return result;};
+  assert.equal((await harness(base,{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserWebSocketFrame.zapFrameArchive.responseFrameCount=0;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(base,{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Event collector completion requires the separate ZAP history and browser evidence',async()=>{
   const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],adapter:'browser-event-collector',verified:true};

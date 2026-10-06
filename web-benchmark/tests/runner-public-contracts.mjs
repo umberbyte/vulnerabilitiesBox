@@ -14,9 +14,9 @@ test('CORS variants declare the browser origin used by their own acceptance path
     assert.deepEqual(definition?.requiredTargetOrigins,['https://app.benchmark.test:8443',attacker],variant);
   }
 });
-test('WebSocket Origin claim is an observation capability rather than a second target origin',()=>{
+test('WebSocket Origin claim declares a frame observation and its local browser origin',()=>{
   const socket=definitions.find(item=>item.root==='R0341');
-  assert.deepEqual(socket?.requiredTargetOrigins,['https://app:8443']);
+  assert.deepEqual(socket?.requiredTargetOrigins,['https://app:8443','https://app:8444']);
   assert.deepEqual(socket?.requiredObservationCapabilities,['websocket_frame']);
 });
 
