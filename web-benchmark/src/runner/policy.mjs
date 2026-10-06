@@ -120,6 +120,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(entry===manifest.base+'/b2-profile') {
+      if(auth!=='session')throw new TargetSurfaceError('unsupported_profile_origin_auth','The cross-origin profile operation requires a verified fixture session.',{unsupported:true});
+      if(!['GET','POST'].every(method=>(manifest.requests||[]).some(request=>request.method===method&&request.path===entry)))
+        throw new TargetSurfaceError('unsupported_profile_origin_contract','The public contract lacks the normal profile operations.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPaths:['/b2-origin-page','/b2-form'],verified:false,adapter:'browser-profile-origin'};
+    }
     if(entry===manifest.base+'/b2-transfer') {
       if(auth!=='session')throw new TargetSurfaceError('unsupported_form_destination_auth','The form destination operation requires a verified fixture session.',{unsupported:true});
       if(!(manifest.requests||[]).some(request=>request.method==='POST'&&request.path===manifest.base+'/b2-transfer-complete'))

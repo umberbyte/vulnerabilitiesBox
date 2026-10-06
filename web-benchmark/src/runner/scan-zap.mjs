@@ -597,6 +597,89 @@ async function browserFormDestination(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserProfileOrigin(plan) {
+  const originPage=COLLECTOR_ORIGIN+'/b2-origin-page',formPage=COLLECTOR_ORIGIN+'/b2-form';
+  if(observationScopes.length!==2||![originPage,formPage].every(url=>observationScopes.some(item=>item.prefix===url))||!scope.isAllowed(scope.entry))
+    throw new TargetSurfaceError('profile_origin_contract_missing','The declared local profile and auxiliary pages are unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||[originPage,formPage].some(prefix=>url===prefix||url.startsWith(prefix+'?')))return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('profile_origin_login_failed','The browser fixture login failed.');
+    const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('profile_origin_identity_failed','The browser did not retain the selected fixture identity.');
+    const normal=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200||await page.locator('#profile input[name=csrf]').count()!==1)
+      throw new TargetSurfaceError('profile_origin_entry_unreachable','The normal authenticated profile form was not reachable.');
+    const normalContact=plan.subject+'.normal@example.test';
+    await page.locator('#profile input[name=contact]').fill(normalContact);
+    const normalPost=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#profile button').click();
+    if((await normalPost).status()!==200)throw new TargetSurfaceError('profile_origin_normal_failed','The normal token-bearing profile change did not complete.');
+    await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if((await page.locator('#contact').textContent()).trim()!==normalContact)
+      throw new TargetSurfaceError('profile_origin_normal_state_missing','The normal profile change was not reflected in the public page.');
+    const auxiliary=await page.goto(originPage,{waitUntil:'load',timeout:20000});
+    if(auxiliary?.status()!==200||await page.locator('#auxiliary').count()!==1)
+      throw new TargetSurfaceError('profile_origin_auxiliary_unreachable','The local auxiliary origin page was not reachable.');
+    const navigatedContact=plan.subject+'.navigated@example.test';
+    const diagnostic=new URL(scope.entry);diagnostic.searchParams.set('contact',navigatedContact);
+    const navigation=page.waitForResponse(response=>response.url()===diagnostic.href&&response.request().method()==='GET',{timeout:20000});
+    await page.evaluate(url=>{location.href=url;},diagnostic.href);
+    if((await navigation).status()!==200)throw new TargetSurfaceError('profile_origin_navigation_failed','The auxiliary-driven browser navigation did not reach the profile.');
+    await page.waitForLoadState('load');
+    const afterNavigation=(await page.locator('#contact').textContent()).trim();
+    if(![normalContact,navigatedContact].includes(afterNavigation))
+      throw new TargetSurfaceError('profile_origin_navigation_state_invalid','The profile after auxiliary navigation was not a declared diagnostic value.');
+    const chosen='attackerchosenvalue',formContact=plan.subject+'.external@example.test';
+    const foreignUrl=new URL(formPage);
+    foreignUrl.searchParams.set('target',scope.entry);
+    foreignUrl.searchParams.set('fields',JSON.stringify({contact:formContact,csrf:chosen}));
+    foreignUrl.searchParams.set('inject',chosen);
+    const foreign=await page.goto(foreignUrl.href,{waitUntil:'load',timeout:20000});
+    if(foreign?.status()!==200||await page.locator('#external-form').count()!==1)
+      throw new TargetSurfaceError('profile_origin_form_unreachable','The local auxiliary form was not reachable.');
+    const externalPost=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#external-form button').click();
+    const externalStatus=(await externalPost).status();
+    if(![200,403].includes(externalStatus))throw new TargetSurfaceError('profile_origin_form_status_invalid','The cross-origin form returned an unexpected status.');
+    await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    const finalContact=(await page.locator('#contact').textContent()).trim();
+    if(![afterNavigation,formContact].includes(finalContact)||(finalContact===formContact)!==(externalStatus===200))
+      throw new TargetSurfaceError('profile_origin_form_state_invalid','The form response did not match the public profile state.');
+    const auxiliaryPages=[originPage,foreignUrl.href];
+    const messageIds=[];
+    for(const url of auxiliaryPages) {
+      let recorded;
+      for(let attempt=0;attempt<10;attempt++) {
+        const history=await api('core','view','messages',{baseurl:url,start:0,count:100});
+        recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+url+' HTTP/'));
+        if(recorded)break;
+        await sleep(250);
+      }
+      const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded?.responseHeader)?.[1]);
+      if(!recorded?.id||status!==200)throw new TargetSurfaceError('profile_origin_zap_history_missing','The auxiliary browser page was absent from ZAP history.');
+      messageIds.push(recorded.id);
+    }
+    metadata.browserProfileOrigin={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,paths:['/b2-origin-page','/b2-form'],normalSaveStatus:200,navigationStatus:200,navigationChanged:afterNavigation===navigatedContact,externalFormStatus:externalStatus,externalFormChanged:finalContact===formContact,auxiliaryMessageIds:messageIds,identityVerified:true};
+    metadata.steps.push({type:'browser-profile-origin',urls:auxiliaryPages,auxiliaryMessageIds:messageIds});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -726,7 +809,7 @@ async function collect() {
       await writeFile(output+'/'+prefix+'-after-500.json',body);
       files.push({path:prefix+'-after-500.json',messages:rest.remaining.length,sha256:createHash('sha256').update(body).digest('hex')});
     }
-    metadata.secondaryHistoryArchives.push({origin:item.origin,savedCount:rest.savedCount,maxMessages:rest.maxMessages,complete:rest.complete,files,...(rest.error?{error:safeMessage(rest.error)}:{})});
+    metadata.secondaryHistoryArchives.push({origin:item.origin,prefix:item.prefix,savedCount:rest.savedCount,maxMessages:rest.maxMessages,complete:rest.complete,files,...(rest.error?{error:safeMessage(rest.error)}:{})});
     if(!rest.complete)metadata.limitations.push('The saved ZAP HTTP history is incomplete for '+item.origin+'.');
   }
   if(process.env.SCAN_CUSTOM_MODE==='custom'||process.env.SCAN_CUSTOM_MODE==='custom-only') {
@@ -793,7 +876,7 @@ try {
   scope=publicScope(manifest,{origin:metadata.targetSurface.supportedOrigins.includes(TARGET_ORIGIN)?TARGET_ORIGIN:COOKIE_HTTPS_ORIGIN});
   metadata.targetOrigin=scope.origin;
   scopes=(metadata.targetSurface.scanOrigins||metadata.targetSurface.supportedOrigins).map(origin=>publicScope(manifest,{origin}));
-  observationScopes=metadata.targetSurface.observationOrigins?.map(origin=>({origin,prefix:origin+(metadata.targetSurface.observationPath||'/collect-events'),regex:'^'+escapeRegex(origin+(metadata.targetSurface.observationPath||'/collect-events'))+'(?:\\?.*|$)'}))||[];
+  observationScopes=metadata.targetSurface.observationOrigins?.flatMap(origin=>(metadata.targetSurface.observationPaths||[metadata.targetSurface.observationPath||'/collect-events']).map(path=>({origin,prefix:origin+path,regex:'^'+escapeRegex(origin+path)+'(?:\\?.*|$)'})))||[];
   const authPlan=authenticationPlan(manifest,settings,scope);
   await configure();
   if(settings.profile==='active-low') {
@@ -845,6 +928,11 @@ try {
     metadata.phase='browser-form-destination';
     await browserFormDestination(authPlan);
     metadata.limitations.push('The declared local form receiver was observed through ZAP with a private-field equality check. Form submission is a browser observation, not ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-profile-origin') {
+    metadata.phase='browser-profile-origin';
+    await browserProfileOrigin(authPlan);
+    metadata.limitations.push('The same authenticated profile was exercised by normal form, auxiliary-origin navigation, and auxiliary-origin form through ZAP. Browser state changes are separate from ZAP alert detection; auxiliary pages are excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});
