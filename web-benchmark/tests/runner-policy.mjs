@@ -151,6 +151,13 @@ test('The declared report observes only the local cross-origin browser page',()=
   assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_cors_report_auth');
   assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_cors_report_contract');
 });
+test('The declared CORS policy observes only the local cross-origin browser page',()=>{
+  const required=['https://app:8443',COLLECTOR_ORIGIN],entry=manifest.base+'/b2-cors-policy';
+  const supplied={...manifest,entry,requiredTargetOrigins:required,requests:[{method:'GET',path:entry},{method:'POST',path:entry},{method:'GET',path:manifest.base+'/b2-report'}]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-origin-page',verified:false,adapter:'browser-cors-policy'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_cors_policy_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:supplied.requests.slice(0,2)},{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_cors_policy_contract');
+});
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{
   const supplied={...manifest,entry:'/w/123456abcdef/b3-transport',requests:[
     {method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'fixture'}},

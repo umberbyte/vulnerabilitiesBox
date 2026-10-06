@@ -730,6 +730,97 @@ async function browserCorsReport(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserCorsPolicy(plan) {
+  const auxiliary=COLLECTOR_ORIGIN+'/b2-origin-page';
+  const report=new URL(manifest.base+'/b2-report',scope.origin).href;
+  const logoutUrl=manifest.logout&&new URL(manifest.logout,scope.origin).href;
+  if(observationScopes.length!==1||observationScopes[0].prefix!==auxiliary||!scope.isAllowed(scope.entry)||!scope.isAllowed(report)||!logoutUrl||!scope.isAllowed(logoutUrl)||
+     !['alice','bob','admin'].every(name=>manifest.roleProfiles?.some(profile=>profile.username===name&&typeof profile.password==='string')))
+    throw new TargetSurfaceError('cors_policy_contract_missing','The declared policy, report, auxiliary page, or fixture roles are unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===auxiliary)return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    const loginAs=async name=>{
+      const profile=manifest.roleProfiles.find(value=>value.username===name);
+      await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+      await page.locator('input[name=username]').fill(profile.username);
+      await page.locator('input[name=password]').fill(profile.password);
+      const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+      await page.locator('form button').click();
+      if((await login).status()!==200)throw new TargetSurfaceError('cors_policy_login_failed','A declared fixture role could not sign in.');
+      const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+      if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==name)
+        throw new TargetSurfaceError('cors_policy_identity_failed','The browser did not retain the selected fixture role.');
+    };
+    const policyPage=async()=>{
+      const response=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+      if(response?.status()!==200)throw new TargetSurfaceError('cors_policy_normal_failed','The normal authenticated policy read failed.');
+      const body=JSON.parse(await page.locator('body').textContent());
+      if(!Array.isArray(body.allowedOrigins)||body.administratorRequired!==true)
+        throw new TargetSurfaceError('cors_policy_normal_invalid','The policy response did not match the public contract.');
+      return body;
+    };
+    const postPolicy=()=>page.evaluate(async({url,origin})=>{
+      const response=await fetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({allowedOrigin:origin})});
+      return response.status;
+    },{url:scope.entry,origin:COLLECTOR_ORIGIN});
+    const logout=async()=>{
+      await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+      const status=await page.evaluate(async url=>(await fetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:'{}'})).status,logoutUrl);
+      if(status!==200)throw new TargetSurfaceError('cors_policy_logout_failed','The selected fixture role could not sign out.');
+    };
+    const crossOriginRead=async()=>{
+      const auxiliaryPage=await page.goto(auxiliary,{waitUntil:'load',timeout:20000});
+      if(auxiliaryPage?.status()!==200||new URL(page.url()).origin!==COLLECTOR_ORIGIN)
+        throw new TargetSurfaceError('cors_policy_auxiliary_failed','The local auxiliary page did not load.');
+      // Keep Chromium's native CORS enforcement for the fixed cross-origin report fetch.
+      await context.unroute('**/*');
+      const result=await page.evaluate(async url=>{try{const response=await fetch(url,{credentials:'include'});return {readable:true,status:response.status,body:await response.text()};}catch{return {readable:false,status:null,body:null};}},report);
+      if(result.readable&&result.status!==200)throw new TargetSurfaceError('cors_policy_report_status','The browser read an unexpected report status.');
+      if(typeof result.body==='string')onSecret(result.body);
+      return {readable:result.readable,status:result.status,bodySha256:typeof result.body==='string'?createHash('sha256').update(result.body).digest('hex'):null};
+    };
+    await loginAs('alice');
+    const initial=await policyPage();
+    if(initial.allowedOrigins.includes(COLLECTOR_ORIGIN))throw new TargetSurfaceError('cors_policy_initial_state','The auxiliary origin was already allowed before mutation.');
+    const alicePolicyStatus=await postPolicy();
+    if(![200,403].includes(alicePolicyStatus))throw new TargetSurfaceError('cors_policy_alice_status','The ordinary member policy update returned an unexpected status.');
+    await logout();
+    await loginAs('bob');
+    const beforeAdmin=await crossOriginRead();
+    await logout();
+    await loginAs('admin');
+    await policyPage();
+    const adminPolicyStatus=await postPolicy();
+    if(adminPolicyStatus!==200)throw new TargetSurfaceError('cors_policy_admin_status','The legitimate administrator policy update failed.');
+    const updated=await policyPage();
+    if(!updated.allowedOrigins.includes(COLLECTOR_ORIGIN))throw new TargetSurfaceError('cors_policy_admin_state','The legitimate administrator update was not visible.');
+    await logout();
+    await loginAs('bob');
+    const afterAdmin=await crossOriginRead();
+    if(!afterAdmin.readable||afterAdmin.status!==200)throw new TargetSurfaceError('cors_policy_authorized_read_failed','The registered origin could not read the report after administrator approval.');
+    const policyHistory=(await api('core','view','messages',{baseurl:scope.entry,start:0,count:100})).messages||[];
+    const updates=policyHistory.filter(message=>message.requestHeader?.startsWith('POST '+scope.entry+' HTTP/'));
+    const reportHistory=(await api('core','view','messages',{baseurl:report,start:0,count:100})).messages||[];
+    const reads=reportHistory.filter(message=>message.requestHeader?.startsWith('GET '+report+' HTTP/')&&requestHeader(message,'Origin')===COLLECTOR_ORIGIN);
+    const auxiliaryHistory=(await api('core','view','messages',{baseurl:auxiliary,start:0,count:100})).messages||[];
+    const auxiliaryMessages=auxiliaryHistory.filter(message=>message.requestHeader?.startsWith('GET '+auxiliary+' HTTP/'));
+    if(updates.length<2||reads.length<2||auxiliaryMessages.length<2||updates.some(message=>!message.id)||reads.some(message=>!message.id))
+      throw new TargetSurfaceError('cors_policy_zap_history_missing','The policy mutations or browser report reads were absent from ZAP HTTP history.');
+    metadata.browserCorsPolicy={origin:COLLECTOR_ORIGIN,path:'/b2-origin-page',loginRoles:['alice','bob','admin'],normalPolicyStatus:200,alicePolicyStatus,adminPolicyStatus,alicePolicyMessageId:updates[0].id,adminPolicyMessageId:updates[1].id,beforeAdminReportMessageId:reads[0].id,afterAdminReportMessageId:reads[1].id,auxiliaryMessageIds:auxiliaryMessages.slice(0,2).map(message=>message.id),beforeAdmin,afterAdmin,identityVerified:true};
+    metadata.steps.push({type:'browser-cors-policy',url:scope.entry,alicePolicyMessageId:updates[0].id,adminPolicyMessageId:updates[1].id,beforeAdminReportMessageId:reads[0].id,afterAdminReportMessageId:reads[1].id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 async function browserRecoveryReferer() {
   const pixel=COLLECTOR_ORIGIN+'/b3-pixel',reset=new URL(manifest.base+'/b3-reset',scope.origin).href;
   const recovery=(manifest.requests||[]).find(item=>item.method==='POST'&&item.path===manifest.base+'/b3-recover');
@@ -1212,6 +1303,11 @@ try {
     metadata.phase='browser-cors-report';
     await browserCorsReport(authPlan);
     metadata.limitations.push('The normal report and declared local cross-origin browser fetches were measured through ZAP. Browser CORS visibility is separate from ZAP alert detection; the auxiliary page is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-cors-policy') {
+    metadata.phase='browser-cors-policy';
+    await browserCorsPolicy(authPlan);
+    metadata.limitations.push('The fixture role policy changes and cross-origin browser reads were measured through ZAP before scanning. Browser CORS visibility is separate from ZAP alert detection; the auxiliary page is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});

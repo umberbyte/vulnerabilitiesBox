@@ -352,6 +352,16 @@ test('Cross-origin report completion requires the normal read and saved browser-
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('CORS policy completion requires both role updates and both browser report reads',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-origin-page',adapter:'browser-cors-policy',verified:true};
+  const blocked={readable:false,status:null,bodySha256:null},readable={readable:true,status:200,bodySha256:'a'.repeat(64)};
+  const adapt=result=>{result.run.targetSurface=structuredClone(pair);result.run.browserCorsPolicy={origin:'https://app:8444',path:'/b2-origin-page',normalPolicyStatus:200,alicePolicyStatus:403,adminPolicyStatus:200,alicePolicyMessageId:'11',adminPolicyMessageId:'12',beforeAdminReportMessageId:'13',afterAdminReportMessageId:'14',auxiliaryMessageIds:['15','16'],beforeAdmin:structuredClone(blocked),afterAdmin:structuredClone(readable),identityVerified:true};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',prefix:'https://app:8444/b2-origin-page',complete:true,savedCount:2}];return result;};
+  assert.equal((await harness(plan(),{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserCorsPolicy.adminPolicyStatus=403;},run=>{run.browserCorsPolicy.adminPolicyMessageId=null;},run=>{run.browserCorsPolicy.afterAdmin.readable=false;},run=>{run.browserCorsPolicy.auxiliaryMessageIds.pop();},run=>{run.secondaryHistoryArchives[0].savedCount=1;}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[

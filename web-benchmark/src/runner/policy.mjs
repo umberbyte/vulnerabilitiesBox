@@ -132,6 +132,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
         throw new TargetSurfaceError('unsupported_cors_report_contract','The public contract lacks the normal report read.',{unsupported:true});
       return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-origin-page',verified:false,adapter:'browser-cors-report'};
     }
+    if(entry===manifest.base+'/b2-cors-policy') {
+      if(auth!=='session')throw new TargetSurfaceError('unsupported_cors_policy_auth','The CORS policy operation requires a verified fixture session.',{unsupported:true});
+      if(!['GET '+entry,'POST '+entry,'GET '+manifest.base+'/b2-report'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
+        throw new TargetSurfaceError('unsupported_cors_policy_contract','The public contract lacks the normal policy and report operations.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-origin-page',verified:false,adapter:'browser-cors-policy'};
+    }
     if(entry===manifest.base+'/b3-recover') {
       if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_recovery_referer_auth','The recovery page requires an anonymous scanner profile.',{unsupported:true});
       if(!['POST '+entry,'GET '+manifest.base+'/b3-reset','POST '+manifest.base+'/b3-reset'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
