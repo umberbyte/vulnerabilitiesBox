@@ -310,6 +310,50 @@ async function browserResourceSwitch() {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserJsonpCsp() {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-jsonp';
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint)
+    throw new TargetSurfaceError('jsonp_contract_missing','The declared local JSONP source is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||new URL(url).origin===COLLECTOR_ORIGIN&&new URL(url).pathname==='/b2-jsonp')return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    const normal=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('jsonp_entry_unreachable','The normal JSONP page was not reachable.');
+    await page.waitForFunction(()=>document.querySelector('#notice')?.textContent==='Welcome partner',null,{timeout:10000});
+    const normalNotice=await page.locator('#notice').textContent();
+    const callback='(()=>{document.body.dataset.executed="yes"})';
+    const diagnostic=new URL(scope.entry);
+    diagnostic.searchParams.set('jsonp',callback);
+    const changed=await page.goto(diagnostic.href,{waitUntil:'load',timeout:20000});
+    if(changed?.status()!==200)throw new TargetSurfaceError('jsonp_diagnostic_unreachable','The public JSONP diagnostic page was not reachable.');
+    await page.waitForFunction(()=>document.querySelector('#notice')?.textContent==='Welcome partner'||document.body.dataset.executed==='yes',null,{timeout:10000});
+    const observation=await page.evaluate(()=>({notice:document.querySelector('#notice')?.textContent,callbackExecuted:document.body.dataset.executed==='yes'}));
+    const expectedUrl=endpoint+'?callback='+encodeURIComponent(callback);
+    let recorded=[];
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).filter(message=>message.requestHeader?.startsWith('GET '+endpoint+'?callback='));
+      if(recorded.some(message=>message.requestHeader?.startsWith('GET '+expectedUrl+' HTTP/'))||!observation.callbackExecuted)break;
+      await sleep(250);
+    }
+    const diagnosticResponse=recorded.find(message=>message.requestHeader?.startsWith('GET '+expectedUrl+' HTTP/'));
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(diagnosticResponse?.responseHeader)?.[1]);
+    if(observation.callbackExecuted?(!diagnosticResponse?.id||status!==200):recorded.length>0)
+      throw new TargetSurfaceError('jsonp_zap_history_mismatch','The browser JSONP result did not match the saved auxiliary ZAP history.');
+    metadata.browserJsonpCsp={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-jsonp',normalNoticeRendered:normalNotice==='Welcome partner',diagnosticNoticeRendered:observation.notice==='Welcome partner',callbackExecuted:observation.callbackExecuted,diagnosticResponseMessageId:diagnosticResponse?.id||null,diagnosticResponseStatus:diagnosticResponse?status:null};
+    metadata.steps.push({type:'browser-jsonp-csp',url:diagnostic.href,diagnosticResponseMessageId:diagnosticResponse?.id||null});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -533,6 +577,11 @@ try {
     metadata.phase='browser-resource-switch';
     await browserResourceSwitch();
     metadata.limitations.push('The browser loaded a normal same-origin script and exercised the declared alternative local script source through ZAP. Auxiliary response presence and browser execution are recorded separately from ZAP alert detection.');
+  }
+  if(metadata.targetSurface.adapter==='browser-jsonp-csp') {
+    metadata.phase='browser-jsonp-csp';
+    await browserJsonpCsp();
+    metadata.limitations.push('The declared JSONP source and callback execution were observed through the local ZAP proxy. This browser result is separate from ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});

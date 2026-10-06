@@ -120,6 +120,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(entry===manifest.base+'/b2-jsonp-panel') {
+      if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_jsonp_auth','The JSONP browser operation requires an anonymous scanner profile.',{unsupported:true});
+      if(!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===manifest.base+'/b2-notice-data'))
+        throw new TargetSurfaceError('unsupported_jsonp_contract','The public contract lacks the normal same-origin notice data.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-jsonp',verified:false,adapter:'browser-jsonp-csp'};
+    }
     if([manifest.base+'/b2-resource',manifest.base+'/b2-named'].includes(entry)) {
       if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_resource_auth','The resource switch browser operation requires an anonymous scanner profile.',{unsupported:true});
       if(!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===manifest.base+'/b2-standard.js'))

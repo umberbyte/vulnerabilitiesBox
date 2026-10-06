@@ -257,6 +257,16 @@ test('Resource switch completion accepts either observed alternative execution o
   }
 });
 
+test('JSONP completion requires browser and auxiliary history observations to agree',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-jsonp',adapter:'browser-jsonp-csp',verified:true};
+  const adapt=(result,executed)=>{result.run.targetSurface=structuredClone(pair);result.run.browserJsonpCsp={origin:'https://app:8444',path:'/b2-jsonp',normalNoticeRendered:true,callbackExecuted:executed,diagnosticResponseMessageId:executed?'9':null};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',complete:true,savedCount:executed?2:0}];return result;};
+  for(const executed of [true,false])assert.equal((await harness(plan(),{result:result=>adapt(result,executed)}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserJsonpCsp.normalNoticeRendered=false;},run=>{run.browserJsonpCsp.diagnosticResponseMessageId=null;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result,true);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
+
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
     result=>{result.path='/artifacts/'+result.run.runId+'/run.json';},

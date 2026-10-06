@@ -1,6 +1,6 @@
 # `app:8444` を使う23変種の計測上の役割
 
-2026-10-04の保存済みrunで `requiredTargetOrigins` に `https://app:8443` と `https://app:8444` を宣言した23変種を、実装と個別成立確認（`tests/batch2-browser.mjs`、`tests/batch3-protocols.mjs`、`tests/data-handling.mjs`）から分類した。22変種が実際に補助originを使い、B0341の `app:8444` はWebSocketの申告 `Origin` 値として別の観測能力を要求する。ここでの分類は計測設計用であり、ZAPによる検出・非検出の判定ではない。2026-10-06時点ではB0457・B0458・B0048・B0053・B0473の公開契約に限って補助originを観測専用で扱い、V/F/NのZAP走査を完走した。他の17変種にはまだ補助origin adapterがなく、B0341にはWebSocket frame観測がない。
+2026-10-04の保存済みrunで `requiredTargetOrigins` に `https://app:8443` と `https://app:8444` を宣言した23変種を、実装と個別成立確認（`tests/batch2-browser.mjs`、`tests/batch3-protocols.mjs`、`tests/data-handling.mjs`）から分類した。22変種が実際に補助originを使い、B0341の `app:8444` はWebSocketの申告 `Origin` 値として別の観測能力を要求する。ここでの分類は計測設計用であり、ZAPによる検出・非検出の判定ではない。2026-10-06時点ではB0457・B0458・B0048・B0053・B0470・B0473の公開契約に限って補助originを観測専用で扱い、V/F/NのZAP走査を完走した。他の16変種にはまだ補助origin adapterがなく、B0341にはWebSocket frame観測がない。
 
 | 役割 | 件数 | 変種 | 必要な観測 |
 |---|---:|---|---|

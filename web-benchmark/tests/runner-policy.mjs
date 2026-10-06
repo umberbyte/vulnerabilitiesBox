@@ -81,6 +81,13 @@ test('Alternative local scripts are observed only for the two declared resource 
     assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_resource_contract');
   }
 });
+test('The declared JSONP page observes only its fixed auxiliary script source',()=>{
+  const required=['https://app:8443',COLLECTOR_ORIGIN];
+  const supplied={...manifest,entry:manifest.base+'/b2-jsonp-panel',requiredTargetOrigins:required,requests:[{method:'GET',path:manifest.base+'/b2-notice-data'}]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'anonymous'}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-jsonp',verified:false,adapter:'browser-jsonp-csp'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_jsonp_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_jsonp_contract');
+});
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{
   const supplied={...manifest,entry:'/w/123456abcdef/b3-transport',requests:[
     {method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'fixture'}},
