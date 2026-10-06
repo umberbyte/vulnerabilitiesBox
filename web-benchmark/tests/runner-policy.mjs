@@ -88,6 +88,13 @@ test('The declared JSONP page observes only its fixed auxiliary script source',(
   assert.throws(()=>validateTargetSurface(supplied,{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_jsonp_auth');
   assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_jsonp_contract');
 });
+test('The declared external window page observes only the fixed local popup',()=>{
+  const required=['https://app:8443',COLLECTOR_ORIGIN];
+  const supplied={...manifest,entry:manifest.base+'/b2-external',requiredTargetOrigins:required,requests:[{method:'GET',path:manifest.base+'/b2-link-home'}]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'anonymous'}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-linked-screen',verified:false,adapter:'browser-external-window'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_external_window_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_external_window_contract');
+});
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{
   const supplied={...manifest,entry:'/w/123456abcdef/b3-transport',requests:[
     {method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'fixture'}},

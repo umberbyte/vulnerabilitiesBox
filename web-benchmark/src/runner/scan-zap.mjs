@@ -354,6 +354,53 @@ async function browserJsonpCsp() {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserExternalWindow() {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-linked-screen';
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint)
+    throw new TargetSurfaceError('external_window_contract_missing','The declared local linked screen is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url(),parsed=new URL(url);
+      if(scopes.some(item=>item.isAllowed(url))||parsed.origin===COLLECTOR_ORIGIN&&parsed.pathname==='/b2-linked-screen')return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    const source=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(source?.status()!==200)throw new TargetSurfaceError('external_window_entry_unreachable','The normal external link page was not reachable.');
+    const original=page.url();
+    const opened=page.waitForEvent('popup',{timeout:20000});
+    await page.locator('#external').click();
+    const popup=await opened;
+    await popup.waitForLoadState('load',{timeout:20000});
+    const popupUrl=new URL(popup.url());
+    if(popupUrl.origin!==COLLECTOR_ORIGIN||popupUrl.pathname!=='/b2-linked-screen'||await popup.locator('#related').count()!==1)
+      throw new TargetSurfaceError('external_window_popup_missing','The normal local auxiliary screen did not open.');
+    const openerPresent=await popup.evaluate(()=>opener!==null);
+    await popup.locator('#replace-parent').click();
+    if(openerPresent)await page.waitForURL(url=>url.pathname===manifest.base+'/b2-link-home',{timeout:10000});
+    else await page.waitForTimeout(250);
+    const parentNavigated=await page.locator('#linked-login').count()===1;
+    if(parentNavigated!==openerPresent||!openerPresent&&page.url()!==original)
+      throw new TargetSurfaceError('external_window_navigation_mismatch','The opener and source page navigation did not match.');
+    let recorded;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+popupUrl.href+' HTTP/'));
+      if(recorded)break;
+      await sleep(250);
+    }
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded?.responseHeader)?.[1]);
+    if(!recorded?.id||status!==200)throw new TargetSurfaceError('external_window_zap_history_missing','The auxiliary popup response was not preserved in ZAP history.');
+    metadata.browserExternalWindow={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-linked-screen',popupResponseMessageId:recorded.id,popupResponseStatus:status,openerPresent,parentNavigated};
+    metadata.steps.push({type:'browser-external-window',url:popupUrl.href,popupResponseMessageId:recorded.id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -582,6 +629,11 @@ try {
     metadata.phase='browser-jsonp-csp';
     await browserJsonpCsp();
     metadata.limitations.push('The declared JSONP source and callback execution were observed through the local ZAP proxy. This browser result is separate from ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-external-window') {
+    metadata.phase='browser-external-window';
+    await browserExternalWindow();
+    metadata.limitations.push('The declared auxiliary popup and its opener-driven navigation were observed through the local ZAP proxy. Browser behavior is separate from ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});

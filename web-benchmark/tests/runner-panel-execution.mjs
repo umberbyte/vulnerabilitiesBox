@@ -267,6 +267,16 @@ test('JSONP completion requires browser and auxiliary history observations to ag
   }
 });
 
+test('External window completion requires the popup response and matching opener navigation',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-linked-screen',adapter:'browser-external-window',verified:true};
+  const adapt=(result,opener)=>{result.run.targetSurface=structuredClone(pair);result.run.browserExternalWindow={origin:'https://app:8444',path:'/b2-linked-screen',popupResponseStatus:200,popupResponseMessageId:'10',openerPresent:opener,parentNavigated:opener};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',complete:true,savedCount:1}];return result;};
+  for(const opener of [true,false])assert.equal((await harness(plan(),{result:result=>adapt(result,opener)}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserExternalWindow.parentNavigated=false;},run=>{run.browserExternalWindow.popupResponseMessageId=null;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result,true);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
+
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
     result=>{result.path='/artifacts/'+result.run.runId+'/run.json';},
