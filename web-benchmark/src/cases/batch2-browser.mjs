@@ -49,6 +49,7 @@ export const variantDefinitions=[{
   allowedPaths:['b2-cookie-signin','b2-cookie-signout','b2-cookie-account','b2-cookie-shadow'],
   requests:[['GET','/b2-cookie-account',{}],['GET','/b2-cookie-shadow',{}]],
   loginPath:'/b2-cookie-signin',logoutPath:'/b2-cookie-signout',
+  sessionProtectedPath:'/b2-cookie-account',
   requiredTargetOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8443'],
   negativeDescription:'本人のhost-only認証Cookieが、別subdomainの親Domain・長いPathの同名Cookieにより置換されない。',
   implementationNote:'実ChromiumのDomain/Path cookie順序とRedisの二主体sessionを使う。F/Nは__Host-接頭辞を持つhost-only cookieを採用する。'

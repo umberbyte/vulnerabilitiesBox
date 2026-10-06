@@ -34,6 +34,16 @@ test('Declared sibling-host cookie account uses its dedicated cookie for scanner
   assert.equal(plan.protectedUrl,plan.session);
   assert.equal(plan.invalidCookieStatus,401);
 });
+test('Declared cookie shadow accepts either normal own-host cookie name without selecting a V/F/N arm',()=>{
+  const entry=base+'/b2-cookie-account';
+  const input={...manifest,entry,login:base+'/b2-cookie-signin',requests:[{method:'GET',path:entry},{method:'GET',path:base+'/b2-cookie-shadow'}],requiredTargetOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8443']};
+  const plan=authenticationPlan(input,{auth:'session',user:'alice'},publicScope(input,{origin:'https://app.benchmark.test:8443'}));
+  assert.deepEqual(plan.cookieNameCandidates,['memberSession','__Host-memberSession']);
+  assert.equal(plan.session,'https://app.benchmark.test:8443'+entry);
+  assert.equal(plan.protectedUrl,plan.session);
+  assert.equal(plan.invalidCookieStatus,401);
+  assert.equal(sessionCookie(response({},undefined,200,'Set-Cookie: __Host-memberSession='+validSid+'; Path=/; Secure\r\n'),'__Host-memberSession'),'__Host-memberSession='+validSid);
+});
 
 function scriptContext(source) {
   const context=vm.createContext({Java:{type(name){

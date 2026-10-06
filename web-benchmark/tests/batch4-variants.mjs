@@ -36,6 +36,12 @@ test('an active additional-variant plan preserves its scanner conditions through
  const modified=structuredClone(plan);modified.cells[0].condition.profile='baseline';
  assert.throws(()=>validateVariantPanel(modified),/differ/);
 });
+test('B0236 additional-variant plan uses its declared protected account session',()=>{
+ const plan=createVariantPanel({variantIds:['B0236'],createdAt:'2026-10-06T00:00:00.000Z'});
+ assert.equal(plan.cellCount,3);
+ assert.ok(plan.cells.every(cell=>cell.condition.authMode==='session'&&cell.condition.subject==='alice'));
+ assert.deepEqual(validateVariantPanel(plan),plan);
+});
 test('The faster local variant plan is explicit while the default shape stays compatible',()=>{
  const ids=selected.slice(0,1).map(item=>item.variant);
  const standard=createVariantPanel({variantIds:ids,createdAt:'2026-10-04T00:00:00.000Z'});

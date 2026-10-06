@@ -235,6 +235,18 @@ test('Sibling-host cookie observation requires complete browser and ZAP HTTP evi
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('Cookie shadow completion requires both sibling HTTP archives and the final browser account request',async()=>{
+  const base=plan({auth:['session']});
+  const workspace=base.cells[0].expectedWorkspace;
+  const pair={requiredOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8443'],supportedOrigins:['https://app.benchmark.test:8443','https://evil.benchmark.test:8443'],scanOrigins:['https://app.benchmark.test:8443'],observationOrigins:['https://evil.benchmark.test:8443'],observationPaths:[workspace+'/login',workspace+'/b2-cookie-shadow'],adapter:'browser-cookie-shadow',verified:true};
+  const origin='https://evil.benchmark.test:8443';
+  const adapt=result=>{result.run.targetOrigin='https://app.benchmark.test:8443';result.run.targetSurface=structuredClone(pair);result.run.browserCookieShadow={ownLoginStatus:200,accountBeforeStatus:200,siblingLoginStatus:200,shadowStatus:200,accountAfterStatus:200,ownIdentityVerified:true,shadowIssuedFor:'bob',accountAfterUsername:'alice',ownCookieName:'__Host-memberSession',shadowCookieSent:true,ownCookieSent:true,shadowMessageId:'8',accountAfterMessageId:'9',siblingOrigin:origin,siblingLoginPath:workspace+'/login',shadowPath:workspace+'/b2-cookie-shadow'};result.run.secondaryHistoryArchives=['/login','/b2-cookie-shadow'].map(path=>({origin,prefix:origin+workspace+path,complete:true,savedCount:1}));return result;};
+  assert.equal((await harness(base,{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserCookieShadow.accountAfterMessageId=null;},run=>{run.secondaryHistoryArchives[1].complete=false;}]) {
+    const rejected=harness(base,{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Event collector completion requires the separate ZAP history and browser evidence',async()=>{
   const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],adapter:'browser-event-collector',verified:true};

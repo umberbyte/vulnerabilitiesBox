@@ -1,6 +1,6 @@
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom,requestHeader} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
@@ -191,6 +191,82 @@ async function browserCookieDomain(plan) {
     if(status!==200||status!==observed?.status())throw new TargetSurfaceError('cookie_domain_status_mismatch','The sibling-host collector response differs from the browser result.');
     metadata.browserCookieDomain={browser:'Chromium via ZAP proxy',targetOrigin:scope.origin,collectorOrigin:CORS_EVIL_ORIGIN,collectorPath:'/b3-cookie-collector',loginStatus:200,accountBeforeStatus:before.status(),accountAfterStatus:after.status(),identityVerified:true,cookieDomain:cookie.domain,collectorCookieSent:Boolean(member),collectorStatus:status,collectorMessageId:recorded.id||null};
     metadata.steps.push({type:'browser-cookie-domain',url:collector,status,messageId:recorded.id||null});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
+async function browserCookieShadow(plan) {
+  const evilLogin=COOKIE_EVIL_ORIGIN+manifest.base+'/login';
+  const shadow=COOKIE_EVIL_ORIGIN+manifest.base+'/b2-cookie-shadow';
+  if(scope.origin!==COOKIE_HTTPS_ORIGIN||!scope.isAllowed(plan.session)||
+     observationScopes.length!==2||!observationScopes.some(item=>item.prefix===evilLogin)||!observationScopes.some(item=>item.prefix===shadow)||
+     !manifest.roleProfiles?.some(profile=>profile.username==='bob'&&typeof profile.password==='string'))
+    throw new TargetSurfaceError('cookie_shadow_contract_missing','The declared account, sibling login, or shadow operation is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      return scope.isAllowed(url)||url===evilLogin||url===shadow?route.continue():route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    await Promise.all([page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000}),page.locator('form button').click()]);
+    const ownLogin=JSON.parse(await page.locator('body').textContent());
+    if(ownLogin.loggedIn!==true||ownLogin.username!==plan.subject)throw new TargetSurfaceError('cookie_shadow_login_failed','Own-host browser login did not establish the fixture identity.');
+    const ownCookies=await context.cookies(scope.origin);
+    const own=ownCookies.filter(item=>plan.cookieNameCandidates.includes(item.name));
+    if(own.length!==1||!own[0].value||!own[0].secure||!own[0].httpOnly)
+      throw new TargetSurfaceError('cookie_shadow_session_missing','Browser did not store one secure own-host member cookie.');
+    onSecret(own[0].value);onSecret(own[0].name+'='+own[0].value);
+    const before=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(before?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('cookie_shadow_identity_failed','Browser did not reach the own-host account before the sibling visit.');
+    const bob=manifest.roleProfiles.find(profile=>profile.username==='bob');
+    await page.goto(evilLogin,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(bob.username);
+    await page.locator('input[name=password]').fill(bob.password);
+    await Promise.all([page.waitForResponse(response=>response.url()===evilLogin&&response.request().method()==='POST',{timeout:20000}),page.locator('form button').click()]);
+    const siblingLogin=JSON.parse(await page.locator('body').textContent());
+    if(siblingLogin.username!=='bob'||siblingLogin.loggedIn!==true)throw new TargetSurfaceError('cookie_shadow_sibling_login_failed','Sibling-host browser login did not establish the alternate fixture identity.');
+    const planted=await page.goto(shadow,{waitUntil:'load',timeout:20000});
+    const plantedBody=JSON.parse(await page.locator('body').textContent());
+    if(planted?.status()!==200||plantedBody.issuedFor!=='bob')throw new TargetSurfaceError('cookie_shadow_plant_failed','The declared sibling-host operation did not issue its fixture cookie.');
+    const shadowCookie=(await context.cookies(plan.session)).find(item=>item.name==='memberSession'&&item.domain.replace(/^\./,'')==='benchmark.test'&&item.path===manifest.base+'/b2-cookie-account');
+    if(!shadowCookie?.value)throw new TargetSurfaceError('cookie_shadow_cookie_missing','Browser did not store the sibling-host Domain cookie.');
+    onSecret(shadowCookie.value);onSecret('memberSession='+shadowCookie.value);
+    const after=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    const account=JSON.parse(await page.locator('body').textContent());
+    if(after?.status()!==200||!['alice','bob'].includes(account.username))throw new TargetSurfaceError('cookie_shadow_account_missing','Browser did not reach a fixture account after the sibling visit.');
+    let shadowMessage,accountMessage;
+    for(let attempt=0;attempt<10;attempt++) {
+      const [evilHistory,ownHistory]=await Promise.all([
+        api('core','view','messages',{baseurl:shadow,start:0,count:100}),
+        api('core','view','messages',{baseurl:scope.prefix,start:0,count:500})
+      ]);
+      shadowMessage=(evilHistory.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+shadow+' HTTP/'));
+      accountMessage=(ownHistory.messages||[]).filter(message=>message.requestHeader?.startsWith('GET '+plan.session+' HTTP/')).sort((a,b)=>Number(a.id)-Number(b.id)).at(-1);
+      if(shadowMessage&&accountMessage)break;
+      await sleep(250);
+    }
+    const sent=requestHeader(accountMessage||{requestHeader:''},'Cookie')||'';
+    const shadowSent=sent.split(';').map(value=>value.trim()).includes('memberSession='+shadowCookie.value);
+    const ownSent=sent.split(';').map(value=>value.trim()).includes(own[0].name+'='+own[0].value);
+    const shadowStatus=Number(/^HTTP\/\S+\s+(\d+)/.exec(shadowMessage?.responseHeader)?.[1]);
+    const accountStatus=Number(/^HTTP\/\S+\s+(\d+)/.exec(accountMessage?.responseHeader)?.[1]);
+    let archivedAccount;
+    try {archivedAccount=JSON.parse(accountMessage?.responseBody||'');}catch{}
+    const shadowHeader=shadowMessage?.responseHeader||'';
+    if(!shadowMessage?.id||!accountMessage?.id||shadowStatus!==200||accountStatus!==200||!shadowSent||!ownSent||
+       archivedAccount?.username!==account.username||!shadowHeader.includes('memberSession='+shadowCookie.value)||
+       !/Domain=benchmark\.test/i.test(shadowHeader))
+      throw new TargetSurfaceError('cookie_shadow_history_mismatch','The sibling cookie and final account request were absent from saved ZAP HTTP.');
+    metadata.browserCookieShadow={browser:'Chromium via ZAP proxy',targetOrigin:scope.origin,siblingOrigin:COOKIE_EVIL_ORIGIN,siblingLoginPath:manifest.base+'/login',shadowPath:manifest.base+'/b2-cookie-shadow',ownLoginStatus:200,accountBeforeStatus:before.status(),siblingLoginStatus:200,shadowStatus,accountAfterStatus:accountStatus,ownIdentityVerified:true,shadowIssuedFor:'bob',accountAfterUsername:account.username,ownCookieName:own[0].name,shadowCookieSent:shadowSent,ownCookieSent:ownSent,shadowMessageId:shadowMessage.id,accountAfterMessageId:accountMessage.id};
+    metadata.steps.push({type:'browser-cookie-shadow',shadowUrl:shadow,shadowMessageId:shadowMessage.id,accountAfterMessageId:accountMessage.id});
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
@@ -1367,6 +1443,11 @@ try {
     metadata.phase='browser-cookie-domain';
     await browserCookieDomain(authPlan);
     metadata.limitations.push('The browser request to the declared sibling host was observed through ZAP. Cookie delivery is a browser observation separate from ZAP alert detection; the collector is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-cookie-shadow') {
+    metadata.phase='browser-cookie-shadow';
+    await browserCookieShadow(authPlan);
+    metadata.limitations.push('The declared sibling-host login and Domain cookie were exercised by Chromium through ZAP. Browser identity changes are separate from ZAP alert detection; the sibling host is excluded from spider and active scan.');
   }
   if(metadata.targetSurface.adapter==='browser-event-collector') {
     metadata.phase='browser-event-collector';

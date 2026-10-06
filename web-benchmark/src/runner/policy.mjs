@@ -8,6 +8,7 @@ export const COOKIE_HTTPS_ORIGIN='https://app.benchmark.test:8443';
 export const COOKIE_HTTP_ORIGIN='http://app.benchmark.test:8080';
 export const CORS_PARTNER_ORIGIN='https://partner.benchmark.test:8444';
 export const CORS_EVIL_ORIGIN='https://evil.benchmark.test:8444';
+export const COOKIE_EVIL_ORIGIN='https://evil.benchmark.test:8443';
 export const CORS_ALT_PORT_ORIGIN='https://app.benchmark.test:8444';
 export const SCAN_PROFILES=Object.freeze(['baseline','active','active-low']);
 export const LOW_SCAN_POLICY='benchmark-active-low-v1';
@@ -127,6 +128,13 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
     if(!['GET '+manifest.base+'/b3-account','POST '+manifest.base+'/b3-account'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
       throw new TargetSurfaceError('unsupported_cookie_domain_contract','The public contract lacks the normal account operations.',{unsupported:true});
     return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:[CORS_EVIL_ORIGIN],observationPath:'/b3-cookie-collector',verified:false,adapter:'browser-cookie-domain'};
+  }
+  if(required.length===2&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.includes(COOKIE_EVIL_ORIGIN)&&
+     new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname===manifest.base+'/b2-cookie-account') {
+    if(auth!=='session')throw new TargetSurfaceError('unsupported_cookie_shadow_auth','The cookie-shadow observation requires a verified fixture session.',{unsupported:true});
+    if(!['GET '+manifest.base+'/b2-cookie-account','GET '+manifest.base+'/b2-cookie-shadow'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
+      throw new TargetSurfaceError('unsupported_cookie_shadow_contract','The public contract lacks the normal account and sibling-host operations.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:[COOKIE_EVIL_ORIGIN],observationPaths:[manifest.base+'/login',manifest.base+'/b2-cookie-shadow'],verified:false,adapter:'browser-cookie-shadow'};
   }
   const corsAuxiliaries=[CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN];
   const corsEntry=new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname;
@@ -249,7 +257,7 @@ export function options(env) {
 }
 export function publicScope(manifest,{origin=TARGET_ORIGIN}={}) {
   if(!/^\/w\/[a-f0-9]{12}$/.test(manifest.base))throw new Error('Unsupported public workspace path.');
-  if(![TARGET_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN].includes(origin))throw new Error('Unsupported local target origin.');
+  if(![TARGET_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN].includes(origin))throw new Error('Unsupported local target origin.');
   const prefix=origin+manifest.base;
   const isAllowed=value=>{
     try {const url=new URL(value,origin);return url.origin===origin&&!url.username&&!url.password&&(url.pathname===manifest.base||url.pathname.startsWith(manifest.base+'/'));}catch{return false;}
