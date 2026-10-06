@@ -1,6 +1,6 @@
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom,requestHeader} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
@@ -29,7 +29,7 @@ if(settings.profile==='active-low') {
 metadata.imageDigest=process.env.ZAP_IMAGE?.split('@')[1]||null;
 metadata.controllerRuntime={platform:process.platform,architecture:process.arch};
 const fingerprint=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
-let deadline=Infinity,measurementStarted=false,reason=null,scope,scopes=[],authentication,manifest,lowPolicy,lowPolicySnapshotSaved=false;
+let deadline=Infinity,measurementStarted=false,reason=null,scope,scopes=[],observationScopes=[],authentication,manifest,lowPolicy,lowPolicySnapshotSaved=false;
 const secrets=new Set([controlKey,apiKey]);
 const onSecret=value=>{if(typeof value==='string'&&value)secrets.add(value);};
 function safeMessage(value) {let result=String(value);for(const secret of secrets)result=result.replaceAll(secret,'[redacted]');return result;}
@@ -142,6 +142,75 @@ async function browserCookieTransport(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserEventCollector(plan) {
+  const eventRoute=scope.entry.endsWith('/login-analytics')?'analytics':'error';
+  const endpoint=COLLECTOR_ORIGIN+'/collect-events';
+  const browserCredentials=eventRoute==='analytics'?manifest.credentials:plan.credentials;
+  const browserSubject=browserCredentials?.username;
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint)
+    throw new TargetSurfaceError('collector_contract_missing','The declared local collector endpoint is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===endpoint)return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    if(eventRoute==='analytics') {
+      const opened=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+      if(opened?.status()!==200)throw new TargetSurfaceError('collector_entry_unreachable','The login analytics page was not reachable.');
+      await page.locator('#analytics-login input[name=username]').fill(browserCredentials.username);
+      await page.locator('#analytics-login input[name=password]').fill(browserCredentials.password);
+      const event=page.waitForResponse(response=>response.url()===endpoint&&response.request().method()==='POST',{timeout:20000});
+      const login=page.waitForResponse(response=>response.url()===new URL(manifest.login,scope.origin).href&&response.request().method()==='POST',{timeout:20000});
+      await page.locator('#analytics-login button').click();
+      if((await login).status()!==200||(await event).status()!==202)throw new TargetSurfaceError('collector_normal_operation_failed','The normal login or collector event failed.');
+      await page.waitForFunction(()=>window.analyticsComplete===true,null,{timeout:10000});
+    } else {
+      await page.goto(new URL(manifest.login,scope.origin).href,{waitUntil:'load',timeout:20000});
+      await page.locator('input[name=username]').fill(plan.credentials.username);
+      await page.locator('input[name=password]').fill(plan.credentials.password);
+      const login=page.waitForResponse(response=>response.url()===new URL(manifest.login,scope.origin).href&&response.request().method()==='POST',{timeout:20000});
+      await page.locator('form button').click();
+      if((await login).status()!==200)throw new TargetSurfaceError('collector_browser_login_failed','The browser fixture login failed.');
+      const opened=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+      if(opened?.status()!==200)throw new TargetSurfaceError('collector_entry_unreachable','The authenticated error reporting page was not reachable.');
+      const normal=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+      await page.locator('#load').click();
+      if((await normal).status()!==200)throw new TargetSurfaceError('collector_normal_operation_failed','The normal document read failed.');
+      await page.locator('#document').fill('{');
+      const event=page.waitForResponse(response=>response.url()===endpoint&&response.request().method()==='POST',{timeout:20000});
+      const invalid=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST'&&response.status()===400,{timeout:20000});
+      await page.locator('#load').click();
+      await invalid;
+      if((await event).status()!==202)throw new TargetSurfaceError('collector_event_failed','The local error collector did not accept the event.');
+      await page.waitForFunction(()=>window.errorEventComplete===true,null,{timeout:10000});
+    }
+    const session=await page.goto(new URL(manifest.base+'/session',scope.origin).href,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==browserSubject)
+      throw new TargetSurfaceError('collector_browser_identity_failed','The browser operation did not retain the selected fixture identity.');
+    let recorded;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('POST '+endpoint+' HTTP/'));
+      if(recorded)break;
+      await sleep(250);
+    }
+    let body;
+    try{body=JSON.parse(recorded?.requestBody||'');}catch{}
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded?.responseHeader)?.[1]);
+    if(!recorded?.id||status!==202||body?.kind!==eventRoute||!body.event||typeof body.event!=='object')
+      throw new TargetSurfaceError('collector_zap_history_missing','The browser collector POST and response were not preserved in ZAP history.');
+    metadata.browserEventCollector={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/collect-events',eventKind:eventRoute,postStatus:status,messageId:recorded.id,normalOperationVerified:true,identityVerified:true};
+    metadata.steps.push({type:'browser-collector-event',url:endpoint,status,messageId:recorded.id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -154,9 +223,11 @@ async function configure() {
   metadata.context=context;
   const result=await api('context','action','newContext',{contextName:context});metadata.contextId=result.contextId;
   for(const item of scopes)await api('context','action','includeInContext',{contextName:context,regex:item.regex});
+  for(const item of observationScopes)await api('context','action','includeInContext',{contextName:context,regex:item.regex});
   await api('context','action','setContextInScope',{contextName:context,booleanInScope:true});
   await api('core','action','setMode',{mode:'protect'});
-  await api('core','action','excludeFromProxy',{regex:'^(?!(?:'+scopes.map(item=>escapeRegex(item.origin)+'(?:/|$)').join('|')+')).*'});
+  const proxyAllowed=[...scopes.map(item=>escapeRegex(item.origin)+'(?:/|$)'),...observationScopes.map(item=>escapeRegex(item.prefix)+'(?:\\?.*|$)')];
+  await api('core','action','excludeFromProxy',{regex:'^(?!(?:'+proxyAllowed.join('|')+')).*'});
   await api('pscan','action','setScanOnlyInScope',{onlyInScope:true});
   await api('spider','action','setOptionThreadCount',{Integer:settings.concurrency});
   await api('spider','action','setOptionMaxDuration',{Integer:1});
@@ -173,7 +244,11 @@ async function configure() {
   await api('network','action','setUseGlobalHttpState',{use:false});
   // Hardening the scanner's discovery scope is independent of the vulnerable arm.
   await api('spider','action','excludeFromScan',{regex:'^(?!(?:'+scopes.map(item=>escapeRegex(item.prefix)+'(?:/|\\?|$)').join('|')+')).*'});
-  metadata.scope={includeRegex:scope.regex,includeRegexes:scopes.map(item=>item.regex),entry:scope.entry,openapi:scope.openapi,excludedOrigins:['http://app:8099','https://app:8444','http://app:8080'],protectionMode:'protect'};
+  for(const item of observationScopes) {
+    await api('spider','action','excludeFromScan',{regex:item.regex});
+    await api('ascan','action','excludeFromScan',{regex:item.regex});
+  }
+  metadata.scope={includeRegex:scope.regex,includeRegexes:scopes.map(item=>item.regex),observationOnlyRegexes:observationScopes.map(item=>item.regex),entry:scope.entry,openapi:scope.openapi,excludedOrigins:['http://app:8099','http://app:8080',...(observationScopes.length?[]:['https://app:8444'])],protectionMode:'protect'};
 }
 async function stop() {
   await optional('spider','action','stopAllScans');
@@ -251,7 +326,8 @@ async function collect() {
   metadata.historyArchive={savedCount:archived.savedCount,maxMessages:archived.maxMessages,complete:archived.complete,files:historyFiles,...(archived.error?{error:safeMessage(archived.error)}:{})};
   if(!archived.complete)metadata.limitations.push('The saved ZAP HTTP history is incomplete; absence of a request in the saved pages is not evidence that the scanner did not send it.');
   metadata.secondaryHistoryArchives=[];
-  for(const [index,item] of scopes.entries()) {
+  const reportScopes=[...scopes,...observationScopes];
+  for(const [index,item] of reportScopes.entries()) {
     if(item.origin===scope.origin)continue;
     const first=await api('core','view','messages',{baseurl:item.prefix,start:0,count:500});
     const prefix='messages-origin-'+index;
@@ -283,7 +359,7 @@ async function collect() {
     }
   }
   const alerts=[];metadata.alertsByOrigin=[];
-  for(const [index,item] of scopes.entries()) {
+  for(const [index,item] of reportScopes.entries()) {
     const group=[];
     for(let start=0;start<100000;start+=500) {
       const value=await api('core','view','alerts',{baseurl:item.prefix,start,count:500});
@@ -296,7 +372,7 @@ async function collect() {
   metadata.rawAlertInstances=alerts.length;
   const inventory=await api('core','view','urls',{baseurl:scope.prefix});
   await writeFile(output+'/urls.json',JSON.stringify(inventory,null,2)+'\n');
-  for(const [index,item] of scopes.entries())if(item.origin!==scope.origin) {
+  for(const [index,item] of reportScopes.entries())if(item.origin!==scope.origin) {
     const secondary=await api('core','view','urls',{baseurl:item.prefix});
     await writeFile(output+'/urls-origin-'+index+'.json',JSON.stringify(secondary,null,2)+'\n');
   }
@@ -330,7 +406,8 @@ try {
   metadata.targetSurface=validateTargetSurface(manifest,settings);
   scope=publicScope(manifest,{origin:metadata.targetSurface.supportedOrigins.includes(TARGET_ORIGIN)?TARGET_ORIGIN:COOKIE_HTTPS_ORIGIN});
   metadata.targetOrigin=scope.origin;
-  scopes=metadata.targetSurface.supportedOrigins.map(origin=>publicScope(manifest,{origin}));
+  scopes=(metadata.targetSurface.scanOrigins||metadata.targetSurface.supportedOrigins).map(origin=>publicScope(manifest,{origin}));
+  observationScopes=metadata.targetSurface.observationOrigins?.map(origin=>({origin,prefix:origin+'/collect-events',regex:'^'+escapeRegex(origin+'/collect-events')+'(?:\\?.*|$)'}))||[];
   const authPlan=authenticationPlan(manifest,settings,scope);
   await configure();
   if(settings.profile==='active-low') {
@@ -342,6 +419,11 @@ try {
   if(metadata.targetSurface.adapter==='browser-cookie-transport') {
     metadata.phase='browser-cookie-transport';
     await browserCookieTransport(authPlan);
+  }
+  if(metadata.targetSurface.adapter==='browser-event-collector') {
+    metadata.phase='browser-event-collector';
+    await browserEventCollector(authPlan);
+    metadata.limitations.push('A declared browser action reached the local event collector through ZAP; the collector is observation-only and is excluded from spider and active scan. Its saved HTTP messages require human review for any sensitive-field conclusion.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});

@@ -1,6 +1,7 @@
 import {isDeepStrictEqual} from 'node:util';
 
 export const TARGET_ORIGIN='https://app:8443';
+export const COLLECTOR_ORIGIN='https://app:8444';
 export const HTTP_TRANSPORT_ORIGIN='http://benchmark.test:8080';
 export const HTTP_FORWARD_ORIGIN='http://app:8080';
 export const COOKIE_HTTPS_ORIGIN='https://app.benchmark.test:8443';
@@ -116,6 +117,17 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   if(required.length===2&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.includes(COOKIE_HTTP_ORIGIN)) {
     if(auth!=='session')throw new TargetSurfaceError('unsupported_cookie_transport_auth','The browser cookie-transport adapter requires a verified fixture session.',{unsupported:true});
     return {requiredOrigins:[...required],supportedOrigins:[...required],verified:false,adapter:'browser-cookie-transport'};
+  }
+  if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
+    const endpoint=manifest.auxiliaryRequests;
+    if(!Array.isArray(endpoint)||endpoint.length!==1||endpoint[0]?.method!=='POST'||endpoint[0]?.origin!==COLLECTOR_ORIGIN||endpoint[0]?.path!=='/collect-events'||Object.keys(endpoint[0]).length!==3)
+      throw new TargetSurfaceError('unsupported_collector_contract','The auxiliary origin is not the fixed public event collector contract.',{unsupported:true});
+    const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(![manifest.base+'/login-analytics',manifest.base+'/error-reporting'].includes(entry))
+      throw new TargetSurfaceError('unsupported_collector_entry','The public entry has no verified browser operation for this collector.',{unsupported:true});
+    const expectedAuth=entry.endsWith('/login-analytics')?'anonymous':'session';
+    if(auth!==expectedAuth)throw new TargetSurfaceError('unsupported_collector_auth','The collector browser operation requires '+expectedAuth+' authentication.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],verified:false,adapter:'browser-event-collector'};
   }
   if(required.some(value=>value!==TARGET_ORIGIN))throw new TargetSurfaceError('unsupported_target_surface','The public contract requires a target origin that this HTTPS-only adapter cannot exercise.',{unsupported:true});
   return {requiredOrigins:[...required],supportedOrigins:[TARGET_ORIGIN],verified:true};

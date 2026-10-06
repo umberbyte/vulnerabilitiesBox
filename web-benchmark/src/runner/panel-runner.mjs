@@ -7,7 +7,7 @@ import {cases} from '../catalog.mjs';
 import {validatePanel} from './panel.mjs';
 import {validateVariantPanel,VARIANT_PANEL_SCHEMA} from './variant-panel.mjs';
 import {pendingState} from './drain.mjs';
-import {publicScope,TARGET_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN} from './policy.mjs';
+import {publicScope,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN} from './policy.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
 
 export const PANEL_LEDGER_SCHEMA='benchmark-operator-panel-ledger-0.1';
@@ -43,6 +43,11 @@ export function validateCellResult(cell,result,{manifestSha256}={}) {
     run.targetSurface.requiredOrigins.includes(COOKIE_HTTPS_ORIGIN)&&run.targetSurface.requiredOrigins.includes(COOKIE_HTTP_ORIGIN)&&
     Array.isArray(run.targetSurface.supportedOrigins)&&run.targetSurface.supportedOrigins.length===2&&
     run.targetSurface.supportedOrigins.includes(COOKIE_HTTPS_ORIGIN)&&run.targetSurface.supportedOrigins.includes(COOKIE_HTTP_ORIGIN);
+  const collectorPair=run.targetOrigin===TARGET_ORIGIN&&run.targetSurface?.adapter==='browser-event-collector'&&
+    Array.isArray(run.targetSurface.requiredOrigins)&&run.targetSurface.requiredOrigins.length===2&&
+    run.targetSurface.requiredOrigins.includes(TARGET_ORIGIN)&&run.targetSurface.requiredOrigins.includes(COLLECTOR_ORIGIN)&&
+    Array.isArray(run.targetSurface.scanOrigins)&&run.targetSurface.scanOrigins.length===1&&run.targetSurface.scanOrigins[0]===TARGET_ORIGIN&&
+    Array.isArray(run.targetSurface.observationOrigins)&&run.targetSurface.observationOrigins.length===1&&run.targetSurface.observationOrigins[0]===COLLECTOR_ORIGIN;
   if(run.workspace!==cell.expectedWorkspace||run.targetOrigin!==TARGET_ORIGIN&&!cookiePair)fail('artifact_workspace_mismatch');
   if(run.profile!==c.authMode+'-'+c.profile)fail('artifact_profile_mismatch');
   for(const name of ['wallSeconds','requestedHttpRequests','requestedConcurrency'])if(run.budgets?.[name]!==c[name])fail('artifact_budget_mismatch');
@@ -52,6 +57,7 @@ export function validateCellResult(cell,result,{manifestSha256}={}) {
   if(successful&&result.exitCode!==0||!successful&&run.status!=='incomplete_drain'&&result.exitCode!==1||run.status==='incomplete_drain'&&![0,1].includes(result.exitCode))fail('artifact_exit_status_mismatch');
   if(successful) {
     if(cookiePair&&(run.targetSurface.verified!==true||!object(run.browserCookieTransport)||!run.browserCookieTransport.httpMessageId))fail('artifact_target_surface_unverified');
+    if(run.targetSurface?.adapter==='browser-event-collector'&&(!collectorPair||run.targetSurface.verified!==true||!object(run.browserEventCollector)||!run.browserEventCollector.messageId||run.browserEventCollector.postStatus!==202||run.browserEventCollector.origin!==COLLECTOR_ORIGIN||run.browserEventCollector.path!=='/collect-events'||!run.secondaryHistoryArchives?.some(item=>item.origin===COLLECTOR_ORIGIN&&item.complete===true&&item.savedCount>0)))fail('artifact_target_surface_unverified');
     if(run.trafficSettled!==true||run.drainTimedOut!==false||!pendingState(run.pendingAtMeasurementStop||{}).settled||!pendingState(run.drainPendingState||{}).settled)fail('artifact_traffic_unsettled');
     if(!object(run.measurement))fail('artifact_measurement_missing');
     if(c.authMode!=='anonymous'&&(auth.identityVerified!==true||auth.postScanVerified!==true||auth.selfChecks?.presentCookiePreserved!==true))fail('artifact_authentication_unverified');

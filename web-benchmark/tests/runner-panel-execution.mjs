@@ -227,6 +227,16 @@ test('Fixed browser cookie pair is accepted only with verified target evidence',
   }
 });
 
+test('Event collector completion requires the separate ZAP history and browser evidence',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],adapter:'browser-event-collector',verified:true};
+  const adapt=result=>{result.run.targetSurface=structuredClone(pair);result.run.browserEventCollector={origin:'https://app:8444',path:'/collect-events',postStatus:202,messageId:'7'};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',complete:true,savedCount:1}];return result;};
+  assert.equal((await harness(plan(),{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{delete run.browserEventCollector;},run=>{run.secondaryHistoryArchives[0].savedCount=0;},run=>{run.targetSurface.scanOrigins=['https://app:8444'];}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
+
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
     result=>{result.path='/artifacts/'+result.run.runId+'/run.json';},

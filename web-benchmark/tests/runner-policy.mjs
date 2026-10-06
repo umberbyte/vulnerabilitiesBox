@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN} from '../src/runner/policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,COLLECTOR_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN} from '../src/runner/policy.mjs';
 
 const manifest={base:'/w/123456abcdef',entry:'/w/123456abcdef/search?q=Apple',openapi:'/w/123456abcdef/openapi.json',requests:[{method:'GET',path:'/w/123456abcdef/documents/{id}',pathValues:{id:101},values:{}},{method:'GET',path:'/w/123456abcdef/search',values:{q:'Apple & Banana'}},{method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'Fixture-alice-2026!'}},{method:'GET',path:'http://app:8099/oracle',values:{}},{method:'GET',path:'https://app:8444/attack',values:{}}]};
 test('Legacy and declared HTTPS-only target surfaces remain supported without modifying the contract',()=>{
@@ -47,6 +47,19 @@ test('The fixed browser cookie pair requires session authentication and stays wi
     const scope=publicScope(supplied,{origin:COOKIE_HTTP_ORIGIN});
     assert.ok(scope.isAllowed(COOKIE_HTTP_ORIGIN+manifest.base+'/search'));
     assert.equal(scope.isAllowed(COOKIE_HTTPS_ORIGIN+manifest.base+'/search'),false);
+  }
+});
+
+test('The local event collector is observation-only for its two declared browser operations',()=>{
+  for(const [entry,auth] of [['login-analytics','anonymous'],['error-reporting','session']]) {
+    const required=['https://app:8443',COLLECTOR_ORIGIN];
+    const supplied={...manifest,entry:manifest.base+'/'+entry,requiredTargetOrigins:required,auxiliaryRequests:[{method:'POST',origin:COLLECTOR_ORIGIN,path:'/collect-events'}]};
+    assert.deepEqual(validateTargetSurface(supplied,{auth}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],verified:false,adapter:'browser-event-collector'});
+    assert.throws(()=>validateTargetSurface(supplied,{auth:auth==='session'?'anonymous':'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_collector_auth');
+    assert.throws(()=>publicScope(supplied,{origin:COLLECTOR_ORIGIN}));
+    for(const auxiliaryRequests of [[],[{method:'GET',origin:COLLECTOR_ORIGIN,path:'/collect-events'}],[{method:'POST',origin:COLLECTOR_ORIGIN,path:'/other'}]])
+      assert.throws(()=>validateTargetSurface({...supplied,auxiliaryRequests},{auth}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_collector_contract');
+    assert.throws(()=>validateTargetSurface({...supplied,entry:manifest.base+'/other'},{auth}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_collector_entry');
   }
 });
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{
