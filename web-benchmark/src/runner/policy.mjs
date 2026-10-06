@@ -120,6 +120,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(entry===manifest.base+'/b2-css') {
+      if(auth!=='session')throw new TargetSurfaceError('unsupported_css_collector_auth','The CSS preview requires a verified fixture session.',{unsupported:true});
+      if(!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===entry))
+        throw new TargetSurfaceError('unsupported_css_collector_contract','The public contract lacks the normal CSS preview operation.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-collect',verified:false,adapter:'browser-css-collector'};
+    }
     if(entry===manifest.base+'/b3-recover') {
       if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_recovery_referer_auth','The recovery page requires an anonymous scanner profile.',{unsupported:true});
       if(!['POST '+entry,'GET '+manifest.base+'/b3-reset','POST '+manifest.base+'/b3-reset'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))

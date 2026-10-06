@@ -597,6 +597,74 @@ async function browserFormDestination(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserCssCollector(plan) {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-collect';
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint||!scope.isAllowed(scope.entry))
+    throw new TargetSurfaceError('css_collector_contract_missing','The declared CSS preview and local image collector are unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===endpoint+'?value=presence')return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('css_collector_login_failed','The browser fixture login failed.');
+    const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('css_collector_identity_failed','The browser did not retain the selected fixture identity.');
+    const normal=new URL(scope.entry);
+    normal.searchParams.set('cssRules','#sample { color: rgb(0, 0, 255); }');
+    const normalPage=await page.goto(normal.href,{waitUntil:'load',timeout:20000});
+    if(normalPage?.status()!==200)throw new TargetSurfaceError('css_collector_entry_unreachable','The normal CSS preview was not reachable.');
+    const styled=await page.locator('#sample').count()?page.locator('#sample'):page.frameLocator('#css-card').locator('#sample');
+    if(await styled.evaluate(node=>getComputedStyle(node).color)!=='rgb(0, 0, 255)')
+      throw new TargetSurfaceError('css_collector_normal_style_failed','The normal CSS preview did not apply its declared style.');
+    const diagnostic=new URL(scope.entry),imageUrl=endpoint+'?value=presence';
+    diagnostic.searchParams.set('cssRules','[data-secret] { background-image: url("'+imageUrl+'"); }');
+    const images=[];
+    page.on('response',response=>{if(response.url()===imageUrl)images.push(response);});
+    const diagnosticPage=await page.goto(diagnostic.href,{waitUntil:'networkidle',timeout:20000});
+    if(diagnosticPage?.status()!==200)throw new TargetSurfaceError('css_collector_diagnostic_failed','The diagnostic CSS preview was not reachable.');
+    if(images.length>1)throw new TargetSurfaceError('css_collector_duplicate_image','The browser emitted duplicate diagnostic image requests.');
+    const observed=images[0]||null;
+    if(observed&&observed.status()!==200)throw new TargetSurfaceError('css_collector_image_failed','The local image collector did not return a successful response.');
+    let archive=null;
+    if(observed) {
+      const browserHttp={source:'Playwright Chromium with configured ZAP proxy',request:{method:observed.request().method(),url:observed.url(),headers:await observed.request().allHeaders()},response:{status:observed.status(),headers:await observed.allHeaders()}};
+      const body=JSON.stringify(browserHttp,null,2)+'\n';
+      await writeFile(output+'/browser-css-image-http.json',body);
+      archive={path:'browser-css-image-http.json',sha256:createHash('sha256').update(body).digest('hex')};
+    }
+    let recorded=[];
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).filter(message=>message.requestHeader?.startsWith('GET '+imageUrl+' HTTP/'));
+      if(recorded.length||!observed)break;
+      await sleep(250);
+    }
+    if(recorded.length>1||recorded.length&&!observed)
+      throw new TargetSurfaceError('css_collector_proxy_history_mismatch','The browser and ZAP disagree on the local image request.');
+    const message=recorded[0]||null;
+    if(message) {
+      const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(message.responseHeader)?.[1]);
+      if(status!==200)throw new TargetSurfaceError('css_collector_zap_history_status','The saved ZAP image response was not successful.');
+    }
+    metadata.browserCssCollector={browser:'Chromium with configured ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-collect',loginStatus:200,normalEntryStatus:200,normalStyleVerified:true,diagnosticStatus:200,imageResponseObserved:Boolean(observed),imageResponseMessageId:message?.id||null,imageHttpArchive:archive,identityVerified:true};
+    metadata.steps.push({type:'browser-css-collector',url:diagnostic.href,imageResponseMessageId:message?.id||null,imageHttpArchive:archive?.path||null});
+    if(observed&&!message)metadata.limitations.push('ZAP omitted the auxiliary CSS image from its HTTP history. Browser request and response headers are saved separately; this does not prove ZAP stored or analyzed the image.');
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 async function browserRecoveryReferer() {
   const pixel=COLLECTOR_ORIGIN+'/b3-pixel',reset=new URL(manifest.base+'/b3-reset',scope.origin).href;
   const recovery=(manifest.requests||[]).find(item=>item.method==='POST'&&item.path===manifest.base+'/b3-recover');
@@ -1069,6 +1137,11 @@ try {
     metadata.phase='browser-recovery-referer';
     await browserRecoveryReferer();
     metadata.limitations.push('The fixture recovery link and its auxiliary pixel were loaded by Chromium with the ZAP proxy configured. Referer content is a browser observation separate from ZAP alert detection; the pixel is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-css-collector') {
+    metadata.phase='browser-css-collector';
+    await browserCssCollector(authPlan);
+    metadata.limitations.push('A declared CSS preview was loaded by Chromium through the local ZAP proxy. The image request is a browser observation separate from ZAP alert detection; the collector is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});

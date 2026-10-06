@@ -333,6 +333,15 @@ test('Recovery Referer completion requires a redeemed token and browser pixel ar
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('CSS collector completion requires normal styling and bounded auxiliary observation',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-collect',adapter:'browser-css-collector',verified:true};
+  const adapt=result=>{result.run.targetSurface=structuredClone(pair);result.run.browserCssCollector={origin:'https://app:8444',path:'/b2-collect',loginStatus:200,normalEntryStatus:200,normalStyleVerified:true,diagnosticStatus:200,imageResponseObserved:false,imageResponseMessageId:null,imageHttpArchive:null,identityVerified:true};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',prefix:'https://app:8444/b2-collect',complete:true,savedCount:0}];return result;};
+  assert.equal((await harness(plan(),{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserCssCollector.normalStyleVerified=false;},run=>{run.browserCssCollector.imageHttpArchive={path:'unexpected.json',sha256:'a'.repeat(64)};},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
