@@ -17,7 +17,7 @@ services:
       app: {condition: service_healthy}
   scan-controller:
     profiles: [scan]
-    build: {context: ., target: runtime}
+    build: {context: ., target: "${SCAN_CONTROLLER_TARGET:-runtime}"}
     user: "0:0"
     command: ["node", "src/runner/scan-zap.mjs"]
     environment:
@@ -38,11 +38,12 @@ services:
     networks: [scan]
     volumes: ["zap-input:/scan-input", "./artifacts:/opt/benchmark/artifacts"]
     read_only: true
-    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    tmpfs: ["/tmp:rw,nosuid,size=256m"]
+    shm_size: 256m
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
-    pids_limit: 64
-    mem_limit: 256m
+    pids_limit: 256
+    mem_limit: 1g
     depends_on:
       app: {condition: service_healthy}
       zap: {condition: service_started}

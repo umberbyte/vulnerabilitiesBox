@@ -1,5 +1,5 @@
 import {writeFile,unlink,chmod} from 'node:fs/promises';
-import {authStatePath} from './policy.mjs';
+import {authStatePath,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN} from './policy.mjs';
 
 export class AuthenticationError extends Error {
   constructor(code,message,{unsupported=false}={}) {super(message);this.code=code;this.unsupported=unsupported;}
@@ -12,14 +12,18 @@ export function authenticationPlan(manifest,settings,scope) {
   const profile=(manifest.roleProfiles||[]).find(value=>value.username===settings.user)||
     (manifest.credentials?.username===settings.user?manifest.credentials:null);
   if(!profile||typeof profile.password!=='string'||!profile.password||/[\r\n]/.test(profile.username))fail('unsupported_fixture_subject','No normal credentials exist for the selected fixture subject.',true);
-  const session=(manifest.requests||[]).find(value=>value.method==='GET'&&value.path===manifest.base+'/session');
+  const dedicatedCookie=scope.origin===COOKIE_HTTPS_ORIGIN&&
+    Array.isArray(manifest.requiredTargetOrigins)&&manifest.requiredTargetOrigins.length===2&&
+    manifest.requiredTargetOrigins.includes(COOKIE_HTTPS_ORIGIN)&&manifest.requiredTargetOrigins.includes(COOKIE_HTTP_ORIGIN);
+  const session=(manifest.requests||[]).find(value=>value.method==='GET'&&value.path===(dedicatedCookie?manifest.entry:manifest.base+'/session'));
   if(!scope.isAllowed(manifest.login)||!session)fail('unsupported_auth_contract','The manifest lacks a scoped normal login/session contract.',true);
-  const plan={mode:settings.auth,subject:profile.username,role:profile.role||'unspecified',credentials:{username:profile.username,password:profile.password},login:new URL(manifest.login,scope.origin).href,session:new URL(session.path,scope.origin).href};
+  const plan={mode:settings.auth,subject:profile.username,role:profile.role||'unspecified',credentials:{username:profile.username,password:profile.password},login:new URL(manifest.login,scope.origin).href,session:new URL(session.path,scope.origin).href,cookieName:dedicatedCookie?'memberSession':'sid',invalidCookieStatus:dedicatedCookie?401:200};
   if(settings.auth==='session') {
     const declared=manifest.authentication?.sessionProtectedOperation;
     if(declared!==undefined&&(!declared||declared.method!=='GET'||typeof declared.path!=='string'||!scope.isAllowed(declared.path)||(manifest.requests||[]).every(value=>value.method!=='GET'||value.path!==declared.path)))fail('unsupported_protected_contract','The declared protected operation is not a scoped normal GET.',true);
     const protectedRequest=declared||(manifest.requests||[]).find(value=>value.method==='GET'&&/\/(?:documents\/[^/]+|profile|integration-data|access-pass|token)$/.test(value.path)&&scope.isAllowed(value.path));
-    if(protectedRequest) {
+    if(dedicatedCookie)plan.protectedUrl=plan.session;
+    else if(protectedRequest) {
       const path=protectedRequest.path.replace(/\{([^}]+)\}/g,(_,name)=>encodeURIComponent(protectedRequest.pathValues?.[name]??''));
       if(scope.isAllowed(path))plan.protectedUrl=new URL(path,scope.origin).href;
     }
@@ -48,10 +52,11 @@ export function jsonBody(message) {
   if(!value||typeof value!=='object'||Array.isArray(value))fail('auth_json_invalid','An authentication endpoint did not return a JSON object.');
   return value;
 }
-export function sessionCookie(message) {
-  const found=[...message.responseHeader.matchAll(/^set-cookie:[ \t]*sid=([^;\r\n]*)(?:;|\r?$)/gim)];
+export function sessionCookie(message,name='sid') {
+  if(!['sid','memberSession'].includes(name))fail('auth_cookie_name_invalid','The selected fixture cookie name is unsupported.');
+  const found=[...message.responseHeader.matchAll(new RegExp('^set-cookie:[ \\t]*'+name+'=([^;\\r\\n]*)(?:;|\\r?$)','gim'))];
   if(found.length!==1||!/^[a-f0-9]{48}$/.test(found[0][1]))fail('auth_cookie_missing','Normal login did not issue exactly one supported fixture session cookie.');
-  return 'sid='+found[0][1];
+  return name+'='+found[0][1];
 }
 export function requestHeader(message,name) {
   const match=new RegExp('^'+escapeRegex(name)+':[ \\t]*([^\\r\\n]*)','im').exec(message.requestHeader);
@@ -118,11 +123,11 @@ export async function establishAuthentication({plan,scope,api,ensureBudget,onSec
   try {
     const login=await send(plan.login,{method:'POST',body:plan.credentials});
     if(login.status!==200)fail('auth_login_failed','Normal fixture login did not succeed.');
-    cookie=sessionCookie(login);onSecret(cookie);onSecret(cookie.slice(4));summary.credentialsReplayed=true;
+    cookie=sessionCookie(login,plan.cookieName);onSecret(cookie);onSecret(cookie.slice(plan.cookieName.length+1));summary.credentialsReplayed=true;
     await load();await identity();
-    const invalidCookie='sid=fixture-invalid';
+    const invalidCookie=plan.cookieName+'=fixture-invalid';
     const cookieProbe=await send(plan.session,{headers:{Cookie:invalidCookie}});
-    if(requestHeader(cookieProbe,'Cookie')!==invalidCookie||cookieProbe.status!==200||jsonBody(cookieProbe).username)fail('auth_cookie_overwrite','The diagnostic Cookie self-check was overwritten or unexpectedly authenticated.');
+    if(requestHeader(cookieProbe,'Cookie')!==invalidCookie||cookieProbe.status!==plan.invalidCookieStatus||plan.invalidCookieStatus===200&&jsonBody(cookieProbe).username)fail('auth_cookie_overwrite','The diagnostic Cookie self-check was overwritten or unexpectedly authenticated.');
     summary.selfChecks.presentCookiePreserved=true;
     await identity();
     if(plan.mode==='session'&&plan.protectedUrl)await protectedAccess();

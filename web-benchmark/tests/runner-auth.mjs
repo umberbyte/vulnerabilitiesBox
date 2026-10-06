@@ -128,6 +128,18 @@ test('Fixture cookie parsing accepts exactly one supported sid and ignores unrel
     'Set-Cookie: sid='+validSid+'; Path=/\r\nSet-Cookie: sid=malformed; Path=/\r\n'
   ])assert.throws(()=>sessionCookie(response({},undefined,200,extra)),errorIs('auth_cookie_missing'));
 });
+test('Dedicated browser cookie authentication uses the public login and account contract',()=>{
+  const entry=base+'/b2-cookie-account';
+  const supplied={...manifest,entry,login:base+'/b2-cookie-signin',requiredTargetOrigins:['https://app.benchmark.test:8443','http://app.benchmark.test:8080'],requests:[{method:'GET',path:entry},{method:'GET',path:base+'/b2-cookie-observation'}]};
+  const plan=authenticationPlan(supplied,{auth:'session',user:'alice'},publicScope(supplied,{origin:'https://app.benchmark.test:8443'}));
+  assert.equal(plan.cookieName,'memberSession');
+  assert.equal(plan.invalidCookieStatus,401);
+  assert.equal(plan.session,'https://app.benchmark.test:8443'+entry);
+  assert.equal(plan.protectedUrl,plan.session);
+  const message=response({},undefined,200,'Set-Cookie: memberSession='+validSid+'; Path=/; SameSite=Lax\r\n');
+  assert.equal(sessionCookie(message,'memberSession'),'memberSession='+validSid);
+  assert.throws(()=>sessionCookie(message,'sid'),errorIs('auth_cookie_missing'));
+});
 
 test('Header inspection is case insensitive and preserves explicit empty values',()=>{
   const message={requestHeader:'GET / HTTP/1.1\r\ncOoKiE: sid=custom\r\nAuthorization:\r\nHost: app:8443\r\n\r\n'};

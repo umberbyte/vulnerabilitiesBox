@@ -1,6 +1,6 @@
 # 複数originを要する32変種の計測条件
 
-2026-10-04のコアDAST runで`unsupported_target_surface`となった32変種を、各runの`targetSurface.requiredOrigins`から棚卸しした。当時のZAP adapterは`https://app:8443`だけを許可していた。その後、固定したB0461の匿名HTTP/HTTPS組とB0367の認証付きHTTP/HTTPS組に対応した。その他の補助originやブラウザー/WebSocket観測は引き続き未対応である（`src/runner/policy.mjs`）。旧runと台帳は作業PCの`artifacts/`に残し、公開Gitには含めない。
+2026-10-04のコアDAST runで`unsupported_target_surface`となった32変種を、各runの`targetSurface.requiredOrigins`から棚卸しした。当時のZAP adapterは`https://app:8443`だけを許可していた。その後、固定したB0461の匿名HTTP/HTTPS組、B0367の認証付きHTTP/HTTPS組、B0233の実ブラウザーによるCookie送出に対応した。その他の補助originやブラウザー/WebSocket観測は引き続き未対応である（`src/runner/policy.mjs`）。旧runと台帳は作業PCの`artifacts/`に残し、公開Gitには含めない。
 
 | 必須originの組 | 件数 | 変種 |
 |---|---:|---|
@@ -35,7 +35,7 @@
 
 ZAP自身の前提確認は、Windowsでは`probe-transport.cmd`、Linux/macOSでは`./probe-transport.sh`で実行する。スクリプトはローカルDockerの対象とZAPを起動し、固定した二経路の正常GETだけを各armで送り、ZAPを停止する。結果は新規の`artifacts/dual-transport-probe-*.json`に保存される。最終確認では6セルすべてが両originへ到達し、各セルの対象要求数は2、終了時の処理中要求は0だった。B0233のHTTP側はVで200・F/Nで426、B0461のHTTP側はVで200・F/Nで308を記録した。実行前後の対象ソース一致も確認した。
 
-この前提確認はログイン、Cookie再送、フォームPOST、ブラウザー動作、spider、active scan、alert判定を実行しない。前提確認だけではB0233/B0461を「V/F/NのZAPスキャン完走」に加えない。その後のB0461の実測系列は次節に記録する。B0233にはCookie再送を含むブラウザー操作とZAP観測結果を結び付けるadapterがなお必要である。
+この前提確認はログイン、Cookie再送、フォームPOST、ブラウザー動作、spider、active scan、alert判定を実行しない。前提確認だけではB0233/B0461を「V/F/NのZAPスキャン完走」に加えない。その後のB0461の実測系列は次節、B0233の実ブラウザー系列は[専用の走査記録](README-b0233-browser-zap.md)に記録する。
 
 ## B0461の両経路ZAP系列（2026-10-06）
 

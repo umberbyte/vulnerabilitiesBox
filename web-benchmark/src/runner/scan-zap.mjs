@@ -1,6 +1,6 @@
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom,requestHeader} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
@@ -87,6 +87,60 @@ async function verifyAuthentication() {if(authentication&&settings.auth!=='anony
 async function access(url) {
   if(!scopes.some(item=>item.isAllowed(url)))throw new Error('Refused out-of-workspace seed.');
   return api('core','action','accessUrl',{url,followRedirects:false},Math.min(15000,Math.max(1000,deadline-Date.now())));
+}
+async function browserCookieTransport(plan) {
+  const https=scopes.find(item=>item.origin===COOKIE_HTTPS_ORIGIN);
+  const http=scopes.find(item=>item.origin===COOKIE_HTTP_ORIGIN);
+  const observation=(manifest.requests||[]).find(item=>item.method==='GET'&&item.path.endsWith('/b2-cookie-observation'));
+  if(!https||!http||!observation||!http.isAllowed(observation.path)||plan.cookieName!=='memberSession')
+    throw new TargetSurfaceError('cookie_transport_contract_missing','The public cookie transport contract is incomplete.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url)))return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    await Promise.all([page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000}),page.locator('form button').click()]);
+    const login=JSON.parse(await page.locator('body').textContent());
+    if(login.loggedIn!==true||login.username!==plan.subject)throw new TargetSurfaceError('cookie_browser_login_failed','Browser login did not establish the selected fixture identity.');
+    const cookie=(await context.cookies(https.origin)).find(item=>item.name===plan.cookieName);
+    if(!cookie||!/^[a-f0-9]{48}$/.test(cookie.value))throw new TargetSurfaceError('cookie_browser_session_missing','Browser did not store the dedicated fixture session cookie.');
+    onSecret(cookie.value);onSecret(plan.cookieName+'='+cookie.value);
+    const before=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(before?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('cookie_browser_identity_failed','Browser did not reach the HTTPS account with its fixture cookie.');
+    const observationUrl=new URL(observation.path,http.origin).href;
+    const observed=await page.goto(observationUrl,{waitUntil:'load',timeout:20000});
+    const after=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(after?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('cookie_browser_identity_lost','HTTPS browser identity was lost after the HTTP observation.');
+    let recorded;
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:http.prefix,start:0,count:100});
+      recorded=(history.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+observationUrl+' HTTP/'));
+      if(recorded)break;
+      await sleep(250);
+    }
+    if(!recorded)throw new TargetSurfaceError('cookie_browser_http_not_recorded','The browser HTTP observation was absent from ZAP history.');
+    const sent=requestHeader(recorded,'Cookie')||'';
+    const member=sent.split(';').map(value=>value.trim()).find(value=>value.startsWith(plan.cookieName+'='));
+    if(Boolean(member)!==!cookie.secure||(member&&member!==plan.cookieName+'='+cookie.value))
+      throw new TargetSurfaceError('cookie_browser_http_mismatch','The ZAP HTTP request did not match the real browser cookie attribute.');
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(recorded.responseHeader)?.[1]);
+    if(status!==observed?.status())throw new TargetSurfaceError('cookie_browser_status_mismatch','The ZAP HTTP response differed from the browser result.');
+    metadata.browserCookieTransport={browser:'Chromium via ZAP proxy',loginStatus:200,httpsAccountBefore:before.status(),httpsAccountAfter:after.status(),cookieSecure:cookie.secure,httpCookieSent:Boolean(member),httpObservationStatus:status,httpMessageId:recorded.id||null};
+    metadata.steps.push({type:'browser-cookie-http-observation',url:observationUrl,status,messageId:recorded.id||null});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
 }
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
@@ -265,7 +319,7 @@ try {
   }
   metadata.startupSeconds=(Date.now()-startup)/1000;
   metadata.phase='configuration';
-  manifest=await ctl('/manifest');metadata.workspace=manifest.base;scope=publicScope(manifest);
+  manifest=await ctl('/manifest');metadata.workspace=manifest.base;
   metadata.targetRuntimeSource={controller:await runtimeSourceProof('/opt/benchmark'),targetBefore:await ctl('/source-proof')};
   metadata.targetRuntimeSource.controllerMatch=compareRuntimeSourceProof(metadata.targetRuntimeSource.controller,metadata.targetRuntimeSource.targetBefore);
   if(metadata.targetRuntimeSource.controllerMatch.status!=='matched')throw new Error('Target application runtime source differs from scan controller or proof is invalid.');
@@ -274,6 +328,8 @@ try {
   await writeFile(output+'/public-inputs.json',JSON.stringify(manifest,null,2)+'\n');
   metadata.targetSurface={requiredOrigins:manifest.requiredTargetOrigins??[TARGET_ORIGIN],requiredObservationCapabilities:manifest.requiredObservationCapabilities===undefined?[]:manifest.requiredObservationCapabilities,supportedOrigins:[TARGET_ORIGIN],verified:false};
   metadata.targetSurface=validateTargetSurface(manifest,settings);
+  scope=publicScope(manifest,{origin:metadata.targetSurface.supportedOrigins.includes(TARGET_ORIGIN)?TARGET_ORIGIN:COOKIE_HTTPS_ORIGIN});
+  metadata.targetOrigin=scope.origin;
   scopes=metadata.targetSurface.supportedOrigins.map(origin=>publicScope(manifest,{origin}));
   const authPlan=authenticationPlan(manifest,settings,scope);
   await configure();
@@ -283,6 +339,10 @@ try {
   }
   metadata.measurement=await ctl('/measurement/start',{});measurementStarted=true;
   metadata.scanStartedAt=new Date().toISOString();deadline=Date.now()+settings.seconds*1000;
+  if(metadata.targetSurface.adapter==='browser-cookie-transport') {
+    metadata.phase='browser-cookie-transport';
+    await browserCookieTransport(authPlan);
+  }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});
   metadata.authReachability=authentication.summary;

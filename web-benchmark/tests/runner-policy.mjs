@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN} from '../src/runner/policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN} from '../src/runner/policy.mjs';
 
 const manifest={base:'/w/123456abcdef',entry:'/w/123456abcdef/search?q=Apple',openapi:'/w/123456abcdef/openapi.json',requests:[{method:'GET',path:'/w/123456abcdef/documents/{id}',pathValues:{id:101},values:{}},{method:'GET',path:'/w/123456abcdef/search',values:{q:'Apple & Banana'}},{method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'Fixture-alice-2026!'}},{method:'GET',path:'http://app:8099/oracle',values:{}},{method:'GET',path:'https://app:8444/attack',values:{}}]};
 test('Legacy and declared HTTPS-only target surfaces remain supported without modifying the contract',()=>{
@@ -37,6 +37,16 @@ test('The fixed forwarded HTTP pair requires a verified session and separate mea
     assert.ok(http.isAllowed(HTTP_FORWARD_ORIGIN+manifest.base+'/search'));
     assert.equal(http.isAllowed('https://app:8443'+manifest.base+'/search'),false);
     assert.equal(http.isAllowed('http://app:8099'+manifest.base+'/search'),false);
+  }
+});
+test('The fixed browser cookie pair requires session authentication and stays within its two origins',()=>{
+  for(const required of [[COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN],[COOKIE_HTTP_ORIGIN,COOKIE_HTTPS_ORIGIN]]) {
+    const supplied={...manifest,requiredTargetOrigins:required};
+    assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:required,supportedOrigins:required,verified:false,adapter:'browser-cookie-transport'});
+    for(const auth of ['anonymous','bearer'])assert.throws(()=>validateTargetSurface(supplied,{auth}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_cookie_transport_auth');
+    const scope=publicScope(supplied,{origin:COOKIE_HTTP_ORIGIN});
+    assert.ok(scope.isAllowed(COOKIE_HTTP_ORIGIN+manifest.base+'/search'));
+    assert.equal(scope.isAllowed(COOKIE_HTTPS_ORIGIN+manifest.base+'/search'),false);
   }
 });
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{

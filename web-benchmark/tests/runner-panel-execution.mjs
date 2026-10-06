@@ -216,6 +216,16 @@ test('Run schema, phase, tool, workspace, profile and requested budgets are boun
     assert.ok(ledger.cells[0].run,'A safely validated artifact reference is kept when its conditions mismatch');
   }
 });
+test('Fixed browser cookie pair is accepted only with verified target evidence',async()=>{
+  const cookiePair={requiredOrigins:['https://app.benchmark.test:8443','http://app.benchmark.test:8080'],supportedOrigins:['https://app.benchmark.test:8443','http://app.benchmark.test:8080'],adapter:'browser-cookie-transport',verified:true};
+  const adapt=result=>{result.run.targetOrigin='https://app.benchmark.test:8443';result.run.targetSurface=structuredClone(cookiePair);result.run.browserCookieTransport={httpMessageId:'7',httpCookieSent:true};return result;};
+  const accepted=harness(plan({auth:['session']}),{result:adapt});
+  assert.equal((await accepted.execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{delete run.browserCookieTransport;},run=>{run.targetSurface.requiredOrigins[1]='https://other:8444';}]) {
+    const rejected=harness(plan({auth:['session']}),{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
