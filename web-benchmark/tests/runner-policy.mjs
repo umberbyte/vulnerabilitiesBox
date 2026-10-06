@@ -34,7 +34,8 @@ test('Settings reject unsupported profiles and unbounded budgets',()=>{
   assert.equal(options({SCAN_CONCURRENCY:'4'}).concurrency,4);
   assert.equal(options({SCAN_CONCURRENCY:'6'}).concurrency,6);
   assert.equal(options({SCAN_CONCURRENCY:'8'}).concurrency,8);
-  for(const env of [{SCAN_PROFILE:'full'},{SCAN_AUTH:'auto'},{SCAN_USER:'root'},{SCAN_SECONDS:'0'},{SCAN_SECONDS:'1201'},{SCAN_SECONDS:'1; bad'},{SCAN_REQUEST_BUDGET:'3001'},{SCAN_CONCURRENCY:'3'},{SCAN_CONCURRENCY:'7'},{SCAN_CONCURRENCY:'9'}])assert.throws(()=>options(env));
+  assert.equal(options({SCAN_REQUEST_BUDGET:'10000'}).requests,10000);
+  for(const env of [{SCAN_PROFILE:'full'},{SCAN_AUTH:'auto'},{SCAN_USER:'root'},{SCAN_SECONDS:'0'},{SCAN_SECONDS:'1201'},{SCAN_SECONDS:'1; bad'},{SCAN_REQUEST_BUDGET:'10001'},{SCAN_CONCURRENCY:'3'},{SCAN_CONCURRENCY:'7'},{SCAN_CONCURRENCY:'9'}])assert.throws(()=>options(env));
 });
 test('active-low is an explicit additional active profile with unchanged generic budgets and authentication',()=>{
   assert.deepEqual(options({SCAN_PROFILE:'active-low'}),{profile:'active-low',auth:'anonymous',user:'alice',seconds:120,requests:300,concurrency:2});

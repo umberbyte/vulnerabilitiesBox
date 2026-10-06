@@ -7,7 +7,7 @@ const sha=value=>createHash('sha256').update(value).digest('hex');
 const variants=variantCases.map(({root,variant,sessionProtectedPath})=>({root,variant,authMode:sessionProtectedPath?'session':'anonymous'})).sort((a,b)=>a.variant.localeCompare(b.variant));
 export function createVariantPanel({seed='batch4-2026',arms=['V','F','N'],wallSeconds=30,requests=100,concurrency=2,profile='baseline',variantIds,createdAt=new Date().toISOString()}={}) {
  if(typeof seed!=='string'||!seed||seed.length>256||!Array.isArray(arms)||arms.length<1||new Set(arms).size!==arms.length||arms.some(x=>!['V','F','N'].includes(x)))throw Error('Invalid variant panel selection');
- if(!Number.isInteger(wallSeconds)||wallSeconds<10||wallSeconds>1200||!Number.isInteger(requests)||requests<10||requests>3000||![2,4,6,8].includes(concurrency)||!['baseline','active'].includes(profile))throw Error('Invalid variant panel budget/profile');
+ if(!Number.isInteger(wallSeconds)||wallSeconds<10||wallSeconds>1200||!Number.isInteger(requests)||requests<10||requests>10000||![2,4,6,8].includes(concurrency)||!['baseline','active'].includes(profile))throw Error('Invalid variant panel budget/profile');
  if(!Number.isFinite(Date.parse(createdAt)))throw Error('Invalid creation time');
  if(variantIds!==undefined&&(!Array.isArray(variantIds)||!variantIds.length||new Set(variantIds).size!==variantIds.length||variantIds.some(id=>typeof id!=='string'||!variants.some(v=>v.variant===id))))throw Error('Invalid variant selection');
  const chosen=variantIds===undefined?variants:variants.filter(item=>variantIds.includes(item.variant));

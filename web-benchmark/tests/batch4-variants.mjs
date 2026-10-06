@@ -48,6 +48,10 @@ test('The faster local variant plan is explicit while the default shape stays co
  assert.deepEqual(validateVariantPanel(fast),fast);
  for(const concurrency of [6,8]){const plan=createVariantPanel({variantIds:ids,concurrency,createdAt:'2026-10-04T00:00:00.000Z'});assert.equal(plan.selection.concurrency,concurrency);assert.deepEqual(validateVariantPanel(plan),plan);}
  assert.throws(()=>createVariantPanel({variantIds:ids,concurrency:3}));
+ const highBudget=createVariantPanel({variantIds:ids,requests:10000,createdAt:'2026-10-04T00:00:00.000Z'});
+ assert.equal(highBudget.cells[0].condition.requestedHttpRequests,10000);
+ assert.deepEqual(validateVariantPanel(highBudget),highBudget);
+ assert.throws(()=>createVariantPanel({variantIds:ids,requests:10001}));
 });
 test('the Docker variant-plan command accepts explicit active scan settings',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'variant-plan-'));t.after(()=>rm(dir,{recursive:true,force:true}));

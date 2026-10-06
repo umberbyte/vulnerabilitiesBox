@@ -12,7 +12,7 @@ Options:
   --auth anonymous,session,bearer default: anonymous
   --user alice|bob|carol|approver|admin  default: alice
   --wall-seconds 10..1200        default: 30
-  --requests 10..3000            default: 100
+  --requests 10..10000           default: 100
   --concurrency 2|4|6|8          default: 2 (higher counts require local validation)
   --max-cells 1..10000           default: 10000
 Roots and seeds are required. CSV options reject duplicates.

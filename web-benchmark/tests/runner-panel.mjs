@@ -160,13 +160,13 @@ test('The inclusive budget and repetition limits are accepted',()=>{
   assert.equal(minimum.cells.length,1);
   assert.equal(minimum.cells[0].condition.wallSeconds,10);
   assert.equal(minimum.cells[0].condition.requestedHttpRequests,10);
-  const maximum=make({replicates:3,wallSeconds:1200,requests:3000,maxCells:10000});
+  const maximum=make({replicates:3,wallSeconds:1200,requests:10000,maxCells:10000});
   assert.equal(maximum.cells.length,9);
-  assert.ok(maximum.cells.every(cell=>cell.condition.wallSeconds===1200&&cell.condition.requestedHttpRequests===3000));
+  assert.ok(maximum.cells.every(cell=>cell.condition.wallSeconds===1200&&cell.condition.requestedHttpRequests===10000));
 });
 
 test('Noninteger, missing-value and out-of-range budgets are rejected',()=>{
-  for(const [name,min,max] of [['replicates',1,3],['wallSeconds',10,1200],['requests',10,3000],['maxCells',1,10000]]) {
+  for(const [name,min,max] of [['replicates',1,3],['wallSeconds',10,1200],['requests',10,10000],['maxCells',1,10000]]) {
     for(const value of [min-1,max+1,-1,1.5,NaN,Infinity,null,true,'30',''])assert.throws(()=>make({[name]:value}),name+' '+String(value));
   }
 });
@@ -207,7 +207,7 @@ test('CLI applies the same choice, duplicate and budget validation before return
     ['--arms','V,V'],['--arms','X'],['--profiles','baseline,baseline'],['--profiles','full'],
     ['--auth','session,session'],['--auth','auto'],['--user','root'],
     ['--replicates','0'],['--replicates','4'],['--wall-seconds','9'],['--wall-seconds','1201'],
-    ['--requests','9'],['--requests','3001'],['--max-cells','0'],['--max-cells','10001'],
+    ['--requests','9'],['--requests','10001'],['--max-cells','0'],['--max-cells','10001'],
     ['--requests','10.5'],['--requests','Infinity'],['--requests','10junk'],['--max-cells','2']
   ])assert.throws(()=>parsePanelArgs([...base,flag,value]));
   for(const [flag,value] of [['--roots','R9999'],['--roots','R0001,R0001'],['--roots','all,R0001'],['--roots',''],['--seeds','seed-a,seed-a'],['--seeds','seed-a,'],['--seeds','']]) {

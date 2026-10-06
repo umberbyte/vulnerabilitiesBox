@@ -118,7 +118,7 @@ export function options(env) {
   }
   const concurrency=integer('SCAN_CONCURRENCY',2,2,8);
   if(![2,4,6,8].includes(concurrency))throw new Error('SCAN_CONCURRENCY must be 2, 4, 6, or 8.');
-  return {profile,auth,user,seconds:integer('SCAN_SECONDS',120,10,1200),requests:integer('SCAN_REQUEST_BUDGET',300,10,3000),concurrency};
+  return {profile,auth,user,seconds:integer('SCAN_SECONDS',120,10,1200),requests:integer('SCAN_REQUEST_BUDGET',300,10,10000),concurrency};
 }
 export function publicScope(manifest) {
   if(!/^\/w\/[a-f0-9]{12}$/.test(manifest.base))throw new Error('Unsupported public workspace path.');
