@@ -62,6 +62,25 @@ test('The local event collector is observation-only for its two declared browser
     assert.throws(()=>validateTargetSurface({...supplied,entry:manifest.base+'/other'},{auth}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_collector_entry');
   }
 });
+
+test('The local distribution URL is observation-only for the declared library integrity operation',()=>{
+  const required=['https://app:8443',COLLECTOR_ORIGIN],fixture=manifest.base+'/b2-library-fixture';
+  const supplied={...manifest,entry:manifest.base+'/b2-library',requiredTargetOrigins:required,requests:[{method:'GET',path:fixture},{method:'POST',path:fixture}]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-library.js',verified:false,adapter:'browser-library-integrity'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_library_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:fixture}]},{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_library_contract');
+  assert.throws(()=>publicScope(supplied,{origin:COLLECTOR_ORIGIN}));
+});
+
+test('Alternative local scripts are observed only for the two declared resource selection pages',()=>{
+  for(const entry of ['b2-resource','b2-named']) {
+    const required=['https://app:8443',COLLECTOR_ORIGIN],normal={method:'GET',path:manifest.base+'/b2-standard.js'};
+    const supplied={...manifest,entry:manifest.base+'/'+entry,requiredTargetOrigins:required,requests:[normal]};
+    assert.deepEqual(validateTargetSurface(supplied,{auth:'anonymous'}),{requiredOrigins:required,supportedOrigins:required,scanOrigins:['https://app:8443'],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-resource.js',verified:false,adapter:'browser-resource-switch'});
+    assert.throws(()=>validateTargetSurface(supplied,{auth:'session'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_resource_auth');
+    assert.throws(()=>validateTargetSurface({...supplied,requests:[]},{auth:'anonymous'}),error=>error instanceof TargetSurfaceError&&error.code==='unsupported_resource_contract');
+  }
+});
 test('The forwarded transport diagnostic selects the entry POST rather than the login POST',()=>{
   const supplied={...manifest,entry:'/w/123456abcdef/b3-transport',requests:[
     {method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'fixture'}},

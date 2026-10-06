@@ -237,6 +237,26 @@ test('Event collector completion requires the separate ZAP history and browser e
   }
 });
 
+test('Library integrity completion requires both auxiliary responses and a recorded browser result',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-library.js',adapter:'browser-library-integrity',verified:true};
+  const adapt=result=>{result.run.targetSurface=structuredClone(pair);result.run.browserLibraryIntegrity={origin:'https://app:8444',path:'/b2-library.js',normalLibraryLoaded:true,modifiedResponseStatus:200,modifiedResponseMessageId:'8',tamperedScriptExecuted:false};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',complete:true,savedCount:2}];return result;};
+  assert.equal((await harness(plan({auth:['session']}),{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserLibraryIntegrity.normalLibraryLoaded=false;},run=>{run.secondaryHistoryArchives[0].savedCount=1;},run=>{run.targetSurface.observationPath='/other';}]) {
+    const rejected=harness(plan({auth:['session']}),{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
+
+test('Resource switch completion accepts either observed alternative execution or a complete absence record',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-resource.js',adapter:'browser-resource-switch',verified:true};
+  const adapt=(result,foreign)=>{result.run.targetSurface=structuredClone(pair);result.run.browserResourceSwitch={origin:'https://app:8444',path:'/b2-resource.js',normalSameOriginScriptLoaded:true,foreignScriptExecuted:foreign,foreignResponseMessageId:foreign?'9':null};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',complete:true,savedCount:foreign?1:0}];return result;};
+  for(const foreign of [true,false])assert.equal((await harness(plan(),{result:result=>adapt(result,foreign)}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserResourceSwitch.normalSameOriginScriptLoaded=false;},run=>{run.browserResourceSwitch.foreignResponseMessageId=null;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result,true);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
+
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
     result=>{result.path='/artifacts/'+result.run.runId+'/run.json';},

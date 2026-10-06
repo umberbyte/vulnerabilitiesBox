@@ -9,4 +9,4 @@
 
 両系列ともactive、明示的8スレッド、各セルの停止目安240秒・8,000要求、同一seed・ZAPイメージ・設定をV/F/Nへ適用した。実測の同時処理ピークは5～6だった。各runは対象とcontrollerの実行ソース一致、走査前後の対象ソース一致、終了時の保留通信0、collectorのZAP履歴完備、ZAP自身のHTMLレポートを記録している。B0458は認証主体と保護対象の到達、走査後の再確認も通った。生HTTPにはfixtureのパスワード・セッション・JWTが含まれ得るので、`artifacts/` の原本は公開Gitに含めない。
 
-イベントのフィールド有無と実値の一致は保存した生HTTPの人間レビューで確認した事実であり、ZAPのalertによる検出率を意味しない。ZAP走査の完走、個別V/F/N成立確認、検出・誤検出の評価は別の判定として扱う。オフライン集計を更新した時点で、既存500変種のZAP V/F/N完走は472件、未完走は28件。人が読める全体レポートは `artifacts/index.html` と各runの `zap-report.html` にある。
+イベントのフィールド有無と実値の一致は保存した生HTTPの人間レビューで確認した事実であり、ZAPのalertによる検出率を意味しない。ZAP走査の完走、個別V/F/N成立確認、検出・誤検出の評価は別の判定として扱う。この系列直後の集計は472/500件で、その後の補助スクリプト3変種の結果は [README-auxiliary-script-zap.md](README-auxiliary-script-zap.md) に記した。人が読める全体レポートは `artifacts/index.html` と各runの `zap-report.html` にある。

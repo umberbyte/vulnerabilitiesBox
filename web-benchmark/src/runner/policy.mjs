@@ -119,10 +119,23 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
     return {requiredOrigins:[...required],supportedOrigins:[...required],verified:false,adapter:'browser-cookie-transport'};
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
+    const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if([manifest.base+'/b2-resource',manifest.base+'/b2-named'].includes(entry)) {
+      if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_resource_auth','The resource switch browser operation requires an anonymous scanner profile.',{unsupported:true});
+      if(!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===manifest.base+'/b2-standard.js'))
+        throw new TargetSurfaceError('unsupported_resource_contract','The public contract lacks the normal same-origin resource.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-resource.js',verified:false,adapter:'browser-resource-switch'};
+    }
+    if(entry===manifest.base+'/b2-library') {
+      if(auth!=='session')throw new TargetSurfaceError('unsupported_library_auth','The library integrity browser operation requires a verified fixture session.',{unsupported:true});
+      const fixture=manifest.base+'/b2-library-fixture';
+      if(!['GET','POST'].every(method=>(manifest.requests||[]).some(request=>request.method===method&&request.path===fixture)))
+        throw new TargetSurfaceError('unsupported_library_contract','The public contract lacks the normal library fixture operations.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-library.js',verified:false,adapter:'browser-library-integrity'};
+    }
     const endpoint=manifest.auxiliaryRequests;
     if(!Array.isArray(endpoint)||endpoint.length!==1||endpoint[0]?.method!=='POST'||endpoint[0]?.origin!==COLLECTOR_ORIGIN||endpoint[0]?.path!=='/collect-events'||Object.keys(endpoint[0]).length!==3)
       throw new TargetSurfaceError('unsupported_collector_contract','The auxiliary origin is not the fixed public event collector contract.',{unsupported:true});
-    const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
     if(![manifest.base+'/login-analytics',manifest.base+'/error-reporting'].includes(entry))
       throw new TargetSurfaceError('unsupported_collector_entry','The public entry has no verified browser operation for this collector.',{unsupported:true});
     const expectedAuth=entry.endsWith('/login-analytics')?'anonymous':'session';

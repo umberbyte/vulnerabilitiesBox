@@ -211,6 +211,105 @@ async function browserEventCollector(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserLibraryIntegrity(plan) {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-library.js';
+  const fixture=new URL(manifest.base+'/b2-library-fixture',scope.origin).href;
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint||!scope.isAllowed(fixture))
+    throw new TargetSurfaceError('library_contract_missing','The declared local library source or fixture operation is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===endpoint)return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('library_browser_login_failed','The browser fixture login failed.');
+    const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('library_browser_identity_failed','The browser did not retain the selected fixture identity.');
+    const originalScript=page.waitForResponse(response=>response.url()===endpoint&&response.request().method()==='GET',{timeout:20000});
+    const normal=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200||(await originalScript).status()!==200||await page.evaluate(()=>document.body.dataset.libraryLoaded)!=='yes')
+      throw new TargetSurfaceError('library_normal_operation_failed','The normal cross-origin library did not execute.');
+    const source=await page.evaluate(async url=>{const response=await fetch(url);return {status:response.status,body:await response.json()};},fixture);
+    if(source.status!==200||typeof source.body?.source!=='string'||!source.body.source)
+      throw new TargetSurfaceError('library_fixture_unavailable','The normal library source was not readable by the fixture subject.');
+    const replacement=source.body.source+'document.body.dataset.libraryTampered="yes";';
+    const updated=await page.evaluate(async ({url,source})=>{const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source})});return {status:response.status,body:await response.json()};},{url:fixture,source:replacement});
+    if(updated.status!==200||updated.body?.stored!==true)throw new TargetSurfaceError('library_fixture_update_failed','The normal library distribution update failed.');
+    const changedScript=page.waitForResponse(response=>response.url()===endpoint&&response.request().method()==='GET',{timeout:20000});
+    const changed=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(changed?.status()!==200||(await changedScript).status()!==200)
+      throw new TargetSurfaceError('library_tampered_response_missing','The modified local library response was not fetched by the browser.');
+    const tamperedExecuted=await page.evaluate(()=>document.body.dataset.libraryTampered==='yes');
+    let recorded=[];
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).filter(message=>message.requestHeader?.startsWith('GET '+endpoint+' HTTP/'));
+      if(recorded.length>=2)break;
+      await sleep(250);
+    }
+    const last=recorded.at(-1);
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(last?.responseHeader)?.[1]);
+    if(recorded.length<2||!last?.id||status!==200||last.responseBody!==replacement)
+      throw new TargetSurfaceError('library_zap_history_missing','The normal and modified library responses were not preserved in ZAP history.');
+    metadata.browserLibraryIntegrity={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-library.js',normalLibraryLoaded:true,modifiedResponseStatus:status,modifiedResponseMessageId:last.id,tamperedScriptExecuted:tamperedExecuted,identityVerified:true};
+    metadata.steps.push({type:'browser-library-integrity',url:endpoint,status,messageId:last.id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
+async function browserResourceSwitch() {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-resource.js';
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint)
+    throw new TargetSurfaceError('resource_contract_missing','The declared local script source is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===endpoint)return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    const normal=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('resource_entry_unreachable','The normal resource page was not reachable.');
+    await page.waitForFunction(()=>document.body.dataset.standardLoaded==='yes',null,{timeout:10000});
+    const diagnostic=new URL(scope.entry);
+    if(diagnostic.pathname===manifest.base+'/b2-resource')diagnostic.searchParams.set('scriptUrl',endpoint);
+    else diagnostic.searchParams.set('namedElement',`<a id="resourceConfig" href="${endpoint}">Guide</a>`);
+    const changed=await page.goto(diagnostic.href,{waitUntil:'load',timeout:20000});
+    if(changed?.status()!==200)throw new TargetSurfaceError('resource_diagnostic_unreachable','The public resource selection page was not reachable.');
+    await page.waitForFunction(()=>document.body.dataset.standardLoaded==='yes'||document.body.dataset.foreignExecuted==='yes',null,{timeout:10000});
+    const observation=await page.evaluate(()=>({standardLoaded:document.body.dataset.standardLoaded==='yes',foreignExecuted:document.body.dataset.foreignExecuted==='yes'}));
+    let recorded=[];
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).filter(message=>message.requestHeader?.startsWith('GET '+endpoint+' HTTP/'));
+      if(recorded.length||!observation.foreignExecuted)break;
+      await sleep(250);
+    }
+    const foreign=recorded.at(-1);
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(foreign?.responseHeader)?.[1]);
+    if(observation.foreignExecuted?(!foreign?.id||status!==200):recorded.length>0)
+      throw new TargetSurfaceError('resource_zap_history_mismatch','The browser script result did not match the saved auxiliary ZAP history.');
+    metadata.browserResourceSwitch={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-resource.js',normalSameOriginScriptLoaded:true,standardScriptLoadedAfterSelection:observation.standardLoaded,foreignScriptExecuted:observation.foreignExecuted,foreignResponseMessageId:foreign?.id||null,foreignResponseStatus:foreign?status:null};
+    metadata.steps.push({type:'browser-resource-switch',url:diagnostic.href,foreignResponseMessageId:foreign?.id||null});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -407,7 +506,7 @@ try {
   scope=publicScope(manifest,{origin:metadata.targetSurface.supportedOrigins.includes(TARGET_ORIGIN)?TARGET_ORIGIN:COOKIE_HTTPS_ORIGIN});
   metadata.targetOrigin=scope.origin;
   scopes=(metadata.targetSurface.scanOrigins||metadata.targetSurface.supportedOrigins).map(origin=>publicScope(manifest,{origin}));
-  observationScopes=metadata.targetSurface.observationOrigins?.map(origin=>({origin,prefix:origin+'/collect-events',regex:'^'+escapeRegex(origin+'/collect-events')+'(?:\\?.*|$)'}))||[];
+  observationScopes=metadata.targetSurface.observationOrigins?.map(origin=>({origin,prefix:origin+(metadata.targetSurface.observationPath||'/collect-events'),regex:'^'+escapeRegex(origin+(metadata.targetSurface.observationPath||'/collect-events'))+'(?:\\?.*|$)'}))||[];
   const authPlan=authenticationPlan(manifest,settings,scope);
   await configure();
   if(settings.profile==='active-low') {
@@ -424,6 +523,16 @@ try {
     metadata.phase='browser-event-collector';
     await browserEventCollector(authPlan);
     metadata.limitations.push('A declared browser action reached the local event collector through ZAP; the collector is observation-only and is excluded from spider and active scan. Its saved HTTP messages require human review for any sensitive-field conclusion.');
+  }
+  if(metadata.targetSurface.adapter==='browser-library-integrity') {
+    metadata.phase='browser-library-integrity';
+    await browserLibraryIntegrity(authPlan);
+    metadata.limitations.push('The declared library was fetched through the local ZAP proxy before and after a fixture distribution update. This is a browser observation, not a ZAP alert or vulnerability score. The auxiliary URL is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-resource-switch') {
+    metadata.phase='browser-resource-switch';
+    await browserResourceSwitch();
+    metadata.limitations.push('The browser loaded a normal same-origin script and exercised the declared alternative local script source through ZAP. Auxiliary response presence and browser execution are recorded separately from ZAP alert detection.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});

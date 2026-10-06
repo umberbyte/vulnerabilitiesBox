@@ -48,6 +48,16 @@ export function validateCellResult(cell,result,{manifestSha256}={}) {
     run.targetSurface.requiredOrigins.includes(TARGET_ORIGIN)&&run.targetSurface.requiredOrigins.includes(COLLECTOR_ORIGIN)&&
     Array.isArray(run.targetSurface.scanOrigins)&&run.targetSurface.scanOrigins.length===1&&run.targetSurface.scanOrigins[0]===TARGET_ORIGIN&&
     Array.isArray(run.targetSurface.observationOrigins)&&run.targetSurface.observationOrigins.length===1&&run.targetSurface.observationOrigins[0]===COLLECTOR_ORIGIN;
+  const libraryPair=run.targetOrigin===TARGET_ORIGIN&&run.targetSurface?.adapter==='browser-library-integrity'&&
+    Array.isArray(run.targetSurface.requiredOrigins)&&run.targetSurface.requiredOrigins.length===2&&
+    run.targetSurface.requiredOrigins.includes(TARGET_ORIGIN)&&run.targetSurface.requiredOrigins.includes(COLLECTOR_ORIGIN)&&
+    Array.isArray(run.targetSurface.scanOrigins)&&run.targetSurface.scanOrigins.length===1&&run.targetSurface.scanOrigins[0]===TARGET_ORIGIN&&
+    Array.isArray(run.targetSurface.observationOrigins)&&run.targetSurface.observationOrigins.length===1&&run.targetSurface.observationOrigins[0]===COLLECTOR_ORIGIN&&run.targetSurface.observationPath==='/b2-library.js';
+  const resourcePair=run.targetOrigin===TARGET_ORIGIN&&run.targetSurface?.adapter==='browser-resource-switch'&&
+    Array.isArray(run.targetSurface.requiredOrigins)&&run.targetSurface.requiredOrigins.length===2&&
+    run.targetSurface.requiredOrigins.includes(TARGET_ORIGIN)&&run.targetSurface.requiredOrigins.includes(COLLECTOR_ORIGIN)&&
+    Array.isArray(run.targetSurface.scanOrigins)&&run.targetSurface.scanOrigins.length===1&&run.targetSurface.scanOrigins[0]===TARGET_ORIGIN&&
+    Array.isArray(run.targetSurface.observationOrigins)&&run.targetSurface.observationOrigins.length===1&&run.targetSurface.observationOrigins[0]===COLLECTOR_ORIGIN&&run.targetSurface.observationPath==='/b2-resource.js';
   if(run.workspace!==cell.expectedWorkspace||run.targetOrigin!==TARGET_ORIGIN&&!cookiePair)fail('artifact_workspace_mismatch');
   if(run.profile!==c.authMode+'-'+c.profile)fail('artifact_profile_mismatch');
   for(const name of ['wallSeconds','requestedHttpRequests','requestedConcurrency'])if(run.budgets?.[name]!==c[name])fail('artifact_budget_mismatch');
@@ -58,6 +68,8 @@ export function validateCellResult(cell,result,{manifestSha256}={}) {
   if(successful) {
     if(cookiePair&&(run.targetSurface.verified!==true||!object(run.browserCookieTransport)||!run.browserCookieTransport.httpMessageId))fail('artifact_target_surface_unverified');
     if(run.targetSurface?.adapter==='browser-event-collector'&&(!collectorPair||run.targetSurface.verified!==true||!object(run.browserEventCollector)||!run.browserEventCollector.messageId||run.browserEventCollector.postStatus!==202||run.browserEventCollector.origin!==COLLECTOR_ORIGIN||run.browserEventCollector.path!=='/collect-events'||!run.secondaryHistoryArchives?.some(item=>item.origin===COLLECTOR_ORIGIN&&item.complete===true&&item.savedCount>0)))fail('artifact_target_surface_unverified');
+    if(run.targetSurface?.adapter==='browser-library-integrity'&&(!libraryPair||run.targetSurface.verified!==true||!object(run.browserLibraryIntegrity)||run.browserLibraryIntegrity.normalLibraryLoaded!==true||!run.browserLibraryIntegrity.modifiedResponseMessageId||run.browserLibraryIntegrity.modifiedResponseStatus!==200||run.browserLibraryIntegrity.origin!==COLLECTOR_ORIGIN||run.browserLibraryIntegrity.path!=='/b2-library.js'||!run.secondaryHistoryArchives?.some(item=>item.origin===COLLECTOR_ORIGIN&&item.complete===true&&item.savedCount>=2)))fail('artifact_target_surface_unverified');
+    if(run.targetSurface?.adapter==='browser-resource-switch'&&(!resourcePair||run.targetSurface.verified!==true||!object(run.browserResourceSwitch)||run.browserResourceSwitch.normalSameOriginScriptLoaded!==true||typeof run.browserResourceSwitch.foreignScriptExecuted!=='boolean'||run.browserResourceSwitch.origin!==COLLECTOR_ORIGIN||run.browserResourceSwitch.path!=='/b2-resource.js'||!run.secondaryHistoryArchives?.some(item=>item.origin===COLLECTOR_ORIGIN&&item.complete===true&&item.savedCount>=(run.browserResourceSwitch.foreignScriptExecuted?1:0))||Boolean(run.browserResourceSwitch.foreignResponseMessageId)!==run.browserResourceSwitch.foreignScriptExecuted))fail('artifact_target_surface_unverified');
     if(run.trafficSettled!==true||run.drainTimedOut!==false||!pendingState(run.pendingAtMeasurementStop||{}).settled||!pendingState(run.drainPendingState||{}).settled)fail('artifact_traffic_unsettled');
     if(!object(run.measurement))fail('artifact_measurement_missing');
     if(c.authMode!=='anonymous'&&(auth.identityVerified!==true||auth.postScanVerified!==true||auth.selfChecks?.presentCookiePreserved!==true))fail('artifact_authentication_unverified');
