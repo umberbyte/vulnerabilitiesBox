@@ -142,7 +142,7 @@ export async function establishAuthentication({plan,scope,api,ensureBudget,onSec
       summary.selfChecks.presentAuthorizationPreserved=true;
       await protectedAccess();
     }
-    return {summary,verify:async()=>{await identity();if(plan.protectedUrl)await protectedAccess();},cleanup};
+    return {summary,verify:async()=>{await identity();if(plan.protectedUrl)await protectedAccess();},fixtureCookie:()=>cookie,cleanup};
   } catch(error) {
     try{await cleanup();}catch{ /* The outer container cleanup remains authoritative. */ }
     throw error;

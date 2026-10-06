@@ -2,6 +2,7 @@ import {isDeepStrictEqual} from 'node:util';
 
 export const TARGET_ORIGIN='https://app:8443';
 export const HTTP_TRANSPORT_ORIGIN='http://benchmark.test:8080';
+export const HTTP_FORWARD_ORIGIN='http://app:8080';
 export const SCAN_PROFILES=Object.freeze(['baseline','active','active-low']);
 export const LOW_SCAN_POLICY='benchmark-active-low-v1';
 export const LOW_POLICY_VERSION='benchmark-active-low-0.1';
@@ -106,6 +107,10 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
     if(auth!=='anonymous')throw new TargetSurfaceError('unsupported_authenticated_transport','The dual-transport adapter cannot verify authenticated HTTP behavior.',{unsupported:true});
     return {requiredOrigins:[...required],supportedOrigins:[...required],verified:false,adapter:'dual-http-transport'};
   }
+  if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(HTTP_FORWARD_ORIGIN)) {
+    if(auth!=='session')throw new TargetSurfaceError('unsupported_forwarded_transport_auth','The forwarded-transport adapter requires a verified fixture session.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],verified:false,adapter:'dual-forwarded-transport'};
+  }
   if(required.some(value=>value!==TARGET_ORIGIN))throw new TargetSurfaceError('unsupported_target_surface','The public contract requires a target origin that this HTTPS-only adapter cannot exercise.',{unsupported:true});
   return {requiredOrigins:[...required],supportedOrigins:[TARGET_ORIGIN],verified:true};
 }
@@ -127,7 +132,7 @@ export function options(env) {
 }
 export function publicScope(manifest,{origin=TARGET_ORIGIN}={}) {
   if(!/^\/w\/[a-f0-9]{12}$/.test(manifest.base))throw new Error('Unsupported public workspace path.');
-  if(![TARGET_ORIGIN,HTTP_TRANSPORT_ORIGIN].includes(origin))throw new Error('Unsupported local target origin.');
+  if(![TARGET_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN].includes(origin))throw new Error('Unsupported local target origin.');
   const prefix=origin+manifest.base;
   const isAllowed=value=>{
     try {const url=new URL(value,origin);return url.origin===origin&&!url.username&&!url.password&&(url.pathname===manifest.base||url.pathname.startsWith(manifest.base+'/'));}catch{return false;}
@@ -135,6 +140,10 @@ export function publicScope(manifest,{origin=TARGET_ORIGIN}={}) {
   if(!isAllowed(manifest.entry)||!isAllowed(manifest.openapi))throw new Error('Manifest entry/schema is outside the public workspace.');
   const regex='^'+prefix.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:/.*|\\?.*|$)';
   return {origin,prefix,regex,isAllowed,entry:new URL(manifest.entry,origin).href,openapi:new URL(manifest.openapi,origin).href};
+}
+export function entryPost(manifest,scope) {
+  const entryPath=new URL(scope.entry).pathname;
+  return (manifest.requests||[]).find(request=>request.method==='POST'&&scope.isAllowed(request.path)&&new URL(request.path,scope.origin).pathname===entryPath);
 }
 export function seedUrls(manifest,scope,{auth='anonymous'}={}) {
   const seeds=[scope.entry,scope.openapi];

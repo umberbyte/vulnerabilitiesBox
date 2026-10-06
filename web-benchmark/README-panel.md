@@ -116,7 +116,7 @@ ledgerには計画パス・ファイルSHA256・planId、各セルの管理者�
 
 passiveの終了待ちは最大10秒で打ち切ります。queueをclearしたりruleを無効にして見かけの0を作る処理は行いません。複数回のidle確認はAPIで観測する条件であり、未開始taskや外部操作までを原子的に排除するbarrierではありません。[Passive Scanner API](https://www.zaproxy.org/docs/desktop/addons/passive-scanner/api/)、固定imageに入っている[pscan 0.6.0のAPI実装](https://github.com/zaproxy/zap-extensions/blob/pscan-v0.6.0/addOns/pscan/src/main/java/org/zaproxy/addon/pscan/PassiveScanApi.java)、[公式controller実装](https://github.com/zaproxy/zap-extensions/blob/pscan-v0.6.0/addOns/pscan/src/main/java/org/zaproxy/addon/pscan/internal/scanner/PassiveScanController.java)を参照しています。global ruleの有効状態が実行中に変わる可能性もあるため、各runの設定snapshotを照合せずに同一条件として採点しないでください。
 
-公開入力が追加のHTTP originなどを `requiredTargetOrigins` で要求するセルは、HTTPSだけを対象とする現在のrunnerでは計測前の `unsupported_target_surface` として記録します。R0461のHTTP開始点、R0457/R0458の8444収集経路が該当します。case IDで選別せず、正常入力の公開契約を使って未対応を判断します。
+公開入力が追加のHTTP originなどを `requiredTargetOrigins` で要求するセルは、固定した匿名HTTP/HTTPS組と認証付きHTTP/HTTPS組を除き、計測前の `unsupported_target_surface` として記録します。R0461とR0367は公開契約に応じた限定adapterでV/F/N系列を保存しました。R0457/R0458の8444収集経路などは引き続き未対応です。case IDで選別せず、正常入力の公開契約を使って未対応を判断します。
 
 元設計の比較系列は`implementation-status.json`の各代表変種の`comparison_track`に保存します。資源制限5件は`bounded_stress`です。通常のHTTP診断、実ブラウザーでの描画・localStorage・Service Worker、状態を持つAPI操作、有限の資源制限は、必要な操作と証拠が異なります。対応するprotocolを評価時に分けてください。job取消のように正常応答のIDを後続要求へ引き継ぐ操作を、固定OpenAPI入力だけで再現したとは扱いません。対象の範囲は[カバレッジ資料](README-coverage.md)を参照してください。
 

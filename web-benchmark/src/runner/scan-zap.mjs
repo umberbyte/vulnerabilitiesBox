@@ -1,8 +1,8 @@
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
-import {options,publicScope,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
-import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom} from './auth.mjs';
+import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom,requestHeader} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
 import {correlateErrorCache} from './history-correlator.mjs';
 import {captureRemainingMessages} from './history-pages.mjs';
@@ -326,6 +326,23 @@ try {
     metadata.targetSurface.verified=!reason&&metadata.originReachability.length===scopes.length&&Boolean(metadata.normalTransportPost);
     if(!reason&&!metadata.targetSurface.verified)throw new TargetSurfaceError('target_origin_not_reached','The declared HTTP and HTTPS target surfaces were not both reached.');
     metadata.limitations.push('The normal HTTP credential POST is sent through ZAP and preserved in raw HTTP history; browser form navigation and secure-context behavior are not reproduced by this adapter.');
+  }
+  if(!reason&&metadata.targetSurface.adapter==='dual-forwarded-transport') {
+    const http=scopes.find(item=>item.origin==='http://app:8080');
+    const normalPost=entryPost(manifest,http);
+    const cookie=authentication.fixtureCookie?.();
+    if(!normalPost||!cookie)throw new TargetSurfaceError('forwarded_transport_contract_missing','The public contract lacks a scoped normal POST or verified fixture session.');
+    if(await guard()) {
+      const url=new URL(normalPost.path,http.origin).href;
+      const response=await api('core','action','sendRequest',{request:rawRequest(url,{method:'POST',headers:{Cookie:cookie,'X-Forwarded-Proto':'https'},body:normalPost.values}),followRedirects:false},Math.min(15000,Math.max(1000,deadline-Date.now())));
+      const message=messageFrom(response,'sendRequest');
+      if(requestHeader(message,'Cookie')!==cookie||requestHeader(message,'X-Forwarded-Proto')!=='https')throw new TargetSurfaceError('forwarded_transport_request_changed','ZAP did not retain the selected fixture session and declared protocol in the HTTP request.');
+      metadata.forwardedTransportPost=measuredMessage(response,'sendRequest','POST',url);
+      metadata.steps.push({type:'session-http-forwarded-post',url,status:metadata.forwardedTransportPost.status});
+    }
+    metadata.targetSurface.verified=!reason&&metadata.originReachability.length===scopes.length&&Boolean(metadata.forwardedTransportPost);
+    if(!reason&&!metadata.targetSurface.verified)throw new TargetSurfaceError('target_origin_not_reached','The declared HTTP and HTTPS target surfaces were not both reached.');
+    metadata.limitations.push('The authenticated HTTP forwarded-protocol POST is an explicit local diagnostic request. Generic spider and active scan do not reproduce its session header combination; the saved raw HTTP request and response must be reviewed separately.');
   }
   if(!reason)await guard();
   if(!reason&&isActiveProfile(settings.profile)) {

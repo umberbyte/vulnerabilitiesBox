@@ -254,6 +254,7 @@ test('Session establishment verifies identity and diagnostic preservation, then 
   assert.equal(auth.summary.identityVerified,true);
   assert.equal(auth.summary.credentialsReplayed,true);
   assert.equal(auth.summary.selfChecks.presentCookiePreserved,true);
+  assert.equal(auth.fixtureCookie(),'sid='+validSid);
   assert.ok(secrets.includes('sid='+validSid)&&secrets.includes(validSid));
   assert.ok(!JSON.stringify(auth.summary).includes(validSid));
   await auth.verify();assert.ok(budgetChecks>=5);

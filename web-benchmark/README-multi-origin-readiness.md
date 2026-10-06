@@ -1,6 +1,6 @@
 # 複数originを要する32変種の計測条件
 
-2026-10-04のコアDAST runで`unsupported_target_surface`となった32変種を、各runの`targetSurface.requiredOrigins`から棚卸しした。現在のZAP adapterは`https://app:8443`だけを診断対象として許可し、必要なoriginが一つでも異なる場合はスキャン前に停止する（`src/runner/policy.mjs`）。この停止は未検出やZAPの機能不足を意味しない。旧runと台帳は作業PCの`artifacts/`に残し、公開Gitには含めない。
+2026-10-04のコアDAST runで`unsupported_target_surface`となった32変種を、各runの`targetSurface.requiredOrigins`から棚卸しした。当時のZAP adapterは`https://app:8443`だけを許可していた。その後、固定したB0461の匿名HTTP/HTTPS組とB0367の認証付きHTTP/HTTPS組に対応した。その他の補助originやブラウザー/WebSocket観測は引き続き未対応である（`src/runner/policy.mjs`）。旧runと台帳は作業PCの`artifacts/`に残し、公開Gitには含めない。
 
 | 必須originの組 | 件数 | 変種 |
 |---|---:|---|
@@ -42,3 +42,7 @@ ZAP自身の前提確認は、Windowsでは`probe-transport.cmd`、Linux/macOS�
 匿名の固定二経路`http://benchmark.test:8080`と`https://app:8443`に限定したrunnerを追加した。公開manifestの各originに対し通常GETを送り、HTTP上の正常な認証POSTもZAP経由で送信する。context、spider、active scanには両originのworkspaceだけを含め、各originの生HTTP履歴を別ファイルに保存する。`panel-b0461-dual-c8-20261006-ledger.json`ではV/F/Nの全3セルが完了し、HTTP GETは200/308/308、HTTP POSTは200/426/426だった。両originのHTTP履歴は全件保存され、終了時の保留通信は0である。
 
 これはZAP経由の直接HTTP診断であり、Chromiumが実際にどのフォームへ遷移・送信したかを示す証拠ではない。旧個別成立確認との実行ソースも一致しないため、診断完走と脆弱性の成立・検出を分けて扱う。B0233のCookie境界、B0367の認証付きHTTP、その他の補助origin・ブラウザー・WebSocket観測には今回のadapterを適用しない。
+
+## B0367の認証付き両経路ZAP系列（2026-10-06）
+
+`http://app:8080`と`https://app:8443`の固定組に限り、HTTPSで本人確認したfixtureセッションからHTTP上の診断対象POSTを明示的に送るadapterを追加した。V/F/Nの保存要求ではCookieと`X-Forwarded-Proto: https`の双方を確認し、応答は200/426/426だった。最初の試行はログインPOSTを誤選択したためVで認証主体不一致となり、失敗台帳を保存した。入口と同じpathのPOSTへ修正した別系列`panel-b0367-forward-c8-retry-20261006-ledger.json`は3/3セル完了、各originのHTTP履歴保存完了、終了時保留通信0、走査中の対象ソース一致である。汎用spider・active scanは明示的なCookieと申告値の組を再現しない。今回の系列だけでZAPによる欠陥検出や現行ソースでの個別成立を判定しない。
