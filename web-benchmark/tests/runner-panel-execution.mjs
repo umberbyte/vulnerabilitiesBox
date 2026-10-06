@@ -248,6 +248,18 @@ test('Cookie shadow completion requires both sibling HTTP archives and the final
   }
 });
 
+test('Fresh-cookie completion requires cross-site browser HTTP and an auxiliary form archive',async()=>{
+  const base=plan({auth:['session']});
+  const origin='https://app.benchmark.test:8443',attacker='https://attacker.test:8444';
+  const pair={requiredOrigins:[origin,attacker],supportedOrigins:[origin,attacker],scanOrigins:[origin],observationOrigins:[attacker],observationPath:'/b2-form',adapter:'browser-fresh-cookie',verified:true};
+  const adapt=result=>{result.run.targetOrigin=origin;result.run.targetSurface=structuredClone(pair);result.run.browserFreshCookie={appOrigin:origin,attackerOrigin:attacker,formPath:'/b2-form',loginStatus:200,accountStatus:200,normalSaveStatus:200,externalFormStatus:200,externalFormChanged:true,externalCookieSent:true,sameSiteAttribute:'omitted',crossSiteFetchSite:'cross-site',loginMessageId:'7',formMessageId:'8',externalPostMessageId:'9',identityVerified:true};result.run.secondaryHistoryArchives=[{origin:attacker,prefix:attacker+'/b2-form',complete:true,savedCount:1}];return result;};
+  assert.equal((await harness(base,{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserFreshCookie.crossSiteFetchSite='same-site';},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(base,{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
+
 test('Event collector completion requires the separate ZAP history and browser evidence',async()=>{
   const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],adapter:'browser-event-collector',verified:true};
   const adapt=result=>{result.run.targetSurface=structuredClone(pair);result.run.browserEventCollector={origin:'https://app:8444',path:'/collect-events',postStatus:202,messageId:'7'};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',complete:true,savedCount:1}];return result;};

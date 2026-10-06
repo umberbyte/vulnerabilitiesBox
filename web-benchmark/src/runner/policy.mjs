@@ -9,6 +9,7 @@ export const COOKIE_HTTP_ORIGIN='http://app.benchmark.test:8080';
 export const CORS_PARTNER_ORIGIN='https://partner.benchmark.test:8444';
 export const CORS_EVIL_ORIGIN='https://evil.benchmark.test:8444';
 export const COOKIE_EVIL_ORIGIN='https://evil.benchmark.test:8443';
+export const COOKIE_ATTACKER_ORIGIN='https://attacker.test:8444';
 export const CORS_ALT_PORT_ORIGIN='https://app.benchmark.test:8444';
 export const SCAN_PROFILES=Object.freeze(['baseline','active','active-low']);
 export const LOW_SCAN_POLICY='benchmark-active-low-v1';
@@ -135,6 +136,13 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
     if(!['GET '+manifest.base+'/b2-cookie-account','GET '+manifest.base+'/b2-cookie-shadow'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
       throw new TargetSurfaceError('unsupported_cookie_shadow_contract','The public contract lacks the normal account and sibling-host operations.',{unsupported:true});
     return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:[COOKIE_EVIL_ORIGIN],observationPaths:[manifest.base+'/login',manifest.base+'/b2-cookie-shadow'],verified:false,adapter:'browser-cookie-shadow'};
+  }
+  if(required.length===2&&required.includes(COOKIE_HTTPS_ORIGIN)&&required.includes(COOKIE_ATTACKER_ORIGIN)&&
+     new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname===manifest.base+'/b2-profile') {
+    if(auth!=='session')throw new TargetSurfaceError('unsupported_fresh_cookie_auth','The fresh-cookie browser observation requires a verified fixture session.',{unsupported:true});
+    if(!['GET '+manifest.base+'/b2-profile','POST '+manifest.base+'/b2-profile','GET '+manifest.base+'/b2-cookie-account'].every(operation=>(manifest.requests||[]).some(request=>request.method+' '+request.path===operation)))
+      throw new TargetSurfaceError('unsupported_fresh_cookie_contract','The public contract lacks the profile or account operations.',{unsupported:true});
+    return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:[COOKIE_ATTACKER_ORIGIN],observationPath:'/b2-form',verified:false,adapter:'browser-fresh-cookie'};
   }
   const corsAuxiliaries=[CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN];
   const corsEntry=new URL(manifest.entry,COOKIE_HTTPS_ORIGIN).pathname;

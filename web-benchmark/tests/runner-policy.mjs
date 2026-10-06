@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,COLLECTOR_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,CORS_ALT_PORT_ORIGIN} from '../src/runner/policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,isActiveProfile,COLLECTOR_ORIGIN,HTTP_TRANSPORT_ORIGIN,HTTP_FORWARD_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_PARTNER_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,COOKIE_ATTACKER_ORIGIN,CORS_ALT_PORT_ORIGIN} from '../src/runner/policy.mjs';
 
 const manifest={base:'/w/123456abcdef',entry:'/w/123456abcdef/search?q=Apple',openapi:'/w/123456abcdef/openapi.json',requests:[{method:'GET',path:'/w/123456abcdef/documents/{id}',pathValues:{id:101},values:{}},{method:'GET',path:'/w/123456abcdef/search',values:{q:'Apple & Banana'}},{method:'POST',path:'/w/123456abcdef/login',values:{username:'alice',password:'Fixture-alice-2026!'}},{method:'GET',path:'http://app:8099/oracle',values:{}},{method:'GET',path:'https://app:8444/attack',values:{}}]};
 test('Legacy and declared HTTPS-only target surfaces remain supported without modifying the contract',()=>{
@@ -68,6 +68,15 @@ test('Cookie shadow observation keeps the sibling login and cookie issuer outsid
   assert.equal(surface.adapter,'browser-cookie-shadow');
   assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error.code==='unsupported_cookie_shadow_auth');
   assert.throws(()=>validateTargetSurface({...supplied,requests:[{method:'GET',path:entry}]},{auth:'session'}),error=>error.code==='unsupported_cookie_shadow_contract');
+});
+
+test('Fresh-cookie observation scans only the app and archives the declared external form',()=>{
+  const entry=manifest.base+'/b2-profile';
+  const requests=[{method:'GET',path:entry},{method:'POST',path:entry},{method:'GET',path:manifest.base+'/b2-cookie-account'}];
+  const supplied={...manifest,entry,requests,requiredTargetOrigins:[COOKIE_HTTPS_ORIGIN,COOKIE_ATTACKER_ORIGIN]};
+  assert.deepEqual(validateTargetSurface(supplied,{auth:'session'}),{requiredOrigins:supplied.requiredTargetOrigins,supportedOrigins:supplied.requiredTargetOrigins,scanOrigins:[COOKIE_HTTPS_ORIGIN],observationOrigins:[COOKIE_ATTACKER_ORIGIN],observationPath:'/b2-form',verified:false,adapter:'browser-fresh-cookie'});
+  assert.throws(()=>validateTargetSurface(supplied,{auth:'anonymous'}),error=>error.code==='unsupported_fresh_cookie_auth');
+  assert.throws(()=>validateTargetSurface({...supplied,requests:requests.slice(0,2)},{auth:'session'}),error=>error.code==='unsupported_fresh_cookie_contract');
 });
 
 test('Declared HTTPS CORS report origins keep auxiliary pages out of active scanning',()=>{

@@ -1,6 +1,6 @@
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {randomBytes,createHash} from 'node:crypto';
-import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
+import {options,publicScope,entryPost,seedUrls,anonymousSchema,identityChangingExamples,validateTargetSurface,TargetSurfaceError,TARGET_ORIGIN,COLLECTOR_ORIGIN,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,COOKIE_ATTACKER_ORIGIN,isActiveProfile,createLowScanPolicy,validateLowPolicySnapshot,lowPolicyDescription,activeScanParameters,cleanupLowScanPolicy} from './policy.mjs';
 import {pendingState} from './drain.mjs';
 import {authenticationPlan,establishAuthentication,AuthenticationError,rawRequest,messageFrom,requestHeader} from './auth.mjs';
 import {configurationFingerprint,CONFIGURATION_NORMALIZATION} from './configuration.mjs';
@@ -267,6 +267,91 @@ async function browserCookieShadow(plan) {
       throw new TargetSurfaceError('cookie_shadow_history_mismatch','The sibling cookie and final account request were absent from saved ZAP HTTP.');
     metadata.browserCookieShadow={browser:'Chromium via ZAP proxy',targetOrigin:scope.origin,siblingOrigin:COOKIE_EVIL_ORIGIN,siblingLoginPath:manifest.base+'/login',shadowPath:manifest.base+'/b2-cookie-shadow',ownLoginStatus:200,accountBeforeStatus:before.status(),siblingLoginStatus:200,shadowStatus,accountAfterStatus:accountStatus,ownIdentityVerified:true,shadowIssuedFor:'bob',accountAfterUsername:account.username,ownCookieName:own[0].name,shadowCookieSent:shadowSent,ownCookieSent:ownSent,shadowMessageId:shadowMessage.id,accountAfterMessageId:accountMessage.id};
     metadata.steps.push({type:'browser-cookie-shadow',shadowUrl:shadow,shadowMessageId:shadowMessage.id,accountAfterMessageId:accountMessage.id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
+async function browserFreshCookie(plan) {
+  const formPage=COOKIE_ATTACKER_ORIGIN+'/b2-form';
+  if(scope.origin!==COOKIE_HTTPS_ORIGIN||plan.cookieName!=='memberSession'||
+     plan.session!==scope.origin+manifest.base+'/b2-cookie-account'||
+     observationScopes.length!==1||observationScopes[0].prefix!==formPage||!scope.isAllowed(scope.entry))
+    throw new TargetSurfaceError('fresh_cookie_contract_missing','The declared profile, account, or external form is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      return scope.isAllowed(url)||url===formPage||url.startsWith(formPage+'?')?route.continue():route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const loginResponse=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await loginResponse).status()!==200)throw new TargetSurfaceError('fresh_cookie_login_failed','The browser fixture login failed.');
+    const login=JSON.parse(await page.locator('body').textContent());
+    if(login.loggedIn!==true||login.username!==plan.subject)throw new TargetSurfaceError('fresh_cookie_identity_failed','Browser login did not establish the selected fixture identity.');
+    const cookie=(await context.cookies(scope.origin)).find(item=>item.name==='memberSession');
+    if(!cookie?.value||!cookie.secure||!cookie.httpOnly)throw new TargetSurfaceError('fresh_cookie_session_missing','Browser did not store the secure member cookie.');
+    onSecret(cookie.value);onSecret('memberSession='+cookie.value);
+    const account=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(account?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('fresh_cookie_account_failed','Browser could not reach its own account.');
+    const profile=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(profile?.status()!==200||await page.locator('#profile input[name=csrf]').count()!==1)
+      throw new TargetSurfaceError('fresh_cookie_profile_failed','The normal authenticated profile form was not available.');
+    const normalContact=plan.subject+'.normal@example.test';
+    await page.locator('#profile input[name=contact]').fill(normalContact);
+    const normalPost=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#profile button').click();
+    if((await normalPost).status()!==200)throw new TargetSurfaceError('fresh_cookie_normal_save_failed','The token-bearing profile update failed.');
+    await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if((await page.locator('#contact').textContent()).trim()!==normalContact)
+      throw new TargetSurfaceError('fresh_cookie_normal_state_missing','The normal profile update was not reflected in the public page.');
+    const foreignContact=plan.subject+'.fresh@example.test';
+    const foreignUrl=new URL(formPage);
+    foreignUrl.searchParams.set('target',scope.entry);
+    foreignUrl.searchParams.set('fields',JSON.stringify({contact:foreignContact}));
+    const foreign=await page.goto(foreignUrl.href,{waitUntil:'load',timeout:20000});
+    if(foreign?.status()!==200||await page.locator('#external-form').count()!==1)
+      throw new TargetSurfaceError('fresh_cookie_external_form_missing','The declared local external form was not available.');
+    const externalPost=page.waitForResponse(response=>response.url()===scope.entry&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#external-form button').click();
+    const externalStatus=(await externalPost).status();
+    if(![200,401,403].includes(externalStatus))throw new TargetSurfaceError('fresh_cookie_external_status_invalid','The external form returned an unexpected status.');
+    const after=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(after?.status()!==200)throw new TargetSurfaceError('fresh_cookie_identity_lost','The browser lost its own profile after the external form.');
+    const finalContact=(await page.locator('#contact').textContent()).trim();
+    if(![normalContact,foreignContact].includes(finalContact)||
+       (finalContact===foreignContact)!==(externalStatus===200))
+      throw new TargetSurfaceError('fresh_cookie_state_mismatch','The external form response did not match the public profile state.');
+    let loginMessage,formMessage,postMessage;
+    for(let attempt=0;attempt<10;attempt++) {
+      const [ownHistory,formHistory]=await Promise.all([
+        api('core','view','messages',{baseurl:scope.prefix,start:0,count:500}),
+        api('core','view','messages',{baseurl:formPage,start:0,count:100})
+      ]);
+      loginMessage=(ownHistory.messages||[]).find(message=>message.requestHeader?.startsWith('POST '+plan.login+' HTTP/'));
+      postMessage=(ownHistory.messages||[]).filter(message=>message.requestHeader?.startsWith('POST '+scope.entry+' HTTP/')).sort((a,b)=>Number(a.id)-Number(b.id)).at(-1);
+      formMessage=(formHistory.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+foreignUrl.href+' HTTP/'));
+      if(loginMessage&&postMessage&&formMessage)break;
+      await sleep(250);
+    }
+    const setCookie=(loginMessage?.responseHeader||'').split(/\r?\n/).find(line=>/^set-cookie:\s*memberSession=/i.test(line));
+    const cookieSent=(requestHeader(postMessage||{requestHeader:''},'Cookie')||'').split(';').map(value=>value.trim()).includes('memberSession='+cookie.value);
+    const origin=requestHeader(postMessage||{requestHeader:''},'Origin');
+    const fetchSite=requestHeader(postMessage||{requestHeader:''},'Sec-Fetch-Site');
+    const observedStatus=Number(/^HTTP\/\S+\s+(\d+)/.exec(postMessage?.responseHeader)?.[1]);
+    if(!loginMessage?.id||!formMessage?.id||!postMessage?.id||!setCookie||!setCookie.includes(cookie.value)||
+       origin!==COOKIE_ATTACKER_ORIGIN||fetchSite!=='cross-site'||observedStatus!==externalStatus||
+       (cookieSent)!==(externalStatus===200)||Boolean(/;\s*SameSite=/i.test(setCookie))===cookieSent)
+      throw new TargetSurfaceError('fresh_cookie_history_mismatch','Saved ZAP HTTP did not corroborate the browser fresh-cookie request and response.');
+    metadata.browserFreshCookie={browser:'Chromium via ZAP proxy',appOrigin:scope.origin,attackerOrigin:COOKIE_ATTACKER_ORIGIN,formPath:'/b2-form',loginStatus:200,accountStatus:account.status(),normalSaveStatus:200,externalFormStatus:externalStatus,externalFormChanged:finalContact===foreignContact,externalCookieSent:cookieSent,sameSiteAttribute:/;\s*SameSite=/i.test(setCookie)?'Lax':'omitted',crossSiteFetchSite:fetchSite,loginMessageId:loginMessage.id,formMessageId:formMessage.id,externalPostMessageId:postMessage.id,identityVerified:true};
+    metadata.steps.push({type:'browser-fresh-cookie',url:foreignUrl.href,formMessageId:formMessage.id,externalPostMessageId:postMessage.id});
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
@@ -1448,6 +1533,11 @@ try {
     metadata.phase='browser-cookie-shadow';
     await browserCookieShadow(authPlan);
     metadata.limitations.push('The declared sibling-host login and Domain cookie were exercised by Chromium through ZAP. Browser identity changes are separate from ZAP alert detection; the sibling host is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-fresh-cookie') {
+    metadata.phase='browser-fresh-cookie';
+    await browserFreshCookie(authPlan);
+    metadata.limitations.push('The local external form and fresh member cookie were exercised by Chromium through ZAP. Browser cookie delivery and state changes are separate from ZAP alert detection; the external page is excluded from spider and active scan.');
   }
   if(metadata.targetSurface.adapter==='browser-event-collector') {
     metadata.phase='browser-event-collector';

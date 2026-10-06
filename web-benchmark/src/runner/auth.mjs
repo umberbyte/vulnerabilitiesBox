@@ -1,5 +1,5 @@
 import {writeFile,unlink,chmod} from 'node:fs/promises';
-import {authStatePath,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN} from './policy.mjs';
+import {authStatePath,COOKIE_HTTPS_ORIGIN,COOKIE_HTTP_ORIGIN,CORS_EVIL_ORIGIN,COOKIE_EVIL_ORIGIN,COOKIE_ATTACKER_ORIGIN} from './policy.mjs';
 
 export class AuthenticationError extends Error {
   constructor(code,message,{unsupported=false}={}) {super(message);this.code=code;this.unsupported=unsupported;}
@@ -23,10 +23,15 @@ export function authenticationPlan(manifest,settings,scope) {
     Array.isArray(manifest.requiredTargetOrigins)&&manifest.requiredTargetOrigins.length===2&&
     manifest.requiredTargetOrigins.includes(COOKIE_HTTPS_ORIGIN)&&manifest.requiredTargetOrigins.includes(COOKIE_EVIL_ORIGIN)&&
     manifest.entry===manifest.base+'/b2-cookie-account';
-  const dedicatedCookie=browserCookieTransport||browserCookieDomain||browserCookieShadow;
-  const session=(manifest.requests||[]).find(value=>value.method==='GET'&&value.path===(dedicatedCookie?manifest.entry:manifest.base+'/session'));
+  const browserFreshCookie=scope.origin===COOKIE_HTTPS_ORIGIN&&
+    Array.isArray(manifest.requiredTargetOrigins)&&manifest.requiredTargetOrigins.length===2&&
+    manifest.requiredTargetOrigins.includes(COOKIE_HTTPS_ORIGIN)&&manifest.requiredTargetOrigins.includes(COOKIE_ATTACKER_ORIGIN)&&
+    manifest.entry===manifest.base+'/b2-profile';
+  const dedicatedCookie=browserCookieTransport||browserCookieDomain||browserCookieShadow||browserFreshCookie;
+  const sessionPath=browserFreshCookie?manifest.base+'/b2-cookie-account':dedicatedCookie?manifest.entry:manifest.base+'/session';
+  const session=(manifest.requests||[]).find(value=>value.method==='GET'&&value.path===sessionPath);
   if(!scope.isAllowed(manifest.login)||!session)fail('unsupported_auth_contract','The manifest lacks a scoped normal login/session contract.',true);
-  const plan={mode:settings.auth,subject:profile.username,role:profile.role||'unspecified',credentials:{username:profile.username,password:profile.password},login:new URL(manifest.login,scope.origin).href,session:new URL(session.path,scope.origin).href,cookieName:browserCookieDomain?'pb_auth':browserCookieTransport?'memberSession':'sid',invalidCookieStatus:dedicatedCookie?401:200};
+  const plan={mode:settings.auth,subject:profile.username,role:profile.role||'unspecified',credentials:{username:profile.username,password:profile.password},login:new URL(manifest.login,scope.origin).href,session:new URL(session.path,scope.origin).href,cookieName:browserCookieDomain?'pb_auth':browserCookieTransport||browserFreshCookie?'memberSession':'sid',invalidCookieStatus:dedicatedCookie?401:200};
   if(browserCookieShadow){plan.cookieName='memberSession';plan.cookieNameCandidates=['memberSession','__Host-memberSession'];}
   if(settings.auth==='session') {
     const declared=manifest.authentication?.sessionProtectedOperation;

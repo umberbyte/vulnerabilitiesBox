@@ -44,6 +44,15 @@ test('Declared cookie shadow accepts either normal own-host cookie name without 
   assert.equal(plan.invalidCookieStatus,401);
   assert.equal(sessionCookie(response({},undefined,200,'Set-Cookie: __Host-memberSession='+validSid+'; Path=/; Secure\r\n'),'__Host-memberSession'),'__Host-memberSession='+validSid);
 });
+test('Fresh-cookie profile uses the dedicated JSON account for authenticated scanning',()=>{
+  const entry=base+'/b2-profile',account=base+'/b2-cookie-account';
+  const input={...manifest,entry,login:base+'/b2-cookie-signin',requests:[{method:'GET',path:entry},{method:'POST',path:entry},{method:'GET',path:account}],requiredTargetOrigins:['https://app.benchmark.test:8443','https://attacker.test:8444']};
+  const plan=authenticationPlan(input,{auth:'session',user:'alice'},publicScope(input,{origin:'https://app.benchmark.test:8443'}));
+  assert.equal(plan.cookieName,'memberSession');
+  assert.equal(plan.session,'https://app.benchmark.test:8443'+account);
+  assert.equal(plan.protectedUrl,plan.session);
+  assert.equal(plan.invalidCookieStatus,401);
+});
 
 function scriptContext(source) {
   const context=vm.createContext({Java:{type(name){
