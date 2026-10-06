@@ -297,6 +297,16 @@ test('PostMessage boundary completion requires the local receiver response and b
   }
 });
 
+test('Form destination completion requires normal transfer and matching auxiliary evidence',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-collect',adapter:'browser-form-destination',verified:true};
+  const adapt=(result,foreign)=>{result.run.targetSurface=structuredClone(pair);result.run.browserFormDestination={origin:'https://app:8444',path:'/b2-collect',normalTransferStatus:200,foreignFormSubmitted:foreign,foreignResponseMessageId:foreign?'13':null,privateFieldMatchedInHistory:foreign?true:null};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',complete:true,savedCount:foreign?1:0}];return result;};
+  for(const foreign of [true,false])assert.equal((await harness(plan({auth:['session']}),{result:result=>adapt(result,foreign)}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserFormDestination.normalTransferStatus=403;},run=>{run.browserFormDestination.foreignResponseMessageId=null;},run=>{run.secondaryHistoryArchives[0].complete=false;}]) {
+    const rejected=harness(plan({auth:['session']}),{result:result=>{adapt(result,true);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
+
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[
     result=>{result.path='/artifacts/'+result.run.runId+'/run.json';},

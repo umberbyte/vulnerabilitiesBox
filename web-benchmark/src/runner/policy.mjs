@@ -120,6 +120,12 @@ export function validateTargetSurface(manifest,{auth='anonymous'}={}) {
   }
   if(required.length===2&&required.includes(TARGET_ORIGIN)&&required.includes(COLLECTOR_ORIGIN)) {
     const entry=new URL(manifest.entry,TARGET_ORIGIN).pathname;
+    if(entry===manifest.base+'/b2-transfer') {
+      if(auth!=='session')throw new TargetSurfaceError('unsupported_form_destination_auth','The form destination operation requires a verified fixture session.',{unsupported:true});
+      if(!(manifest.requests||[]).some(request=>request.method==='POST'&&request.path===manifest.base+'/b2-transfer-complete'))
+        throw new TargetSurfaceError('unsupported_form_destination_contract','The public contract lacks the normal transfer operation.',{unsupported:true});
+      return {requiredOrigins:[...required],supportedOrigins:[...required],scanOrigins:[TARGET_ORIGIN],observationOrigins:[COLLECTOR_ORIGIN],observationPath:'/b2-collect',verified:false,adapter:'browser-form-destination'};
+    }
     if(entry===manifest.base+'/b2-message-hub') {
       if(auth!=='session')throw new TargetSurfaceError('unsupported_message_auth','The message boundary operation requires a verified fixture session.',{unsupported:true});
       if(!(manifest.requests||[]).some(request=>request.method==='GET'&&request.path===manifest.base+'/b2-message-client'))

@@ -534,6 +534,69 @@ async function browserMessageBoundary(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserFormDestination(plan) {
+  const endpoint=COLLECTOR_ORIGIN+'/b2-collect';
+  const normalEndpoint=new URL(manifest.base+'/b2-transfer-complete',scope.origin).href;
+  if(observationScopes.length!==1||observationScopes[0].prefix!==endpoint||!scope.isAllowed(normalEndpoint))
+    throw new TargetSurfaceError('form_destination_contract_missing','The declared transfer destination is unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===endpoint)return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('form_destination_login_failed','The browser fixture login failed.');
+    const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('form_destination_identity_failed','The browser did not retain the selected fixture identity.');
+    const normal=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('form_destination_entry_unreachable','The normal transfer form was not reachable.');
+    const privateValue=await page.locator('#transfer input[name=accessKey]').inputValue();
+    if(!privateValue)throw new TargetSurfaceError('form_destination_normal_missing','The normal transfer form lacked its private field.');
+    const normalPost=page.waitForResponse(response=>response.url()===normalEndpoint&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#transfer button').click();
+    if((await normalPost).status()!==200)throw new TargetSurfaceError('form_destination_normal_failed','The normal authenticated transfer did not complete.');
+    const diagnostic=new URL(scope.entry);
+    diagnostic.searchParams.set('formAction',endpoint);
+    const altered=await page.goto(diagnostic.href,{waitUntil:'load',timeout:20000});
+    if(altered?.status()!==200||await page.locator('#transfer input[name=accessKey]').inputValue()!==privateValue)
+      throw new TargetSurfaceError('form_destination_diagnostic_missing','The diagnostic transfer form was not reachable with the same private field.');
+    const action=await page.locator('#transfer').getAttribute('action');
+    const selected=new URL(action,scope.origin).href;
+    if(![normalEndpoint,endpoint].includes(selected))throw new TargetSurfaceError('form_destination_unexpected_action','The public form selected an unexpected destination.');
+    const post=page.waitForResponse(response=>response.url()===selected&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('#transfer button').click();
+    if((await post).status()!==200)throw new TargetSurfaceError('form_destination_diagnostic_failed','The diagnostic browser transfer did not complete.');
+    const foreignFormSubmitted=selected===endpoint;
+    if(new URL(page.url()).origin!==(foreignFormSubmitted?COLLECTOR_ORIGIN:scope.origin))
+      throw new TargetSurfaceError('form_destination_navigation_mismatch','The browser did not navigate to the selected form destination.');
+    let recorded=[];
+    for(let attempt=0;attempt<10;attempt++) {
+      const history=await api('core','view','messages',{baseurl:endpoint,start:0,count:100});
+      recorded=(history.messages||[]).filter(message=>message.requestHeader?.startsWith('POST '+endpoint+' HTTP/'));
+      if(recorded.length||!foreignFormSubmitted)break;
+      await sleep(250);
+    }
+    const foreign=recorded.at(-1);
+    const status=Number(/^HTTP\/\S+\s+(\d+)/.exec(foreign?.responseHeader)?.[1]);
+    if(foreignFormSubmitted?(!foreign?.id||status!==200||new URLSearchParams(foreign.requestBody).get('accessKey')!==privateValue):recorded.length>0)
+      throw new TargetSurfaceError('form_destination_zap_history_mismatch','The browser form destination and private field did not match saved auxiliary ZAP history.');
+    metadata.browserFormDestination={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-collect',normalTransferStatus:200,foreignFormSubmitted,foreignResponseMessageId:foreign?.id||null,foreignResponseStatus:foreign?status:null,privateFieldMatchedInHistory:foreignFormSubmitted?true:null,identityVerified:true};
+    metadata.steps.push({type:'browser-form-destination',url:diagnostic.href,foreignResponseMessageId:foreign?.id||null});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 function measuredMessage(value,name,method,url) {
   const message=messageFrom(value,name);
   const request=new RegExp('^'+method+' (\\S+) HTTP/\\S+','i').exec(message.requestHeader);
@@ -777,6 +840,11 @@ try {
     metadata.phase='browser-message-boundary';
     await browserMessageBoundary(authPlan);
     metadata.limitations.push('The declared local message receiver and same-origin report exchange were observed through ZAP. Cross-origin delivery is a browser observation, not ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-form-destination') {
+    metadata.phase='browser-form-destination';
+    await browserFormDestination(authPlan);
+    metadata.limitations.push('The declared local form receiver was observed through ZAP with a private-field equality check. Form submission is a browser observation, not ZAP alert detection; the auxiliary URL is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});

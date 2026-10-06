@@ -1,6 +1,6 @@
 # `app:8444` を使う23変種の計測上の役割
 
-2026-10-04の保存済みrunで `requiredTargetOrigins` に `https://app:8443` と `https://app:8444` を宣言した23変種を、実装と個別成立確認（`tests/batch2-browser.mjs`、`tests/batch3-protocols.mjs`、`tests/data-handling.mjs`）から分類した。22変種が実際に補助originを使い、B0341の `app:8444` はWebSocketの申告 `Origin` 値として別の観測能力を要求する。ここでの分類は計測設計用であり、ZAPによる検出・非検出の判定ではない。2026-10-06時点ではB0457・B0458・B0044・B0048・B0053・B0330・B0346・B0347・B0470・B0473の公開契約に限って補助originを観測専用で扱い、V/F/NのZAP走査を完走した。他の12変種にはまだ補助origin adapterがなく、B0341にはWebSocket frame観測がない。
+2026-10-04の保存済みrunで `requiredTargetOrigins` に `https://app:8443` と `https://app:8444` を宣言した23変種を、実装と個別成立確認（`tests/batch2-browser.mjs`、`tests/batch3-protocols.mjs`、`tests/data-handling.mjs`）から分類した。22変種が実際に補助originを使い、B0341の `app:8444` はWebSocketの申告 `Origin` 値として別の観測能力を要求する。ここでの分類は計測設計用であり、ZAPによる検出・非検出の判定ではない。2026-10-06時点ではB0457・B0458・B0044・B0048・B0053・B0055・B0330・B0346・B0347・B0470・B0473の公開契約に限って補助originを観測専用で扱い、V/F/NのZAP走査を完走した。他の11変種にはまだ補助origin adapterがなく、B0341にはWebSocket frame観測がない。
 
 | 役割 | 件数 | 変種 | 必要な観測 |
 |---|---:|---|---|
@@ -37,4 +37,4 @@
 | B0470 | CSPで許可された補助originのJSONPスクリプトを読み、callbackの実行結果を確認する。 |
 | B0473 | 補助originの配布スクリプトを変更し、対象ページでSRIによる実行可否を確認する。 |
 
-計測実装の前提は、各変種の公開manifestにあるoriginを固定allowlistとして照合し、V/F/Nそれぞれで対象・補助側への通信と測定予算のdrainを記録すること。ブラウザーが必要なケースでは、ブラウザーのリクエスト・応答と状態変化をZAPの観測記録に対応付ける。補助originは各変種の正確な公開URLへのブラウザー通信だけを許可し、spider・active scan対象から除外する。実測と原資料は [README-collector-zap.md](README-collector-zap.md)、[README-auxiliary-script-zap.md](README-auxiliary-script-zap.md)、[README-external-window-zap.md](README-external-window-zap.md)、[README-frame-approval-zap.md](README-frame-approval-zap.md)、[README-message-boundary-zap.md](README-message-boundary-zap.md) に記した。B0341は補助originへの到達テストだけでは意味がなく、upgradeとframeを別に確認する。上記の操作を行っていないrunを「ZAPスキャン完了」や「検出」として集計しない。
+計測実装の前提は、各変種の公開manifestにあるoriginを固定allowlistとして照合し、V/F/Nそれぞれで対象・補助側への通信と測定予算のdrainを記録すること。ブラウザーが必要なケースでは、ブラウザーのリクエスト・応答と状態変化をZAPの観測記録に対応付ける。補助originは各変種の正確な公開URLへのブラウザー通信だけを許可し、spider・active scan対象から除外する。実測と原資料は [README-collector-zap.md](README-collector-zap.md)、[README-auxiliary-script-zap.md](README-auxiliary-script-zap.md)、[README-external-window-zap.md](README-external-window-zap.md)、[README-frame-approval-zap.md](README-frame-approval-zap.md)、[README-message-boundary-zap.md](README-message-boundary-zap.md)、[README-form-destination-zap.md](README-form-destination-zap.md) に記した。B0341は補助originへの到達テストだけでは意味がなく、upgradeとframeを別に確認する。上記の操作を行っていないrunを「ZAPスキャン完了」や「検出」として集計しない。
