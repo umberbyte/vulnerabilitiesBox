@@ -342,6 +342,16 @@ test('CSS collector completion requires normal styling and bounded auxiliary obs
     haltedAtFirst(await rejected.execute(),rejected);
   }
 });
+test('Cross-origin report completion requires the normal read and saved browser-origin HTTP',async()=>{
+  const pair={requiredOrigins:['https://app:8443','https://app:8444'],supportedOrigins:['https://app:8443','https://app:8444'],scanOrigins:['https://app:8443'],observationOrigins:['https://app:8444'],observationPath:'/b2-origin-page',adapter:'browser-cors-report',verified:true};
+  const blocked={readable:false,status:null,bodySha256:null,requestId:null,internalHeaderVisible:false,internalHeaderSha256:null};
+  const adapt=result=>{result.run.targetSurface=structuredClone(pair);result.run.browserCorsReport={origin:'https://app:8444',path:'/b2-origin-page',loginStatus:200,normalReportStatus:200,auxiliaryPageStatus:200,auxiliaryMessageId:'16',preflightMessageId:'18',preflightHttpStatus:403,crossOriginReportMessageId:'17',preflight:structuredClone(blocked),simple:structuredClone(blocked),identityVerified:true};result.run.secondaryHistoryArchives=[{origin:'https://app:8444',prefix:'https://app:8444/b2-origin-page',complete:true,savedCount:1}];return result;};
+  assert.equal((await harness(plan(),{result:adapt}).execute()).status,'completed');
+  for(const change of [run=>{run.targetSurface.verified=false;},run=>{run.browserCorsReport.normalReportStatus=401;},run=>{run.browserCorsReport.preflightMessageId=null;},run=>{run.browserCorsReport.preflightHttpStatus=200;},run=>{run.browserCorsReport.crossOriginReportMessageId=null;},run=>{run.browserCorsReport.simple.readable=true;},run=>{run.secondaryHistoryArchives[0].savedCount=0;}]) {
+    const rejected=harness(plan(),{result:result=>{adapt(result);change(result.run);return result;}});
+    haltedAtFirst(await rejected.execute(),rejected);
+  }
+});
 
 test('Unsafe artifact paths, wrong run identity, invalid digest and mismatched exit codes are rejected',async()=>{
   const changes=[

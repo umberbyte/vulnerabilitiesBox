@@ -665,6 +665,71 @@ async function browserCssCollector(plan) {
     metadata.targetSurface.verified=true;
   } finally {if(browser)await browser.close();}
 }
+async function browserCorsReport(plan) {
+  const auxiliary=COLLECTOR_ORIGIN+'/b2-origin-page';
+  if(observationScopes.length!==1||observationScopes[0].prefix!==auxiliary||!scope.isAllowed(scope.entry))
+    throw new TargetSurfaceError('cors_report_contract_missing','The declared report and local auxiliary page are unavailable.');
+  if(!await guard())return;
+  const {chromium}=await import('playwright-core');
+  let browser;
+  try {
+    browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,proxy:{server:zap},args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-networking']});
+    const context=await browser.newContext({ignoreHTTPSErrors:true});
+    await context.route('**/*',route=>{
+      const url=route.request().url();
+      if(scopes.some(item=>item.isAllowed(url))||url===auxiliary)return route.continue();
+      return route.abort();
+    });
+    const page=await context.newPage();
+    await page.goto(plan.login,{waitUntil:'load',timeout:20000});
+    await page.locator('input[name=username]').fill(plan.credentials.username);
+    await page.locator('input[name=password]').fill(plan.credentials.password);
+    const login=page.waitForResponse(response=>response.url()===plan.login&&response.request().method()==='POST',{timeout:20000});
+    await page.locator('form button').click();
+    if((await login).status()!==200)throw new TargetSurfaceError('cors_report_login_failed','The browser fixture login failed.');
+    const session=await page.goto(plan.session,{waitUntil:'load',timeout:20000});
+    if(session?.status()!==200||JSON.parse(await page.locator('body').textContent()).username!==plan.subject)
+      throw new TargetSurfaceError('cors_report_identity_failed','The browser did not retain the selected fixture identity.');
+    const normal=await page.goto(scope.entry,{waitUntil:'load',timeout:20000});
+    if(normal?.status()!==200)throw new TargetSurfaceError('cors_report_normal_failed','The normal authenticated report was unavailable.');
+    let normalBody;
+    try{normalBody=JSON.parse(await page.locator('body').textContent());}catch{}
+    if(!normalBody||typeof normalBody!=='object')throw new TargetSurfaceError('cors_report_normal_invalid','The normal report did not return JSON.');
+    const auxiliaryPage=await page.goto(auxiliary,{waitUntil:'load',timeout:20000});
+    if(auxiliaryPage?.status()!==200||new URL(page.url()).origin!==COLLECTOR_ORIGIN)
+      throw new TargetSurfaceError('cors_report_auxiliary_failed','The local auxiliary page did not load.');
+    // Playwright request interception can send an unsafe GET without Chromium's CORS preflight.
+    // The loaded auxiliary fixture has no outbound requests; let Chromium perform the two fixed fetches natively.
+    await context.unroute('**/*');
+    const fetchReport=async headers=>page.evaluate(async({url,headers})=>{
+      try {
+        const response=await fetch(url,{credentials:'include',headers});
+        return {readable:true,status:response.status,body:await response.text(),requestId:response.headers.get('X-Request-ID'),internalKey:response.headers.get('X-Internal-Key')};
+      }catch{return {readable:false,status:null,body:null,requestId:null,internalKey:null};}
+    },{url:scope.entry,headers});
+    const preflight=await fetchReport({'X-Report-Request':'normal'});
+    const simple=await fetchReport({});
+    for(const value of [preflight,simple])if(typeof value.body==='string')onSecret(value.body);
+    if(simple.readable&&simple.status!==200)throw new TargetSurfaceError('cors_report_simple_status','The browser read an unexpected report status.');
+    let auxiliaryMessage=null,reportMessage=null,preflightMessage=null;
+    for(let attempt=0;attempt<10;attempt++) {
+      const auxiliaryHistory=await api('core','view','messages',{baseurl:auxiliary,start:0,count:100});
+      auxiliaryMessage=(auxiliaryHistory.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+auxiliary+' HTTP/'))||null;
+      const reportHistory=await api('core','view','messages',{baseurl:scope.entry,start:0,count:100});
+      reportMessage=(reportHistory.messages||[]).find(message=>message.requestHeader?.startsWith('GET '+scope.entry+' HTTP/')&&requestHeader(message,'Origin')===COLLECTOR_ORIGIN)||null;
+      preflightMessage=(reportHistory.messages||[]).find(message=>message.requestHeader?.startsWith('OPTIONS '+scope.entry+' HTTP/')&&requestHeader(message,'Origin')===COLLECTOR_ORIGIN&&requestHeader(message,'Access-Control-Request-Headers')?.toLowerCase().includes('x-report-request'))||null;
+      if(auxiliaryMessage&&reportMessage&&preflightMessage)break;
+      await sleep(250);
+    }
+    const preflightStatus=Number(/^HTTP\/\S+\s+(\d+)/.exec(preflightMessage?.responseHeader)?.[1]);
+    if(!auxiliaryMessage?.id||!reportMessage?.id||!preflightMessage?.id||Number(/^HTTP\/\S+\s+(\d+)/.exec(auxiliaryMessage.responseHeader)?.[1])!==200||Number(/^HTTP\/\S+\s+(\d+)/.exec(reportMessage.responseHeader)?.[1])!==200||![204,403].includes(preflightStatus))
+      throw new TargetSurfaceError('cors_report_zap_history_missing','The auxiliary page, browser preflight, or cross-origin report request was absent from ZAP HTTP history.');
+    const observed=value=>({readable:value.readable,status:value.status,bodySha256:typeof value.body==='string'?createHash('sha256').update(value.body).digest('hex'):null,requestId:value.requestId,internalHeaderVisible:value.internalKey!==null,internalHeaderSha256:value.internalKey?createHash('sha256').update(value.internalKey).digest('hex'):null});
+    metadata.browserCorsReport={browser:'Chromium via ZAP proxy',origin:COLLECTOR_ORIGIN,path:'/b2-origin-page',loginStatus:200,normalReportStatus:200,auxiliaryPageStatus:200,auxiliaryMessageId:auxiliaryMessage.id,preflightMessageId:preflightMessage.id,preflightHttpStatus:preflightStatus,crossOriginReportMessageId:reportMessage.id,preflight:observed(preflight),simple:observed(simple),identityVerified:true};
+    metadata.steps.push({type:'browser-cors-report',url:auxiliary,auxiliaryMessageId:auxiliaryMessage.id,preflightMessageId:preflightMessage.id,crossOriginReportMessageId:reportMessage.id});
+    metadata.targetSurface.verified=true;
+  } finally {if(browser)await browser.close();}
+}
 async function browserRecoveryReferer() {
   const pixel=COLLECTOR_ORIGIN+'/b3-pixel',reset=new URL(manifest.base+'/b3-reset',scope.origin).href;
   const recovery=(manifest.requests||[]).find(item=>item.method==='POST'&&item.path===manifest.base+'/b3-recover');
@@ -1142,6 +1207,11 @@ try {
     metadata.phase='browser-css-collector';
     await browserCssCollector(authPlan);
     metadata.limitations.push('A declared CSS preview was loaded by Chromium through the local ZAP proxy. The image request is a browser observation separate from ZAP alert detection; the collector is excluded from spider and active scan.');
+  }
+  if(metadata.targetSurface.adapter==='browser-cors-report') {
+    metadata.phase='browser-cors-report';
+    await browserCorsReport(authPlan);
+    metadata.limitations.push('The normal report and declared local cross-origin browser fetches were measured through ZAP. Browser CORS visibility is separate from ZAP alert detection; the auxiliary page is excluded from spider and active scan.');
   }
   metadata.phase='authentication';metadata.status='running';
   authentication=await establishAuthentication({plan:authPlan,scope,api,onSecret,onProgress:value=>{metadata.authReachability=value;},ensureBudget:async()=>{if(metadata.phase==='authentication-final')return;if(!await guard())throw new AuthenticationError('auth_budget_exhausted','The measurement budget ended before authentication could be verified.');}});
